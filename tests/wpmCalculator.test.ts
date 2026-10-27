@@ -245,3 +245,30 @@ test("institution helpers", () => {
   assert.equal(isStaff("teacher"), true);
   assert.equal(isStaff("student"), false);
 });
+
+
+test("scoring rejects invalid duration and invalid profile values", () => {
+  assert.throws(() => calculateScore({ reference: ref, typed: ref, elapsedSec: 10, durationSec: 0, profile: P }), /durationSec/);
+  assert.throws(() => calculateScore({ reference: ref, typed: ref, elapsedSec: -1, durationSec: 60, profile: P }), /elapsedSec/);
+  assert.throws(() => calculateScore({ reference: ref, typed: ref, elapsedSec: 10, durationSec: 60, profile: { ...P, charsPerWord: 0 } }), /charsPerWord/);
+});
+
+test("exam profile selects its own error percentage denominator", () => {
+  const baseInput = { reference: "one two three four five", typed: "one two wrong", elapsedSec: 60, durationSec: 60, profile: P };
+  const typedBasis = calculateScore(baseInput);
+  const referenceBasis = calculateScore({ ...baseInput, profile: { ...P, errorPercentBasis: "referenceWords" } });
+  assert.equal(typedBasis.errorPercent, 33.33);
+  assert.equal(referenceBasis.errorPercent, 20);
+});
+
+test("Unicode code points are counted consistently for Hindi", () => {
+  const r = calculateScore({ reference: "किताब भारत", typed: "किताब भारत", elapsedSec: 60, durationSec: 60, profile: { ...P, language: "hi" } });
+  assert.equal(r.typedWords, 2);
+  assert.equal(r.typedChars, Array.from("किताब भारत").length);
+  assert.equal(r.accuracy, 100);
+});
+
+test("key log rejects invalid event order and malformed deletion lengths", () => {
+  assert.throws(() => analyzeKeyLog([{ t: 5, type: "ins", ch: "a" }, { t: 4, type: "ins", ch: "b" }], "ab"), /non-decreasing/);
+  assert.throws(() => analyzeKeyLog([{ t: 1, type: "del", n: 0 }], "a"), /positive integer/);
+});
