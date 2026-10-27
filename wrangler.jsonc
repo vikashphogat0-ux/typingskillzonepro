@@ -1,0 +1,28 @@
+
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": ".open-next/worker.js",
+  "name": "typing-skill-zone-v2",
+  "compatibility_date": "2026-10-26",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "global_fetch_strictly_public"
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "typing-skill-zone-v2"
+    }
+  ],
+  "images": {
+    "binding": "IMAGES"
+  },
+  "vars": {
+  "NODE_ENV": "production",
+  "BETTER_AUTH_URL": "https://typingskillzone.in"
+  }
+}  

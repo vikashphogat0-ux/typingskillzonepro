@@ -1,0 +1,38 @@
+name = "typingskillzone-pro"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Cloudflare Pages deployment via @cloudflare/next-on-pages
+# Run: npx @cloudflare/next-on-pages
+# Deploy: npx wrangler pages deploy .vercel/output/static
+
+[env.production]
+name = "typingskillzone-pro"
+
+[env.preview]
+name = "typingskillzone-pro-preview"
+
+# ── Build configuration ────────────────────────────────────────
+[build]
+command = "npx @cloudflare/next-on-pages"
+destination = ".vercel/output/static"
+
+# ── Environment variable bindings ─────────────────────────────
+# Set secrets via: npx wrangler pages secret put SECRET_NAME
+# Or in the Cloudflare Dashboard → Pages → Settings → Environment variables
+#
+# Required secrets (set all of these):
+#   DATABASE_URL
+#   BETTER_AUTH_SECRET
+#   BETTER_AUTH_URL
+#   RESEND_API_KEY
+#   EMAIL_FROM
+#   RAZORPAY_KEY_ID
+#   RAZORPAY_KEY_SECRET
+#   RAZORPAY_WEBHOOK_SECRET
+#
+# Optional:
+#   GROQ_API_KEY
+#   GROQ_MODEL
+#   PRO_MONTHLY_PAISE
+#   PRO_YEARLY_PAISE
