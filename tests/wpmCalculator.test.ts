@@ -161,7 +161,7 @@ test("daily test limit and price overrides", () => {
 });
 test("cashfree signatures verify and reject tampering", () => {
   const canonicalPayload = JSON.stringify({ order_id: "order_1", entity_id: "pay_1" });
-  const sig = createHmac("sha256", "secret").update(`/order/v1/orders\\n123\\n${canonicalPayload}`).digest("base64");
+  const sig = createHmac("sha256", "secret").update(`/order/v1/orders\n123\n${canonicalPayload}`).digest("base64");
   assert.equal(verifyOrderSignature("order_1", "pay_1", "123", sig, "secret"), true);
   assert.equal(verifyOrderSignature("order_1", "pay_2", "123", sig, "secret"), false);
   assert.equal(verifyOrderSignature("order_1", "pay_1", "short", sig, "secret"), false);
