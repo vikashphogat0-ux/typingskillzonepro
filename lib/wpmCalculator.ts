@@ -7,7 +7,7 @@
  */
 export type Lang = "en" | "hi";
 export type ErrorPercentBasis = "typedWords" | "referenceWordsReached" | "referenceWords";
-export type BackspacePolicy = "allowed" | "disabled" | "word";
+export type BackspacePolicy = "full" | "disabled" | "word";
 
 export interface ScoringProfile {
   id: string;
@@ -223,7 +223,7 @@ export function calculateScore(input: ScoreInput): ScoreResult {
 const base: Omit<ScoringProfile, "id" | "label"> = {
   unit: "words", charsPerWord: 5, fullErrorWeight: 1, halfErrorWeight: 0.5,
   halfRules: { caseOnly: true, punctuationOnly: true }, netMethod: "penalty",
-  errorPercentBasis: "typedWords", backspacePolicy: "allowed",
+  errorPercentBasis: "typedWords", backspacePolicy: "full",
 };
 
 /**
