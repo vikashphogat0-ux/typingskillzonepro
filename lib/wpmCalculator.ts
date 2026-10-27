@@ -7,7 +7,6 @@
  */
 export type Lang = "en" | "hi";
 export type ErrorPercentBasis = "typedWords" | "referenceWordsReached" | "referenceWords";
-export type BackspacePolicy = "full" | "disabled" | "word";
 
 export interface ScoringProfile {
   id: string;
@@ -24,7 +23,6 @@ export interface ScoringProfile {
   errorPercentBasis?: ErrorPercentBasis;
   /** Optional exam duration metadata. The attempt duration is still passed to calculateScore. */
   durationSec?: number;
-  backspacePolicy?: BackspacePolicy;
   qualifyingWpm?: number;
   maxErrorPercent?: number;
 }
@@ -223,7 +221,7 @@ export function calculateScore(input: ScoreInput): ScoreResult {
 const base: Omit<ScoringProfile, "id" | "label"> = {
   unit: "words", charsPerWord: 5, fullErrorWeight: 1, halfErrorWeight: 0.5,
   halfRules: { caseOnly: true, punctuationOnly: true }, netMethod: "penalty",
-  errorPercentBasis: "typedWords", backspacePolicy: "full",
+  errorPercentBasis: "typedWords",
 };
 
 /**
@@ -243,7 +241,7 @@ export const PROFILES: Record<string, ScoringProfile> = {
   "delhi-police-hcm-hi": { ...base, id: "delhi-police-hcm-hi", label: "Delhi Police HCM (Hindi; verify exam rules)", language: "hi" },
   "court-typing-en": { ...base, id: "court-typing-en", label: "Court Typing (English; configure per court)", language: "en" },
   "court-typing-hi": { ...base, id: "court-typing-hi", label: "Court Typing (Hindi; configure per court)", language: "hi" },
-  "bsf-typing-en": { ...base, id: "bsf-typing-en", label: "BSF Typing (English; verify exam rules)", language: "en", backspacePolicy: "disabled" },
+  "bsf-typing-en": { ...base, id: "bsf-typing-en", label: "BSF Typing (English; verify exam rules)", language: "en" },
   "high-court": { ...base, id: "high-court", label: "High Court clerical (editable)" },
   practice: { ...base, id: "practice", label: "Free practice" },
 };
