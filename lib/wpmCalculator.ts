@@ -232,11 +232,18 @@ const base: Omit<ScoringProfile, "id" | "label"> = {
  * Keep these rules configurable in admin/database configuration as the product grows.
  */
 export const PROFILES: Record<string, ScoringProfile> = {
+  // Existing targets retained for backward compatibility. Verify official criteria
+  // before enabling pass/fail decisions in production.
   "ssc-chsl-en": { ...base, id: "ssc-chsl-en", label: "SSC CHSL (English)", language: "en", qualifyingWpm: 35 },
   "ssc-chsl-hi": { ...base, id: "ssc-chsl-hi", label: "SSC CHSL (Hindi)", language: "hi", qualifyingWpm: 30 },
-  "ssc-cgl-dest": { ...base, id: "ssc-cgl-dest", label: "SSC CGL (key depressions)", unit: "keystrokes", language: "en", qualifyingWpm: 26.7 },
+  "ssc-cgl-dest": { ...base, id: "ssc-cgl-dest", label: "SSC CGL DEST (key depressions)", unit: "keystrokes", language: "en", qualifyingWpm: 26.7 },
   "rrb-ntpc-en": { ...base, id: "rrb-ntpc-en", label: "RRB NTPC (English)", language: "en", qualifyingWpm: 30 },
   "rrb-ntpc-hi": { ...base, id: "rrb-ntpc-hi", label: "RRB NTPC (Hindi)", language: "hi", qualifyingWpm: 25 },
+  "delhi-police-hcm-en": { ...base, id: "delhi-police-hcm-en", label: "Delhi Police HCM (English; verify exam rules)", language: "en" },
+  "delhi-police-hcm-hi": { ...base, id: "delhi-police-hcm-hi", label: "Delhi Police HCM (Hindi; verify exam rules)", language: "hi" },
+  "court-typing-en": { ...base, id: "court-typing-en", label: "Court Typing (English; configure per court)", language: "en" },
+  "court-typing-hi": { ...base, id: "court-typing-hi", label: "Court Typing (Hindi; configure per court)", language: "hi" },
+  "bsf-typing-en": { ...base, id: "bsf-typing-en", label: "BSF Typing (English; verify exam rules)", language: "en", backspacePolicy: "disabled" },
   "high-court": { ...base, id: "high-court", label: "High Court clerical (editable)" },
   practice: { ...base, id: "practice", label: "Free practice" },
 };
