@@ -23,7 +23,7 @@ const MODE_LABELS: Record<string, string> = {
   unhighlighted: "Unhighlighted — passage on screen, no colour feedback",
   offscreen: "Paper to screen — read the printed passage, type from memory",
 };
-const BS_LABELS: Record<string, string> = {
+const examMark = (slug: string) => {\n  if (slug.includes("ssc-chsl")) return { mark: "SSC", tone: "violet", family: "Staff Selection Commission" };\n  if (slug.includes("ssc-cgl")) return { mark: "CGL", tone: "blue", family: "Combined Graduate Level" };\n  if (slug.includes("rrb") || slug.includes("railway")) return { mark: "RRB", tone: "orange", family: "Railway Recruitment" };\n  if (slug.includes("delhi-police")) return { mark: "DP", tone: "red", family: "Delhi Police" };\n  if (slug.includes("court")) return { mark: "HC", tone: "teal", family: "Court Typing" };\n  if (slug.includes("bsf")) return { mark: "BSF", tone: "green", family: "Border Security Force" };\n  return { mark: "TSZ", tone: "blue", family: "Typing practice" };\n};\n\nconst BS_LABELS: Record<string, string> = {
   full: "Full backspace — delete anywhere in your typed text",
   word: "Current word only — backspace cannot cross a space",
   disabled: "Disabled — no corrections allowed",
@@ -121,18 +121,18 @@ export default function SimulatorPage() {
   return (
     <div className="page">
       <nav className="crumbs">
-        <a href="/">Home</a> / <a href="/simulators">Simulators</a> / {sim.name}
+        <a href="/">Home</a> / <a href="/simulators">Explore exam options</a> / {sim.name}
       </nav>
 
-      <h1>{sim.name}</h1>
-      <p className="hint">
-        {sim.language === "hi" ? "हिंदी (Hindi)" : "English"} ·{" "}
-        {Math.round(sim.duration_sec / 60)} minutes ·{" "}
-        {sim.participants ?? 0} students ranked
-        {sim.my_best ? ` · your best ${sim.my_best} net WPM` : ""}
-      </p>
-
-      {sim.description && <p style={{ maxWidth: "64ch" }}>{sim.description}</p>}
+      <section className="sim-detail-hero">
+        <div className={`exam-emblem ${examMark(sim.slug).tone}`}><span>{examMark(sim.slug).mark}</span><small>EXAM PREP</small></div>
+        <div>
+          <div className="eyebrow">{examMark(sim.slug).family}</div>
+          <h1>{sim.name}</h1>
+          <p>{sim.language === "hi" ? "हिंदी (Hindi)" : "English"} · {Math.max(1, Math.round(sim.duration_sec / 60))} minutes · {sim.participants ?? 0} ranked participants{sim.my_best ? ` · your best ${sim.my_best} net WPM` : ""}</p>
+          {sim.description && <p>{sim.description}</p>}
+        </div>
+      </section>
 
       <div className="tabs" role="tablist">
         <button role="tab" aria-selected={tab === "rules"} onClick={() => setTab("rules")}>
@@ -146,7 +146,7 @@ export default function SimulatorPage() {
       {tab === "rules" && (
         <>
           <div className="sim-rules-box">
-            <h2>Official Exam Rules</h2>
+            <h2>Exam pattern &amp; scoring setup</h2>
 
             <table className="rules-table">
               <tbody>
@@ -257,13 +257,13 @@ export default function SimulatorPage() {
                 disabled={testState === "starting"}
                 aria-busy={testState === "starting"}
               >
-                {testState === "starting" ? "Preparing test…" : "Start Exam Simulator"}
+                {testState === "starting" ? "Preparing test…" : "Start this exam"}
               </button>
-              <a href="/simulators" className="go alt">All simulators</a>
+              <a href="/simulators" className="go alt">Explore exam options</a>
             </div>
 
             <p className="hint" style={{ marginTop: 12 }}>
-              Rules are locked to this simulator and cannot be changed — every student is ranked on the same pattern.
+              Rules are configured for this exam so attempts can be compared consistently.
               Always verify your exam&apos;s exact rules from the official recruitment notification.
             </p>
           </div>
