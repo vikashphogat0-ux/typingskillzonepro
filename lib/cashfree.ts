@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { Buffer } from "node:buffer";
 
 export type CashfreeMode = "sandbox" | "production";
-export const CASHFREE_API_VERSION = "2023-08-01";
+export const CASHFREE_API_VERSION = "2025-01-01";
 
 export function cashfreeMode(): CashfreeMode {
   return process.env.CF_ENVIRONMENT?.trim().toLowerCase() === "production"
