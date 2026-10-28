@@ -160,14 +160,8 @@ test("daily test limit and price overrides", () => {
   assert.equal(priceFor("monthly", { PRO_MONTHLY_PAISE: "abc" }), 14900);
 });
 test("cashfree signatures verify and reject tampering", () => {
- const sig = createHmac("sha256", "secret")
-  .update(
-    `/order/v1/orders\n123\n${JSON.stringify({
-      order_id: "order_1",
-      entity_id: "pay_1",
-    })}`,
-  )
-  .digest("base64");
+  const canonicalPayload = JSON.stringify({ order_id: "order_1", entity_id: "pay_1" });
+  const sig = createHmac("sha256", "secret").update(`/order/v1/orders\n123\n${canonicalPayload}`).digest("base64");
   assert.equal(verifyOrderSignature("order_1", "pay_1", "123", sig, "secret"), true);
   assert.equal(verifyOrderSignature("order_1", "pay_2", "123", sig, "secret"), false);
   assert.equal(verifyOrderSignature("order_1", "pay_1", "short", sig, "secret"), false);
@@ -251,4 +245,31 @@ test("institution helpers", () => {
   assert.ok(validateInstitution({ name: "x", phone: "12" }).length >= 3);
   assert.equal(isStaff("teacher"), true);
   assert.equal(isStaff("student"), false);
+});
+
+
+test("scoring rejects invalid duration and invalid profile values", () => {
+  assert.throws(() => calculateScore({ reference: ref, typed: ref, elapsedSec: 10, durationSec: 0, profile: P }), /durationSec/);
+  assert.throws(() => calculateScore({ reference: ref, typed: ref, elapsedSec: -1, durationSec: 60, profile: P }), /elapsedSec/);
+  assert.throws(() => calculateScore({ reference: ref, typed: ref, elapsedSec: 10, durationSec: 60, profile: { ...P, charsPerWord: 0 } }), /charsPerWord/);
+});
+
+test("exam profile selects its own error percentage denominator", () => {
+  const baseInput = { reference: "one two three four five", typed: "one two wrong", elapsedSec: 60, durationSec: 60, profile: P };
+  const typedBasis = calculateScore(baseInput);
+  const referenceBasis = calculateScore({ ...baseInput, profile: { ...P, errorPercentBasis: "referenceWords" } });
+  assert.equal(typedBasis.errorPercent, 33.33);
+  assert.equal(referenceBasis.errorPercent, 20);
+});
+
+test("Unicode code points are counted consistently for Hindi", () => {
+  const r = calculateScore({ reference: "किताब भारत", typed: "किताब भारत", elapsedSec: 60, durationSec: 60, profile: { ...P, language: "hi" } });
+  assert.equal(r.typedWords, 2);
+  assert.equal(r.typedChars, Array.from("किताब भारत").length);
+  assert.equal(r.accuracy, 100);
+});
+
+test("key log rejects invalid event order and malformed deletion lengths", () => {
+  assert.throws(() => analyzeKeyLog([{ t: 5, type: "ins", ch: "a" }, { t: 4, type: "ins", ch: "b" }], "ab"), /non-decreasing/);
+  assert.throws(() => analyzeKeyLog([{ t: 1, type: "del", n: 0 }], "a"), /positive integer/);
 });

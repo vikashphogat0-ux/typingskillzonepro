@@ -3,8 +3,8 @@ import "./globals.css";
 import AuthLink from "@/components/AuthLink";
 
 export const metadata: Metadata = {
-  title: "TypingSkillZone: exam typing practice",
-  description: "English and Hindi typing tests with exam-style scoring for SSC, RRB and High Court exams.",
+  title: "Typing Skill Zone | Exam-focused typing practice",
+  description: "Prepare for competitive typing exams with focused English and Hindi practice, exam-configured simulators, a passage library, and individual exam leaderboards.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -14,7 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="top">
           <a href="/" className="brand">TypingSkillZone</a>
           <nav>
-            <a href="/simulators">Simulators</a>
+            <a href="/simulators">Explore Exams</a>
             <a href="/test">Practice</a>
             <a href="/library">Library</a>
             <a href="/learn">Learn</a>
