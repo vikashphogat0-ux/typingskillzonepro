@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { api, fmtDate } from "@/lib/clientApi";
 
 interface P { id: string; title: string; word_count: number; language?: string; body?: string; date?: string; preview?: string; exam?: string | null }
-type LibraryData = { today?: string; daily: Record<string, P | undefined>; archive: Record<string, P[]>; list: P[]; localFallback?: boolean; notice?: string };
+type LibraryData = { today?: string; daily: Record<string, P | undefined>; archive: Record<string, P[]>; list: P[]; months?: string[]; monthly?: P[]; localFallback?: boolean; notice?: string };
 export default function Library() {
   const [d, setD] = useState<LibraryData | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -14,6 +14,10 @@ export default function Library() {
   const [open, setOpen] = useState<P | null>(null);
   const [printing, setPrinting] = useState<P | null>(null);
   const [searching, setSearching] = useState(false);
+  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [monthly, setMonthly] = useState<P[]>([]);
+  const [monthLoading, setMonthLoading] = useState(false);
+  const [selectedPassage, setSelectedPassage] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -35,6 +39,19 @@ export default function Library() {
     }, 250);
     return () => { active = false; clearTimeout(t); };
   }, [q, lang]);
+  useEffect(() => {
+    let active = true;
+    setMonthLoading(true);
+    api(`/api/library?month=${encodeURIComponent(month)}`)
+      .then(r => {
+        if (!active || !r.ok) return;
+        setMonthly(Array.isArray(r.data?.monthly) ? r.data.monthly : []);
+        if (r.data?.months?.length && !r.data.months.includes(month)) setMonth(r.data.months[0]);
+      })
+      .catch(() => { if (active) setMonthly([]); })
+      .finally(() => { if (active) setMonthLoading(false); });
+    return () => { active = false; };
+  }, [month]);
   useEffect(() => {
     if (printing?.body) {
       const t = setTimeout(() => window.print(), 100);
@@ -70,11 +87,11 @@ export default function Library() {
       <section className="library-hero">
         <div className="eyebrow"><span className="eyebrow-dot" /> YOUR PRACTICE RESOURCE</div>
         <h1>Passage Library</h1>
-        <p>Build consistency with focused English and Hindi passages. Browse today’s practice, revisit recent passages, or search the collection by title and language.</p>
+        <p>Build consistency with focused English and Hindi passages. Browse daily practice, choose a month, and find passages by language, title, or exam.</p>
         <div className="cta-group"><a className="go hero-primary" href="/test">Start a practice test <span>→</span></a><a className="go hero-secondary" href="/simulators">Explore exam options</a></div>
       </section>
       <div className="tabs" role="tablist" aria-label="Passage library sections">
-        {(["today", "archive", "all"] as const).map(t => <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{t === "today" ? "Today’s passages" : t === "archive" ? "14-day archive" : "Search library"}</button>)}
+        {(["today", "archive", "all"] as const).map(t => <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{t === "today" ? "Today’s passages" : t === "archive" ? "Browse by month" : "Search library"}</button>)}
       </div>
       {d?.localFallback && <div className="data-source-notice" role="status"><strong>Temporary sample mode</strong><p>{d.notice ?? "The database-backed passage library is unavailable. Built-in samples are shown temporarily."} Real library records will return when the database connection and schema are repaired.</p></div>}
       {loadError && <div className="empty-state"><b>We couldn’t load today’s passages.</b><p>{loadError}</p><button className="go alt" onClick={retry}>Try again</button></div>}
@@ -84,13 +101,25 @@ export default function Library() {
           {!d.daily?.en && !d.daily?.hi ? <div className="empty-state"><b>No daily passages available yet.</b><p>Please check back later or explore the searchable collection.</p><button className="go alt" onClick={() => setTab("all")}>Search all passages</button></div> : <div className="library-day-grid">{d.daily?.en && <Card lg="en" p={d.daily.en} />}{d.daily?.hi && <Card lg="hi" p={d.daily.hi} />}</div>}
         </>
       ))}
-      {tab === "archive" && !loadError && (!d ? <div className="exam-loading">Loading archive…</div> : <section className="library-archive">
-        <div className="library-intro"><div><h2>Recent passage archive</h2><p>Browse the rotating daily selection from the last 14 days.</p></div></div>
-        {(["en", "hi"] as const).map(l => <div key={l}><h3>{l === "hi" ? "हिन्दी" : "English"}</h3><div className="tbl"><table><thead><tr><th>Date</th><th>Passage</th><th>Words</th><th>Actions</th></tr></thead><tbody>
-          {(d.archive?.[l] ?? []).map((x: P) => <tr key={`${l}-${x.date}`}><td>{fmtDate(x.date)}</td><td>{x.title}</td><td>{x.word_count}</td><td><a href={`/api/library/download?date=${x.date}&lang=${l}`}>Text</a> · <button className="link" onClick={() => print(x)}>Save PDF / Print</button></td></tr>)}
-          {!(d.archive?.[l] ?? []).length && <tr><td colSpan={4}>No passages available for this period.</td></tr>}
-        </tbody></table></div></div>)}
-      </section>)}
+      {tab === "archive" && !loadError && <section className="library-archive library-month-browser">
+        <div className="library-intro"><div><h2>Browse the passage collection</h2><p>Choose a month, then select a passage to read, practise, download or print.</p></div></div>
+        <div className="library-month-toolbar">
+          <label>Practice month<select value={month} onChange={e => setMonth(e.target.value)}>{(d?.months?.length ? d.months : [month]).map(m => <option key={m} value={m}>{new Date(`${m}-01T12:00:00`).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</option>)}</select></label>
+          <span className="library-month-count">{monthLoading ? "Loading passages…" : `${monthly.length} passage${monthly.length === 1 ? "" : "s"} in this month`}</span>
+        </div>
+        {!monthLoading && monthly.length === 0 ? <div className="empty-state"><b>No passages found for this month.</b><p>Choose another month or use Search Library to find any available passage.</p><button className="go alt" onClick={() => setTab("all")}>Search all passages</button></div> :
+          <div className="library-month-list">{monthly.map(p => <article key={p.id} className={`library-month-item ${selectedPassage === p.id ? "selected" : ""}`}>
+            <button className="library-month-select" onClick={() => { setSelectedPassage(p.id); void view(p); }} aria-pressed={selectedPassage === p.id}>
+              <span className={`library-language-mark ${p.language === "hi" ? "hindi" : "english"}`}>{p.language === "hi" ? "हि" : "EN"}</span>
+              <span className="library-month-title"><strong>{p.title}</strong><small>{p.language === "hi" ? "Hindi" : "English"} · {p.word_count} words{p.exam ? ` · ${p.exam}` : ""}</small></span>
+              <span className="library-month-chevron">{selectedPassage === p.id ? "Selected" : "Select"} ↗</span>
+            </button>
+            {selectedPassage === p.id && <div className="library-month-detail">
+              <div className={`passage-box ${p.language === "hi" ? "hi" : ""}`} lang={p.language}>{open?.id === p.id ? open.body : (p.preview || "Open this passage to load its full text.")}</div>
+              <div className="library-day-actions"><a className="go" href={`/api/library/download?id=${encodeURIComponent(p.id)}`}>Download text</a><button className="go alt" onClick={() => print(open?.id === p.id ? open : p)}>Save as PDF / Print</button><a className="go alt" href={`/test?passage=${encodeURIComponent(p.id)}`}>Practise this passage ↗</a></div>
+            </div>}
+          </article>)}</div>}
+      </section>}
       {tab === "all" && <section className="library-archive">
         <div className="library-intro"><div><h2>Search all passages</h2><p>Filter by title and language, then read, download text, or use Save as PDF / Print. In the print dialog choose “Save as PDF”.</p></div></div>
         <div className="library-tools"><label>Search by title<input value={q} onChange={e => setQ(e.target.value)} placeholder="e.g. digital India, education…" /></label><label>Language<select value={lang} onChange={e => setLang(e.target.value)}><option value="">Both languages</option><option value="en">English</option><option value="hi">Hindi</option></select></label></div>
