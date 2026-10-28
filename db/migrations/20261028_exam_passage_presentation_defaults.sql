@@ -1,13 +1,17 @@
--- Configure presentation only; do not change exam duration, scoring, passage content, or keyboard policy unless specified.
+-- Configure presentation only; do not change exam duration, scoring, or passage content.
+-- Defaults apply to every existing template, then selected families get explicit overrides.
 UPDATE exam_templates
 SET font_size_pt = 12,
-    passage_layout = CASE
-      WHEN slug LIKE '%bsf%' THEN 'continuous'
-      WHEN slug LIKE '%dp-hcm%' OR slug LIKE '%delhi-police%' THEN 'paper-to-screen'
-      ELSE 'paragraphs'
-    END,
+    passage_layout = CASE WHEN display_mode = 'offscreen' THEN 'paper-to-screen' ELSE 'paragraphs' END,
     enter_key_policy = 'newline',
-    tab_key_policy = 'blocked'
-WHERE slug LIKE '%bsf%' OR slug LIKE '%dp-hcm%' OR slug LIKE '%delhi-police%';
+    tab_key_policy = 'blocked';
 
--- All templates retain a 12 pt default. Admins can later tune verified official formats individually.
+UPDATE exam_templates
+SET passage_layout = 'continuous',
+    font_size_pt = 12
+WHERE slug LIKE '%bsf%';
+
+UPDATE exam_templates
+SET passage_layout = 'paper-to-screen',
+    font_size_pt = 12
+WHERE slug LIKE '%dp-hcm%' OR slug LIKE '%delhi-police%';
