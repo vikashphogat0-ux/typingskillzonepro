@@ -164,7 +164,10 @@ export default function Pricing() {
     if (busyPlan !== null) return;
 
     if (!info?.signedIn) {
-      setMsg("Please sign in before purchasing a plan.");
+      // Send the student to the existing sign-in page and return to pricing.
+      // Checkout still requires a fresh authenticated session and a deliberate
+      // second click after sign-in; do not initiate payment automatically.
+      window.location.assign(`/login?next=${encodeURIComponent("/pricing")}`);
       return;
     }
 
