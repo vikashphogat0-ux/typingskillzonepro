@@ -25,6 +25,9 @@ export default function TestPage() {
   const [loading, setLoading] = useState(false);
   const [limitMsg, setLimitMsg] = useState("");
   const [notice, setNotice] = useState("");
+  const [localResult, setLocalResult] = useState<SimResult | null>(null);
+  const [passageOptions, setPassageOptions] = useState<{ id: string; title: string; word_count: number }[]>([]);
+  const [selectedPassageId, setSelectedPassageId] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -51,6 +54,16 @@ export default function TestPage() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    setSelectedPassageId("");
+    fetch(`/api/library?lang=${preset.lang}`)
+      .then((r) => r.json().then((data) => ({ ok: r.ok, data })))
+      .then(({ ok, data }) => { if (active && ok && Array.isArray(data?.list)) setPassageOptions(data.list); })
+      .catch(() => { if (active) setPassageOptions([]); });
+    return () => { active = false; };
+  }, [preset.lang]);
+
+  useEffect(() => {
     const p = presets.find((x) => x.slug === slug) ?? presets[0];
     if (p) { setMode(p.mode); setBs(p.backspace); }
   }, [slug, presets]);
@@ -62,10 +75,10 @@ export default function TestPage() {
   };
 
   const start = async () => {
-    setLoading(true); setLimitMsg("");
+    setLoading(true); setLimitMsg(""); setLocalResult(null);
     let text: string | null = null;
     try {
-      const r = await fetch(`/api/passages?lang=${preset.lang}&template=${encodeURIComponent(preset.slug)}`);
+      const r = await fetch(`/api/passages?lang=${preset.lang}&template=${encodeURIComponent(preset.slug)}${selectedPassageId ? `&id=${encodeURIComponent(selectedPassageId)}` : ""}`);
       const data = await r.json().catch(() => ({}));
       if (r.status === 402) { setLimitMsg(data.error ?? "Your daily free-test limit has been reached."); setLoading(false); return; }
       if (r.ok && typeof data.body === "string" && data.body.trim()) text = data.body;
@@ -87,8 +100,27 @@ export default function TestPage() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...r, presetSlug: slug, mode, backspace: bs }),
     }).then((x) => x.json()).catch(() => null);
-    router.push(res?.id ? `/results/${res.id}` : "/dashboard");
-  }, [router, slug, mode, bs]);
+    if (res?.id) router.push(`/results/${res.id}`);
+    else { setLocalResult(r); setPassage(null); }
+  }, [router, slug, mode, bs, selectedPassageId]);
+
+  if (localResult) return (
+    <div className="page practice-page">
+      <section className="practice-result">
+        <div className="eyebrow"><span className="eyebrow-dot" /> PRACTICE COMPLETE</div>
+        <h1>Your typing result</h1>
+        <p>{preset.name} · {Math.round(localResult.elapsedSec)} seconds practiced</p>
+        <div className="practice-result-grid">
+          <div><span>Gross speed</span><strong>{localResult.score.grossWpm} WPM</strong></div>
+          <div><span>Net speed</span><strong>{localResult.score.netWpm} WPM</strong></div>
+          <div><span>Accuracy</span><strong>{localResult.score.accuracy}%</strong></div>
+          <div><span>Errors</span><strong>{localResult.score.fullErrors + localResult.score.halfErrors}</strong></div>
+        </div>
+        <p className="practice-notice">This result is shown locally because the database or sign-in service is unavailable. It has not been saved to your account history.</p>
+        <div className="cta-group"><button className="practice-start" onClick={() => { setLocalResult(null); setPassage(null); setNotice(""); }}>Practise again →</button><a className="go hero-secondary" href="/library">Choose another passage</a></div>
+      </section>
+    </div>
+  );
 
   if (passage) return <div className="page"><TypingSimulator key={run} passage={passage} lang={preset.lang} durationSec={preset.durationSec} mode={mode} backspace={bs} profile={profile} onFinish={onFinish} /></div>;
 
@@ -108,6 +140,13 @@ export default function TestPage() {
             <select value={slug} onChange={(e) => choose(e.target.value)}>
               {presets.map((p) => <option key={p.slug} value={p.slug}>{p.name} · {Math.max(1, Math.round(p.durationSec / 60))} min</option>)}
             </select>
+          </label>
+          <label className="practice-field">Passage
+            <select value={selectedPassageId} onChange={(e) => setSelectedPassageId(e.target.value)}>
+              <option value="">Random passage for this language</option>
+              {passageOptions.map((p) => <option key={p.id} value={p.id}>{p.title} · {p.word_count} words</option>)}
+            </select>
+            <small>Choose any available library passage in the selected language. Exam timing, scoring profile and backspace policy remain applied.</small>
           </label>
           <div className="practice-summary">
             <div className="practice-summary-mark">{preset.lang === "hi" ? "हि" : "EN"}</div>

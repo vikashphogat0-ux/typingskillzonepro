@@ -52,13 +52,19 @@ export default function SimulatorPage() {
   const [testState, setTestState] = useState<"idle" | "starting" | "running" | "done">("idle");
   const [testData, setTestData] = useState<any>(null);
   const [startErr, setStartErr] = useState("");
+  const [passageOptions, setPassageOptions] = useState<{ id: string; title: string; word_count: number }[]>([]);
+  const [selectedPassageId, setSelectedPassageId] = useState("");
 
   useEffect(() => {
     if (!slug) return;
     api(`/api/simulators/${slug}`)
-      .then(r => {
-        if (r.ok) setSim(r.data);
-        else setError(r.data.error ?? "Simulator not found.");
+      .then(async r => {
+        if (r.ok) {
+          setSim(r.data);
+          setSelectedPassageId("");
+          const passages = await api(`/api/library?lang=${r.data.language}`);
+          if (passages.ok && Array.isArray(passages.data?.list)) setPassageOptions(passages.data.list);
+        } else setError(r.data.error ?? "Simulator not found.");
       })
       .catch(() => setError("Network error. Please refresh."))
       .finally(() => setLoading(false));
@@ -70,7 +76,7 @@ export default function SimulatorPage() {
     const r = await api("/api/tests/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug }),
+      body: JSON.stringify({ slug, ...(selectedPassageId ? { passageId: selectedPassageId } : {}) }),
     });
     if (!r.ok) {
       setTestState("idle");
@@ -259,6 +265,15 @@ export default function SimulatorPage() {
                 {startErr.includes("Pro") && <a href="/pricing">Upgrade to Pro</a>}
               </p>
             )}
+
+            <label className="practice-field" style={{ marginTop: 18, maxWidth: 620 }}>
+              Passage for this attempt
+              <select value={selectedPassageId} onChange={(e) => setSelectedPassageId(e.target.value)}>
+                <option value="">Random passage for this exam language</option>
+                {passageOptions.map((p) => <option key={p.id} value={p.id}>{p.title} · {p.word_count} words</option>)}
+              </select>
+              <small>Every passage in the selected language can be practised with this simulator&apos;s configured duration, scoring and backspace rules.</small>
+            </label>
 
             <div style={{ marginTop: 20, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
               <button

@@ -19,3 +19,12 @@ Subscriptions: Free and Pro plans (`lib/plans.ts`), Razorpay one-time checkout, 
 - Institutes: `/institution/register`, admin approval at `/admin/institutions`, panel at `/institution`, students join at `/join` with a code. Members of an approved institute get unlimited tests.
 - Passage library: `/library` (daily English and Hindi passage, 14-day archive, search, .txt download, print). Passages come from the admin panel.
 - Result detail with side-by-side comparison and mistake patterns: `/results/[id]`.
+
+
+## Local development without Neon configured
+
+The local exam catalogue and free practice page have built-in preset/sample fallbacks when `DATABASE_URL` is absent. These fallbacks are for local UI and practice checks only; they do not contain the full database passage collection, student history, authentication, or saved results. For full functionality, copy the existing Neon connection string into the root `.env.local` file as `DATABASE_URL="..."` (never commit that file), restart `npm run dev`, and apply the documented idempotent seed scripts to the intended existing database if needed.
+
+## Passage PDFs
+
+The passage library provides **Save as PDF / Print** for individual passages. In the browser print dialog choose **Save as PDF**. This print route preserves the browser's Unicode font support, including Hindi/Devanagari. Text download links remain available separately.
