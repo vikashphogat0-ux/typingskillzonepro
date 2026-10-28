@@ -2,10 +2,10 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "main": ".open-next/worker.js",
   "name": "typing-skill-zone-v2",
-  "compatibility_date": "2026-10-26",
+  "compatibility_date": "2026-10-21",
   "compatibility_flags": [
     "nodejs_compat",
-    "global_fetch_strictly_public"
+    "nodejs_compat_populate_process_env"
   ],
   "assets": {
     "directory": ".open-next/assets",
@@ -20,9 +20,14 @@
   "images": {
     "binding": "IMAGES"
   },
+  "observability": {
+    "enabled": true
+  },
   "vars": {
     "NODE_ENV": "production",
     "NEXT_PUBLIC_URL": "https://typingskillzone.in",
-    "CF_ENVIRONMENT": "sandbox"
+    "CF_ENVIRONMENT": "sandbox",
+    "EMAIL_FROM": "TypingSkillZone <support@typingskillzone.in>",
+    "AUTH_EMAIL_FROM": "TypingSkillZone <support@typingskillzone.in>"
   }
 }
