@@ -1,8 +1,1 @@
-import { deleteSession, clearSessionCookie } from "@/lib/session";
-
-export async function POST(req: Request) {
-  await deleteSession(req.headers.get("cookie"));
-  return Response.json({ ok: true }, {
-    headers: { "Set-Cookie": clearSessionCookie() },
-  });
-}
+export async function POST() { return Response.json({ error: "Legacy sessions have been disabled. Sign out through Neon Auth." }, { status: 410 }); }
