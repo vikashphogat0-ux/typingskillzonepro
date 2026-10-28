@@ -1,75 +1,145 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import TypingSimulator, { type SimResult } from "@/components/TypingSimulator";
 import { PRESETS, SAMPLE_PASSAGES, type DisplayMode, type ExamPreset } from "@/lib/presets";
 import { PROFILES } from "@/lib/wpmCalculator";
 import type { BackspaceMode } from "@/lib/backspacePolicy";
 
+const modeOptions: { value: DisplayMode; title: string; description: string }[] = [
+  { value: "highlighted", title: "Live feedback", description: "Correct and incorrect characters are highlighted as you type." },
+  { value: "unhighlighted", title: "Classic view", description: "Type against a plain passage without live colour feedback." },
+  { value: "offscreen", title: "Paper-to-screen", description: "Practise copying from a passage before it moves out of view." },
+];
+
 export default function TestPage() {
   const router = useRouter();
   const [presets, setPresets] = useState<ExamPreset[]>(PRESETS);
   const [slug, setSlug] = useState(PRESETS[0].slug);
-  const preset = presets.find((p) => p.slug === slug) ?? presets[0];
+  const preset = useMemo(() => presets.find((p) => p.slug === slug) ?? presets[0], [presets, slug]);
   const [mode, setMode] = useState<DisplayMode>(preset.mode);
   const [bs, setBs] = useState<BackspaceMode>(preset.backspace);
   const [passage, setPassage] = useState<string | null>(null);
   const [run, setRun] = useState(0);
   const [loading, setLoading] = useState(false);
   const [limitMsg, setLimitMsg] = useState("");
+  const [notice, setNotice] = useState("");
 
-  // admin-created templates replace built-in presets that share a slug and add new ones
   useEffect(() => {
-    fetch("/api/templates").then((r) => r.json()).then((rows) => {
-      if (!Array.isArray(rows) || !rows.length) return;
-      const db: ExamPreset[] = rows.map((t: any) => ({ slug: t.slug, name: t.name, lang: t.language, durationSec: t.duration_sec, profileId: t.scoring?.id ?? "practice", mode: t.display_mode, backspace: t.backspace, profile: t.scoring }));
-      const slugs = new Set(db.map((d) => d.slug));
-      setPresets([...db, ...PRESETS.filter((p) => !slugs.has(p.slug))]);
-    }).catch(() => {});
+    let active = true;
+    fetch("/api/templates")
+      .then(async (r) => {
+        const data = await r.json().catch(() => null);
+        if (!r.ok) throw new Error(data?.error ?? "Exam presets could not be loaded.");
+        return data;
+      })
+      .then((rows) => {
+        if (!active || !Array.isArray(rows) || !rows.length) return;
+        const db: ExamPreset[] = rows.map((t: any) => ({
+          slug: t.slug, name: t.name, lang: t.language, durationSec: t.duration_sec,
+          profileId: t.scoring?.id ?? "practice", mode: t.display_mode, backspace: t.backspace, profile: t.scoring,
+        }));
+        const slugs = new Set(db.map((d) => d.slug));
+        const merged = [...db, ...PRESETS.filter((p) => !slugs.has(p.slug))];
+        setPresets(merged);
+        setSlug((current) => merged.some((p) => p.slug === current) ? current : merged[0].slug);
+        setNotice("");
+      })
+      .catch((e) => { if (active) setNotice(e instanceof Error ? e.message : "Using built-in practice presets while the exam catalogue is unavailable."); });
+    return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    const p = presets.find((x) => x.slug === slug) ?? presets[0];
+    if (p) { setMode(p.mode); setBs(p.backspace); }
+  }, [slug, presets]);
+
   const choose = (s: string) => {
-    const p = presets.find((x) => x.slug === s)!;
-    setSlug(s); setMode(p.mode); setBs(p.backspace);
+    const p = presets.find((x) => x.slug === s);
+    if (!p) return;
+    setSlug(s); setMode(p.mode); setBs(p.backspace); setLimitMsg("");
   };
 
   const start = async () => {
-    setLoading(true);
+    setLoading(true); setLimitMsg("");
     let text: string | null = null;
     try {
       const r = await fetch(`/api/passages?lang=${preset.lang}&template=${encodeURIComponent(preset.slug)}`);
-      if (r.status === 402) { setLimitMsg((await r.json()).error); setLoading(false); return; }
-      if (r.ok) text = (await r.json()).body;
-    } catch {}
-    if (!text) { const list = SAMPLE_PASSAGES[preset.lang]; text = list[Math.floor(Math.random() * list.length)]; }
+      const data = await r.json().catch(() => ({}));
+      if (r.status === 402) { setLimitMsg(data.error ?? "Your daily free-test limit has been reached."); setLoading(false); return; }
+      if (r.ok && typeof data.body === "string" && data.body.trim()) text = data.body;
+      else if (r.status === 503) setNotice(data.error ?? "Passage service is temporarily unavailable; using a built-in practice passage.");
+    } catch {
+      setNotice("Could not reach the passage service; using a built-in practice passage.");
+    }
+    if (!text) {
+      const samples = SAMPLE_PASSAGES[preset.lang];
+      text = samples[Math.floor(Math.random() * samples.length)];
+    }
     setPassage(text); setRun(Date.now()); setLoading(false);
   };
 
   const profile = preset.profile ?? PROFILES[preset.profileId] ?? PROFILES.practice;
   const onFinish = useCallback(async (r: SimResult) => {
     try { sessionStorage.setItem("tsz:last", JSON.stringify(r)); } catch {}
-    const res = await fetch("/api/results", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...r, presetSlug: slug, mode, backspace: bs }) }).then((x) => x.json()).catch(() => null);
+    const res = await fetch("/api/results", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...r, presetSlug: slug, mode, backspace: bs }),
+    }).then((x) => x.json()).catch(() => null);
     router.push(res?.id ? `/results/${res.id}` : "/dashboard");
   }, [router, slug, mode, bs]);
 
-  if (passage)
-    return <div className="page"><TypingSimulator key={run} passage={passage} lang={preset.lang} durationSec={preset.durationSec} mode={mode} backspace={bs} profile={profile} onFinish={onFinish} /></div>;
+  if (passage) return <div className="page"><TypingSimulator key={run} passage={passage} lang={preset.lang} durationSec={preset.durationSec} mode={mode} backspace={bs} profile={profile} onFinish={onFinish} /></div>;
 
   return (
-    <div className="page setup">
-      <h1>Set up your test</h1>
-      <label>Exam<select value={slug} onChange={(e) => choose(e.target.value)}>{presets.map((p) => <option key={p.slug} value={p.slug}>{p.name}, {Math.round(p.durationSec / 60)} min</option>)}</select></label>
-      <label>Passage display<select value={mode} onChange={(e) => setMode(e.target.value as DisplayMode)}>
-        <option value="highlighted">Highlighted: shows right and wrong letters as you type</option>
-        <option value="unhighlighted">Unhighlighted: plain passage, no feedback</option>
-        <option value="offscreen">Paper to screen: passage on top, empty box below</option></select></label>
-      <label>Backspace<select value={bs} onChange={(e) => setBs(e.target.value as BackspaceMode)}>
-        <option value="full">Full: delete anything</option>
-        <option value="word">Current word only</option>
-        <option value="disabled">Disabled</option></select></label>
-      <p className="hint">Presets are practice defaults. Check your exam’s official notification for the exact rules.</p>
-      {limitMsg && <p className="err" role="alert">{limitMsg} <a href="/pricing">See Pro plans</a></p>}
-      <button className="go" onClick={start} disabled={loading}>{loading ? "Loading passage…" : "Start test"}</button>
+    <div className="page practice-page">
+      <section className="practice-hero">
+        <div className="eyebrow"><span className="eyebrow-dot" /> YOUR DAILY PRACTICE</div>
+        <h1>Make every keystroke count.</h1>
+        <p>Choose your exam pattern, set your typing environment, and focus on building consistent speed with accuracy.</p>
+        <div className="practice-hero-pills"><span>English & Hindi</span><span>1–15 minute presets</span><span>Instant typing feedback</span></div>
+      </section>
+
+      <div className="practice-layout">
+        <section className="practice-config">
+          <div className="practice-section-heading"><div><span className="practice-step">01</span><div><h2>Choose your test</h2><p>Select the exam or warm-up that matches your goal.</p></div></div></div>
+          <label className="practice-field">Exam or practice preset
+            <select value={slug} onChange={(e) => choose(e.target.value)}>
+              {presets.map((p) => <option key={p.slug} value={p.slug}>{p.name} · {Math.max(1, Math.round(p.durationSec / 60))} min</option>)}
+            </select>
+          </label>
+          <div className="practice-summary">
+            <div className="practice-summary-mark">{preset.lang === "hi" ? "हि" : "EN"}</div>
+            <div className="practice-summary-copy"><strong>{preset.name}</strong><span>{preset.lang === "hi" ? "Hindi · Devanagari typing" : "English typing"} · {Math.max(1, Math.round(preset.durationSec / 60))} minute{preset.durationSec >= 120 ? "s" : ""}</span></div>
+            <span className="practice-summary-status"><i /> Ready</span>
+          </div>
+
+          <div className="practice-section-heading"><div><span className="practice-step">02</span><div><h2>Set your environment</h2><p>Use the same visual and correction rules you want to practise.</p></div></div></div>
+          <div className="practice-mode-grid">
+            {modeOptions.map((option) => <button type="button" key={option.value} className={`practice-mode-card ${mode === option.value ? "selected" : ""}`} aria-pressed={mode === option.value} onClick={() => setMode(option.value)}>
+              <span className="practice-mode-check">{mode === option.value ? "✓" : "○"}</span><strong>{option.title}</strong><span>{option.description}</span>
+            </button>)}
+          </div>
+          <label className="practice-field">Backspace policy
+            <select value={bs} onChange={(e) => setBs(e.target.value as BackspaceMode)}>
+              <option value="full">Full correction — delete anywhere</option>
+              <option value="word">Current word only — exam-style restriction</option>
+              <option value="disabled">Disabled — no corrections</option>
+            </select>
+          </label>
+          <p className="practice-disclaimer">Practice settings may differ from the official exam. Confirm the current recruitment notification before relying on qualifying rules.</p>
+          {notice && <p className="practice-notice" role="status">{notice}</p>}
+          {limitMsg && <p className="err" role="alert">{limitMsg} <a href="/pricing">View Pro plans</a></p>}
+          <button className="practice-start" onClick={start} disabled={loading}>{loading ? <><span className="practice-spinner" /> Preparing your passage…</> : <>Start typing test <span>→</span></>}</button>
+        </section>
+
+        <aside className="practice-side">
+          <div className="practice-side-card practice-side-dark"><span className="practice-side-icon">⌨</span><span className="eyebrow">YOUR FOCUS</span><h2>Accuracy first.<br/>Speed follows.</h2><p>Steady rhythm and clean keystrokes build better results than rushing.</p><div className="practice-mini-keys"><span>A</span><span>S</span><span>D</span><span>F</span><span className="practice-key-active">J</span><span>K</span><span>L</span></div></div>
+          <div className="practice-side-card"><span className="practice-side-number">03</span><h3>Before you begin</h3><ul><li>Settle your fingers on the home row.</li><li>Keep your eyes on the passage.</li><li>Prioritise accuracy, then build speed.</li></ul></div>
+          <a className="practice-library-link" href="/library"><span>▤</span><div><strong>Need more passages?</strong><small>Explore the English and Hindi library</small></div><b>↗</b></a>
+        </aside>
+      </div>
     </div>
   );
 }
