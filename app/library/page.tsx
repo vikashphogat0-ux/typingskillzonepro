@@ -45,6 +45,7 @@ export default function Library() {
   }, [printing]);
   const view = async (p: P) => {
     if (open?.id === p.id) { setOpen(null); return; }
+    if (p.body) { setOpen(p); return; }
     const r = await api(`/api/library?id=${encodeURIComponent(p.id)}`);
     if (r.ok) setOpen(r.data);
   };
