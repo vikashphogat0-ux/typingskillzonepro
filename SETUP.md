@@ -51,7 +51,7 @@ For an existing application database:
 
 ## Cashfree Payment Gateway setup
 
-The implementation uses Cashfree PG Orders API (API version `2023-08-01`):
+The implementation uses Cashfree PG Orders API (API version `2025-01-01`):
 - Sandbox API: `https://sandbox.cashfree.com/pg/orders`
 - Production API: `https://api.cashfree.com/pg/orders`
 - Hosted checkout receives only `payment_session_id`; the client secret is never returned to the browser.
@@ -64,18 +64,30 @@ Official references:
 - [Cashfree PG Orders API](https://www.cashfree.com/docs/api-reference/payments/latest/orders/create)
 - [Cashfree webhook signature verification](https://www.cashfree.com/docs/api-reference/payments/latest/webhooks/overview)
 
-### Configure the webhook
+### Configure Cashfree webhooks for this project
 
-In the Cashfree merchant dashboard, configure the webhook URL:
-`https://typingskillzone.in/api/webhook`
+**Canonical endpoint:** `https://typingskillzone.in/api/webhook`
 
-Enable the payment-success webhook event (`PAYMENT_SUCCESS_WEBHOOK`). Keep `CF_ENVIRONMENT=sandbox` and use sandbox API credentials during testing. Make sure the webhook endpoint is reachable over HTTPS.
+The app also sends this exact URL as Cashfree's `order_meta.notify_url` when creating each order. Configure it in the Cashfree dashboard as well so events are delivered consistently.
+
+1. Open the Cashfree Merchant Dashboard and select the **Sandbox/Test** environment first.
+2. Go to **Payment Gateway → Developers → Webhooks** (wording can vary by dashboard version).
+3. Add a webhook endpoint URL: `https://typingskillzone.in/api/webhook`. Use HTTPS and do not add a trailing slash or extra query parameters.
+4. Subscribe to the **payment success** event named `PAYMENT_SUCCESS_WEBHOOK`. Failed/pending events can be added for monitoring later, but they must never activate a plan.
+5. If the dashboard asks for a webhook/API payload version, use `2025-01-01` to match the PG API version used by this code. If that version is not offered for the event, do not guess: inspect the sample payload/version in the dashboard and update the parser/tests before enabling it.
+6. Save the endpoint and use Cashfree's test/send-event tool if available.
+7. In Cloudflare Workers → `typing-skill-zone-v2` → Settings → Variables and secrets, configure `CF_ENVIRONMENT=sandbox`, `CF_MERCHANT_ID` (sandbox App ID) and `CF_SECRET_KEY` (sandbox Secret Key). The webhook verifier uses the same PG client secret to verify `x-webhook-signature` over the exact raw body plus `x-webhook-timestamp`. Do not create a second `CF_WEBHOOK_SECRET` variable.
+8. Confirm the endpoint is reachable by opening `https://typingskillzone.in/api/webhook`; a GET should return `{"ok":true,"endpoint":"cashfree-pg-webhook"}`. This only checks reachability; it does not prove that a signed webhook will verify.
+9. Run a sandbox checkout and confirm Cashfree delivers a POST with `x-webhook-signature` and `x-webhook-timestamp`. Check Cloudflare logs and the payment row for the order; never log the secret or full customer/payment payload.
+10. Configure the **Production** webhook separately only when you are approved for live payments. Use the production App ID/Secret Key, set `CF_ENVIRONMENT=production`, and verify that the production webhook is registered against the production dashboard environment. Never mix sandbox credentials with production mode or vice versa.
+
+Cashfree webhooks must be treated as asynchronous and potentially repeated. This route verifies the signature before parsing JSON, and the database activation logic only accepts a successful payment that matches an existing pending order and exact INR amount. The customer redirect/return URL is not proof of payment.
 
 ### Test checklist
 
 Run through this checklist using a test account and sandbox credentials:
 
-1. **Configuration:** Confirm the worker has `DATABASE_URL`, `NEON_AUTH_BASE_URL`, `CF_ENVIRONMENT=sandbox`, `CF_MERCHANT_ID`, `CF_SECRET_KEY`, and `CF_WEBHOOK_SECRET`.
+1. **Configuration:** Confirm the worker has `DATABASE_URL`, `NEON_AUTH_BASE_URL`, `CF_ENVIRONMENT=sandbox`, `CF_MERCHANT_ID`, and `CF_SECRET_KEY`.
 2. **Auth:** Sign up, sign in, sign out, and request a password reset using Neon Auth.
 3. **Checkout validation:** A signed-out request returns 401; free/unknown plans return 400; invalid mobile numbers return 422.
 4. **Order creation:** Select a paid plan and valid 10-digit mobile number. Verify a Cashfree sandbox checkout opens and that the API response contains only `orderId`, `paymentSessionId`, `amountPaise`, and `mode`—never credentials.
