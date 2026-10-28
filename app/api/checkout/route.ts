@@ -2,13 +2,13 @@ import { randomUUID } from "node:crypto";
 import { sql } from "@/lib/db";
 import { getUserId } from "@/lib/auth";
 import { getStudentPlan, type StudentPlanId } from "@/lib/pricing";
-import { cashfreeMode, createPaymentOrder } from "@/lib/cashfree";
+import { createPaymentOrder } from "@/lib/cashfree";
 
 export const dynamic = "force-dynamic";
 
-function siteOrigin(): string {
-  const raw = process.env.NEXT_PUBLIC_URL || process.env.BETTER_AUTH_URL || "https://typingskillzone.in";
-  return new URL(raw).origin;
+function siteOrigin(req: Request): string {
+  const raw = process.env.NEXT_PUBLIC_URL?.trim();
+  return raw ? new URL(raw).origin : new URL(req.url).origin;
 }
 
 /** Create a pending server-side payment record and a Cashfree PG order. */
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
 
     const orderId = `tsz_${String(uid).replace(/-/g, "").slice(0, 8)}_${Date.now()}_${randomUUID().slice(0, 8)}`;
     const idempotencyKey = randomUUID();
-    const origin = siteOrigin();
+    const origin = siteOrigin(req);
 
     // Persist the expected user, plan and amount before creating the external order.
     await db`
