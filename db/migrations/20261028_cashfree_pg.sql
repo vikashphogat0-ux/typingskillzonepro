@@ -4,7 +4,7 @@
 -- Safe to re-run; it does not delete users, subscriptions, or payment history.
 BEGIN;
 
-ALTER TABLE payments ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'cashfree';
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS provider text;
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS plan_id text;
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS payment_session_id text;
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS idempotency_key text;
@@ -52,8 +52,9 @@ BEGIN
 END $$;
 
 UPDATE payments SET status = 'pending' WHERE status = 'created';
-UPDATE payments SET provider = 'razorpay' WHERE provider IS NULL OR provider = '';
+UPDATE payments SET provider = 'legacy' WHERE provider IS NULL OR provider = '';
 
+ALTER TABLE payments ALTER COLUMN provider SET NOT NULL;
 ALTER TABLE payments ALTER COLUMN provider SET DEFAULT 'cashfree';
 ALTER TABLE payments ADD CONSTRAINT payments_status_cashfree_check
   CHECK (status IN ('pending', 'paid', 'failed', 'refunded'));
