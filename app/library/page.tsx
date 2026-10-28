@@ -17,6 +17,7 @@ export default function Library() {
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [monthly, setMonthly] = useState<P[]>([]);
   const [monthLoading, setMonthLoading] = useState(false);
+  const [monthLang, setMonthLang] = useState<"all" | "en" | "hi">("all");
   const [selectedPassage, setSelectedPassage] = useState("");
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export default function Library() {
   useEffect(() => {
     let active = true;
     setMonthLoading(true);
-    api(`/api/library?month=${encodeURIComponent(month)}`)
+    api(`/api/library?month=${encodeURIComponent(month)}${monthLang === "all" ? "" : `&lang=${monthLang}`}`)
       .then(r => {
         if (!active || !r.ok) return;
         setMonthly(Array.isArray(r.data?.monthly) ? r.data.monthly : []);
@@ -51,7 +52,7 @@ export default function Library() {
       .catch(() => { if (active) setMonthly([]); })
       .finally(() => { if (active) setMonthLoading(false); });
     return () => { active = false; };
-  }, [month]);
+  }, [month, monthLang]);
   useEffect(() => {
     if (printing?.body) {
       const t = setTimeout(() => window.print(), 100);
@@ -87,7 +88,7 @@ export default function Library() {
       <section className="library-hero">
         <div className="eyebrow"><span className="eyebrow-dot" /> YOUR PRACTICE RESOURCE</div>
         <h1>Passage Library</h1>
-        <p>Build consistency with focused English and Hindi passages. Browse daily practice, choose a month, and find passages by language, title, or exam.</p>
+        <p>Daily passages, month-wise archives, separate English and Hindi folders, and exact passage-ID search. Each passage keeps one permanent ID across compatible exam simulators.</p>
         <div className="cta-group"><a className="go hero-primary" href="/test">Start a practice test <span>→</span></a><a className="go hero-secondary" href="/simulators">Explore exam options</a></div>
       </section>
       <div className="tabs" role="tablist" aria-label="Passage library sections">
@@ -105,13 +106,13 @@ export default function Library() {
         <div className="library-intro"><div><h2>Browse the passage collection</h2><p>Choose a month, then select a passage to read, practise, download or print.</p></div></div>
         <div className="library-month-toolbar">
           <label>Practice month<select value={month} onChange={e => setMonth(e.target.value)}>{(d?.months?.length ? d.months : [month]).map(m => <option key={m} value={m}>{new Date(`${m}-01T12:00:00`).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</option>)}</select></label>
-          <span className="library-month-count">{monthLoading ? "Loading passages…" : `${monthly.length} passage${monthly.length === 1 ? "" : "s"} in this month`}</span>
+          <label className="library-month-language">Passage folder<select value={monthLang} onChange={e => setMonthLang(e.target.value as "all" | "en" | "hi")}><option value="all">All passages</option><option value="en">English folder</option><option value="hi">Hindi folder</option></select></label><span className="library-month-count">{monthLoading ? "Loading passages…" : `${monthly.length} passage${monthly.length === 1 ? "" : "s"} in this month`}</span>
         </div>
         {!monthLoading && monthly.length === 0 ? <div className="empty-state"><b>No passages found for this month.</b><p>Choose another month or use Search Library to find any available passage.</p><button className="go alt" onClick={() => setTab("all")}>Search all passages</button></div> :
           <div className="library-month-list">{monthly.map(p => <article key={p.id} className={`library-month-item ${selectedPassage === p.id ? "selected" : ""}`}>
             <button className="library-month-select" onClick={() => { setSelectedPassage(p.id); void view(p); }} aria-pressed={selectedPassage === p.id}>
               <span className={`library-language-mark ${p.language === "hi" ? "hindi" : "english"}`}>{p.language === "hi" ? "हि" : "EN"}</span>
-              <span className="library-month-title"><strong>{p.title}</strong><small>{p.language === "hi" ? "Hindi" : "English"} · {p.word_count} words{p.exam ? ` · ${p.exam}` : ""}</small></span>
+              <span className="library-month-title"><strong>{p.title}</strong><small>{p.language === "hi" ? "Hindi folder" : "English folder"} · {p.word_count} words · ID: {p.id}{p.exam ? ` · ${p.exam}` : ""}</small></span>
               <span className="library-month-chevron">{selectedPassage === p.id ? "Selected" : "Select"} ↗</span>
             </button>
             {selectedPassage === p.id && <div className="library-month-detail">
@@ -122,10 +123,10 @@ export default function Library() {
       </section>}
       {tab === "all" && <section className="library-archive">
         <div className="library-intro"><div><h2>Search all passages</h2><p>Filter by title and language, then read, download text, or use Save as PDF / Print. In the print dialog choose “Save as PDF”.</p></div></div>
-        <div className="library-tools"><label>Search by title<input value={q} onChange={e => setQ(e.target.value)} placeholder="e.g. digital India, education…" /></label><label>Language<select value={lang} onChange={e => setLang(e.target.value)}><option value="">Both languages</option><option value="en">English</option><option value="hi">Hindi</option></select></label></div>
+        <div className="library-tools"><label>Search by title, text or passage ID<input value={q} onChange={e => setQ(e.target.value)} placeholder="Paste full passage ID or search title/text…" /></label><label>Language<select value={lang} onChange={e => setLang(e.target.value)}><option value="">Both languages</option><option value="en">English</option><option value="hi">Hindi</option></select></label></div>
         {searching && <p className="hint">Searching passages…</p>}
         <div className="plist">{list.map(p => <article key={p.id} className="pitem">
-          <div><b>{p.title}</b> <span className="tag">{p.language === "hi" ? "Hindi" : "English"}</span>{p.exam && <span className="tag">{p.exam}</span>} <span className="hint">{p.word_count} words</span></div>
+          <div><b>{p.title}</b> <span className="tag">{p.language === "hi" ? "Hindi folder" : "English folder"}</span> <span className="tag">ID: {p.id}</span>{p.exam && <span className="tag">{p.exam}</span>} <span className="hint">{p.word_count} words</span></div>
           {open?.id === p.id ? <div className={`passage-box${p.language === "hi" ? " hi" : ""}`} lang={p.language}>{open.body}</div> : <p className="hint">{p.preview || "Open to read this passage."}{p.preview ? "…" : ""}</p>}
           <p><button className="link" onClick={() => view(p)}>{open?.id === p.id ? "Hide passage" : "Read passage"}</button> · <a href={`/api/library/download?id=${encodeURIComponent(p.id)}`}>Download</a> · <button className="link" onClick={() => print(p)}>Save as PDF / Print</button></p>
         </article>)}{!searching && !list.length && <div className="empty-state"><b>No passages found.</b><p>Try a different title or language filter.</p></div>}</div>
