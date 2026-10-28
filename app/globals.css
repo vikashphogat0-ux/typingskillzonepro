@@ -272,3 +272,125 @@ body{background:#f7f8fc;color:var(--tsz-navy);font-family:Inter,"Atkinson Hyperl
 .library-month-detail .passage-box{max-height:260px;margin-bottom:13px;border-radius:12px}
 .library-month-detail .library-day-actions{display:flex;flex-wrap:wrap;gap:8px}
 @media(max-width:560px){.sim-v2-hero{padding:25px 20px;border-radius:19px}.sim-hero-stats{display:grid;grid-template-columns:1fr}.sim-page-grid-v2{grid-template-columns:1fr}.sim-card-brand-row{padding:16px 15px 13px}.sim-card-content{padding:0 15px 16px}.sim-rule-metrics{gap:6px}.sim-rule-metrics>span{padding:8px}.sim-rule-metrics strong{font-size:11px}.sim-card-bottom{align-items:flex-start;flex-direction:column}.library-month-toolbar{align-items:stretch;flex-direction:column;padding:14px}.library-month-toolbar select{width:100%;min-width:0}.library-month-select{padding:13px 12px;gap:9px}.library-language-mark{width:36px;height:36px;flex-basis:36px}.library-month-title strong{font-size:12px}.library-month-chevron{font-size:10px}.library-month-detail{padding:0 12px 12px}}
+
+
+/* TypingSkillZone premium neon-glass visual refresh — presentation only.
+   Keeps existing components, API calls, routes, scoring and payment flows unchanged. */
+:root{
+  color-scheme:dark;
+  --ink:#e7f2ff;--mute:#9bb1cc;--board:#030817;--sheet:rgba(8,24,52,.88);
+  --line:rgba(74,160,255,.26);--red:#ff4d7d;--redbg:rgba(255,77,125,.14);
+  --green:#27e6b5;--greenbg:rgba(39,230,181,.13);--gold:#ffd166;
+}
+html{background:#030817;scroll-behavior:smooth}
+body{
+  background:radial-gradient(ellipse at 12% 0%,rgba(0,145,255,.18),transparent 36%),
+    radial-gradient(ellipse at 90% 18%,rgba(100,46,255,.14),transparent 34%),#030817;
+  color:#e7f2ff;
+}
+::selection{background:rgba(0,213,255,.35);color:#fff}
+.top{
+  position:sticky;top:0;z-index:50;gap:18px;flex-wrap:wrap;
+  background:rgba(3,10,29,.84);backdrop-filter:blur(22px);
+  border-bottom:1px solid rgba(48,160,255,.25);
+  box-shadow:0 8px 36px rgba(0,0,0,.22);padding:13px clamp(16px,3vw,44px)
+}
+.top a{color:#dbeaff;transition:color .18s ease}
+.top a:hover{color:#32e6ff}
+.brand{display:inline-flex;align-items:center;gap:10px;letter-spacing:-.035em}
+.brand:before{
+  content:"T";display:grid;place-items:center;width:35px;height:35px;border-radius:12px;
+  color:#00142a;font-size:20px;font-weight:950;background:linear-gradient(135deg,#36f0ff,#258aff);
+  box-shadow:0 0 25px rgba(0,194,255,.45)
+}
+.top nav{gap:clamp(10px,1.6vw,24px);flex-wrap:wrap;align-items:center}
+.top nav a{font-size:13px;font-weight:650}
+.page,.home{max-width:1440px;padding:clamp(18px,3vw,42px) clamp(14px,3vw,40px) 64px}
+.home{padding-top:clamp(22px,4vw,58px)}
+.home h1{letter-spacing:-.055em}
+.home p,.hint,.note{color:#9bb1cc}
+.home-hero,.library-hero,.sim-v2-hero,.home-benefits,.dash,.panel,.card,.library-day-card,
+.library-month-toolbar,.library-month-item,.sim-card-v2,.sim-card,.tiles,.chart,.lesson,.ai,
+.institute-card,.pricing-card,.plan-card,.result-card,.dashboard-card{
+  border-color:rgba(73,157,255,.25)!important;
+}
+.home-hero,.library-hero,.sim-v2-hero{
+  background:linear-gradient(120deg,rgba(10,35,88,.96),rgba(5,20,49,.94) 56%,rgba(0,108,173,.48))!important;
+  color:#f0f8ff;border:1px solid rgba(38,180,255,.55)!important;border-radius:26px!important;
+  box-shadow:0 22px 70px rgba(0,92,255,.15),inset 0 1px rgba(255,255,255,.09);
+  overflow:hidden
+}
+.home-hero p,.library-hero p,.sim-v2-hero p{color:#bdd1eb}
+.eyebrow{color:#44e9ff}
+.go,.button,button.go{
+  background:linear-gradient(115deg,#00d5f2,#2589ff)!important;color:#00142b!important;
+  border:1px solid rgba(114,230,255,.55)!important;border-radius:12px!important;
+  box-shadow:0 7px 24px rgba(0,158,255,.2);transition:transform .18s ease,box-shadow .18s ease
+}
+.go:hover,.button:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(0,158,255,.3)}
+.go.alt{background:rgba(12,32,66,.8)!important;color:#d9efff!important;border:1px solid rgba(95,171,255,.35)!important}
+.home-benefits,.tiles,.dash,.chart,.library-day-card,.library-month-toolbar,.library-month-item,
+.sim-card-v2,.sim-card,.panel,.card,.pricing-card,.plan-card,.result-card,.dashboard-card,.lesson,.ai{
+  background:linear-gradient(145deg,rgba(11,29,61,.92),rgba(5,15,36,.94))!important;
+  color:#e5f3ff;border:1px solid rgba(74,160,255,.23)!important;border-radius:17px!important;
+  box-shadow:0 12px 32px rgba(0,0,0,.16),inset 0 1px rgba(255,255,255,.035)
+}
+.home-benefits{gap:14px;padding:18px}
+.home-benefits p{color:#9bb1cc}
+.benefit-icon,.stat-icon,.focus-mark{color:#35e7ff}
+h1,h2,h3,h4,h5,strong,b,label,legend{color:inherit}
+.page h1,.page h2,.page h3,.home h2{letter-spacing:-.025em}
+p{color:inherit}
+.page p,.home p{color:#a6bad4}
+a{transition:color .16s ease}
+a:hover{color:#37e5ff}
+select,input,textarea,.entry{
+  background:rgba(3,13,32,.92)!important;color:#e9f5ff!important;
+  border:1px solid rgba(81,164,255,.34)!important;border-radius:11px!important
+}
+select option{background:#07152d;color:#e9f5ff}
+input::placeholder,textarea::placeholder{color:#7188a8}
+.sheet,.sheet.offscreen,.line,.keyboard-card,.passage-box{
+  background:#f8fbff!important;color:#16233b!important;border-color:#168bff!important
+}
+.sheet .ok{color:#087b56;background:#d6fff0}
+.sheet .bad{color:#b51f48;background:#ffe1e9}
+.sheet .cur{background:#ffe08a;color:#14233a}
+.rules,.hint,.note,.sim-card-bottom small{color:#91a8c6}
+.tiles div{border-color:rgba(74,160,255,.18)}
+.tiles span{color:#91a8c6}
+.footer{
+  background:linear-gradient(145deg,#06142d,#030817)!important;color:#d7e9ff;
+  border-top:1px solid rgba(49,161,255,.25);margin-top:26px
+}
+.footer p,.footer a{color:#91a8c6}
+.footer a:hover{color:#38e7ff}
+.library-month-toolbar label,.library-month-title strong,.library-month-select,
+.library-month-title small,.library-month-count{color:#dcecff}
+.library-month-item.selected{border-color:#1ddcff!important;box-shadow:0 0 0 1px rgba(29,220,255,.15),0 12px 34px rgba(0,124,255,.15)}
+.library-language-mark{background:linear-gradient(135deg,#153c77,#086a9b);color:#8ff5ff}
+.library-language-mark.hindi{background:linear-gradient(135deg,#104c52,#087b70);color:#b7fff0}
+.library-month-select:hover{background:rgba(21,103,180,.12)}
+.sim-card-brand-row,.sim-card-content,.sim-card-bottom{color:#e3f1ff}
+.sim-card-v2 a,.sim-card a{color:#43dcff}
+.sim-card-rule-line{border-color:rgba(74,160,255,.2);color:#a8bdd7}
+.sim-official-note{background:rgba(8,24,52,.8)!important;border-color:rgba(74,160,255,.25)!important;color:#a8bdd7}
+.sim-official-note strong{color:#e5f5ff}
+.lesson{border-left-color:rgba(54,187,255,.45)!important}
+.lesson span{color:#9bb1cc}
+.link{color:#56e4ff}
+.meter{background:#17304e}
+.meter i{background:linear-gradient(90deg,#00d9f5,#347dff)}
+.kb-row span{background:linear-gradient(145deg,#10284b,#08172f);color:#dff5ff;border-color:rgba(79,173,255,.35)}
+.kb-row span.key-active{background:#00c9ec;color:#00142a}
+@media(prefers-reduced-motion:no-preference){
+  .home-hero,.library-hero,.sim-v2-hero{animation:tsz-glow-in .55s ease both}
+  @keyframes tsz-glow-in{from{opacity:.65;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+}
+@media(max-width:760px){
+  .top{position:relative;align-items:flex-start}
+  .top nav{width:100%;gap:10px 15px}
+  .top nav a{font-size:12px}
+  .home-hero,.library-hero,.sim-v2-hero{border-radius:18px!important}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
