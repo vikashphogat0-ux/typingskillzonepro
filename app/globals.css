@@ -183,3 +183,11 @@ body{background:#f7f8fc;color:var(--tsz-navy);font-family:Inter,"Atkinson Hyperl
 .offscreen-print-tools p{margin:0;max-width:650px}
 .offscreen-placeholder{display:flex;min-height:180px;align-items:center;justify-content:center;text-align:center;color:#667085;font-weight:600}
 @media(max-width:640px){.offscreen-print-tools{align-items:stretch;flex-direction:column}.offscreen-print-tools .go{width:100%}}
+
+.practice-result{max-width:880px;margin:28px auto;padding:clamp(22px,4vw,40px);border:1px solid #dfe5ef;border-radius:22px;background:#fff;box-shadow:0 18px 50px rgba(20,34,65,.08)}
+.practice-result h1{margin:10px 0;font-size:clamp(28px,4vw,42px);letter-spacing:-.03em}
+.practice-result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:24px 0}
+.practice-result-grid>div{display:flex;flex-direction:column;gap:8px;padding:18px;border:1px solid #e4e9f2;border-radius:14px;background:#f8faff}
+.practice-result-grid span{font-size:13px;color:#667085}
+.practice-result-grid strong{font-size:clamp(20px,3vw,28px);color:#172033}
+@media(max-width:640px){.practice-result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
