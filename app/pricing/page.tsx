@@ -120,6 +120,7 @@ export default function Pricing() {
   const [info, setInfo] = useState<StudentAccessInfo | null>(null);
   const [msg, setMsg] = useState("");
   const [busyPlan, setBusyPlan] = useState<StudentPlanId | null>(null);
+  const [customerPhone, setCustomerPhone] = useState("");
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -172,6 +173,12 @@ export default function Pricing() {
       return;
     }
 
+    const normalizedPhone = customerPhone.replace(/\\D/g, "");
+    if (!/^\\d{10}$/.test(normalizedPhone)) {
+      setMsg("Enter your 10-digit mobile number before starting Cashfree checkout.");
+      return;
+    }
+
     setBusyPlan(planId);
     setMsg("");
 
@@ -182,7 +189,7 @@ export default function Pricing() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ planId }),
+        body: JSON.stringify({ planId, customerPhone: normalizedPhone }),
       });
 
       let data: CheckoutResponse;
@@ -313,6 +320,24 @@ export default function Pricing() {
           </button>
         </div>
       )}
+
+      <section className="pricing-phone" aria-label="Payment contact details">
+        <label htmlFor="cashfree-customer-phone">Mobile number for payment</label>
+        <input
+          id="cashfree-customer-phone"
+          name="customerPhone"
+          type="tel"
+          inputMode="numeric"
+          autoComplete="tel-national"
+          maxLength={10}
+          pattern="[0-9]{10}"
+          value={customerPhone}
+          onChange={(event) => setCustomerPhone(event.target.value.replace(/\\D/g, "").slice(0, 10))}
+          placeholder="10-digit mobile number"
+          aria-describedby="cashfree-phone-help"
+        />
+        <p id="cashfree-phone-help">Cashfree requires a valid 10-digit mobile number. Your number is sent to Cashfree only to create the payment order.</p>
+      </section>
 
       <section className="plans-grid" aria-label="Available student plans">
         {plans.map((plan) => {
