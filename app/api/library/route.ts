@@ -33,7 +33,7 @@ export async function GET(req: Request) {
       const today = istDate();
       const samples = (["en", "hi"] as const).flatMap((language) => SAMPLE_PASSAGES[language].map((body, index) => ({
         id: `local-${language}-${index}`, title: language === "hi" ? `स्थानीय अभ्यास अनुच्छेद ${index + 1}` : `Local practice passage ${index + 1}`,
-        language, word_count: body.trim().split(/\\s+/u).filter(Boolean).length, body, preview: body.slice(0, 140), exam: null
+        language, word_count: body.trim().split(/\s+/u).filter(Boolean).length, body, preview: body.slice(0, 140), exam: null
       })));
       const id = u.searchParams.get("id");
       if (id?.startsWith("local-")) {
