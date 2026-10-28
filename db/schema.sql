@@ -33,78 +33,20 @@ CREATE TABLE IF NOT EXISTS institute_plans (
   created_at    timestamptz NOT NULL DEFAULT now()
 );
 
-/* Institute subscriptions -- links an institute owner to a plan */
-CREATE TABLE IF NOT EXISTS institute_subscriptions (
-  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  institute_id      uuid NOT NULL REFERENCES institutions(id) ON DELETE CASCADE,
-  plan_id           uuid NOT NULL REFERENCES institute_plans(id) ON DELETE RESTRICT,
-  status            text NOT NULL DEFAULT 'active' CHECK (status IN ('active','expired','cancelled')),
-  started_at        timestamptz NOT NULL DEFAULT now(),
-  ends_at           timestamptz,
-  active_student_count int NOT NULL DEFAULT 0,
-  renewed_at        timestamptz
-);
-CREATE INDEX IF NOT EXISTS institute_subs_institute_idx ON institute_subscriptions(institute_id);
-CREATE INDEX IF NOT EXISTS institute_subs_plan_idx ON institute_subscriptions(plan_id);
-
-/* Payment records -- stores verified payment details */
-CREATE TABLE IF NOT EXISTS payments (
-  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id           uuid REFERENCES users(id) ON DELETE SET NULL,
-  institute_id      uuid REFERENCES institutions(id) ON DELETE SET NULL,
-  order_id          text NOT NULL,
-  payment_id        text NOT NULL,
-  amount_paise      int NOT NULL DEFAULT 0,
-  currency          text NOT NULL DEFAULT 'INR',
-  status            text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid','failed','refunded')),
-  gateway_event_id  text,
-  verified_at       timestamptz,
-  failure_reason    text,
-  created_at        timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (order_id),
-  UNIQUE (payment_id)
-);
-
-/* Add-on purchases -- additional capabilities for institutes */
-CREATE TABLE IF NOT EXISTS add_on_purchases (
-  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  purchaser_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  institute_id      uuid NOT NULL REFERENCES institutions(id) ON DELETE CASCADE,
-  add_on_id         text NOT NULL CHECK (add_on_id IN ('additional_50_seats','additional_branch','custom_branding','white_label','setup_training')),
-  amount_paise      int NOT NULL DEFAULT 0,
-  status            text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','verified','failed')),
-  valid_until       timestamptz,
-  quantity          int NOT NULL DEFAULT 1,
-  purchased_at      timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (institute_id, add_on_id)
-);
-
 /* Promotions / coupons -- administrative discount catalog */
 CREATE TABLE IF NOT EXISTS promotions (
   id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   code              text NOT NULL UNIQUE,
   discount_type     text NOT NULL CHECK (discount_type IN ('fixed_paise','percentage')),
   discount_value    int NOT NULL DEFAULT 0,
-  eligible_plan_ids text NOT NULL DEFAULT '[]'::jsonb, -- JSON array of plan ids
-  eligible_institute_plan_ids text NOT NULL DEFAULT '[]'::jsonb,
+  eligible_plan_ids jsonb NOT NULL DEFAULT '[]'::jsonb, -- JSON array of plan ids
+  eligible_institute_plan_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
   start_date        timestamptz NOT NULL,
   expiry_date       timestamptz NOT NULL,
   max_redemptions   int,
   per_user_limit    int NOT NULL DEFAULT 0,
   minimum_purchase_paise int NOT NULL DEFAULT 0,
   active            boolean NOT NULL DEFAULT true,
-  created_at        timestamptz NOT NULL DEFAULT now()
-);
-
-/* Audit events -- records important billing and security events */
-CREATE TABLE IF NOT EXISTS audit_events (
-  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id           uuid REFERENCES users(id) ON DELETE SET NULL,
-  institute_id      uuid REFERENCES institutions(id) ON DELETE SET NULL,
-  action            text NOT NULL,
-  target_type       text,
-  target_id         uuid,
-  details           jsonb,
   created_at        timestamptz NOT NULL DEFAULT now()
 );
 
@@ -164,24 +106,13 @@ CREATE TABLE IF NOT EXISTS results (
 );
 CREATE INDEX IF NOT EXISTS results_user_idx ON results(user_id, created_at DESC);
 
--- Subscriptions: one-time payments (no auto-renew). Safe to re-run this whole file.
-CREATE TABLE IF NOT EXISTS payments (
-  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  provider     text NOT NULL DEFAULT 'razorpay',
-  order_id     text UNIQUE NOT NULL,
-  payment_id   text UNIQUE,
-  period       text NOT NULL CHECK (period IN ('monthly','yearly')),
-  amount_paise int  NOT NULL,
-  status       text NOT NULL DEFAULT 'created' CHECK (status IN ('created','paid')),
-  created_at   timestamptz NOT NULL DEFAULT now(),
-  paid_at      timestamptz
-);
-CREATE INDEX IF NOT EXISTS payments_user_idx ON payments(user_id);
+-- Cashfree payment indexes are created below after the canonical payments table.
 CREATE INDEX IF NOT EXISTS tests_user_day_idx ON tests(user_id, started_at);
 
 -- Link our users to the sign-in provider's user id (better-auth ids are strings, not uuids).
 ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_id text UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS neon_auth_user_id text;
+CREATE UNIQUE INDEX IF NOT EXISTS users_neon_auth_user_id_uidx ON users(neon_auth_user_id) WHERE neon_auth_user_id IS NOT NULL;
 
 -- ===== Institutions, simulators, leaderboards (safe to re-run) =====
 ALTER TABLE users ADD COLUMN IF NOT EXISTS show_on_leaderboard boolean NOT NULL DEFAULT true;
@@ -196,6 +127,79 @@ CREATE TABLE IF NOT EXISTS institutions (
   owner_id      uuid NOT NULL REFERENCES users(id),
   created_at    timestamptz NOT NULL DEFAULT now()
 );
+
+/* Institute subscriptions -- links an institute owner to a plan */
+CREATE TABLE IF NOT EXISTS institute_subscriptions (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  institute_id      uuid NOT NULL REFERENCES institutions(id) ON DELETE CASCADE,
+  plan_id           uuid NOT NULL REFERENCES institute_plans(id) ON DELETE RESTRICT,
+  status            text NOT NULL DEFAULT 'active' CHECK (status IN ('active','expired','cancelled')),
+  started_at        timestamptz NOT NULL DEFAULT now(),
+  ends_at           timestamptz,
+  active_student_count int NOT NULL DEFAULT 0,
+  renewed_at        timestamptz
+);
+CREATE INDEX IF NOT EXISTS institute_subs_institute_idx ON institute_subscriptions(institute_id);
+CREATE INDEX IF NOT EXISTS institute_subs_plan_idx ON institute_subscriptions(plan_id);
+
+
+/* Payment records -- stores verified payment details */
+CREATE TABLE IF NOT EXISTS payments (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id           uuid REFERENCES users(id) ON DELETE SET NULL,
+  institute_id      uuid REFERENCES institutions(id) ON DELETE SET NULL,
+  order_id          text NOT NULL,
+  payment_id        text,
+  amount_paise      int NOT NULL DEFAULT 0,
+  currency          text NOT NULL DEFAULT 'INR',
+  status            text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid','failed','refunded')),
+  gateway_event_id  text,
+  provider          text NOT NULL DEFAULT 'cashfree',
+  plan_id           text,
+  payment_session_id text,
+  idempotency_key   text,
+  customer_email    text,
+  updated_at        timestamptz NOT NULL DEFAULT now(),
+  paid_at           timestamptz,
+  verified_at       timestamptz,
+  failure_reason    text,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (order_id),
+  UNIQUE (payment_id)
+);
+
+
+/* Add-on purchases -- additional capabilities for institutes */
+CREATE TABLE IF NOT EXISTS add_on_purchases (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  purchaser_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  institute_id      uuid NOT NULL REFERENCES institutions(id) ON DELETE CASCADE,
+  add_on_id         text NOT NULL CHECK (add_on_id IN ('additional_50_seats','additional_branch','custom_branding','white_label','setup_training')),
+  amount_paise      int NOT NULL DEFAULT 0,
+  status            text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','verified','failed')),
+  valid_until       timestamptz,
+  quantity          int NOT NULL DEFAULT 1,
+  purchased_at      timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (institute_id, add_on_id)
+);
+
+
+/* Audit events -- records important billing and security events */
+CREATE TABLE IF NOT EXISTS audit_events (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id           uuid REFERENCES users(id) ON DELETE SET NULL,
+  institute_id      uuid REFERENCES institutions(id) ON DELETE SET NULL,
+  action            text NOT NULL,
+  target_type       text,
+  target_id         uuid,
+  details           jsonb,
+  created_at        timestamptz NOT NULL DEFAULT now()
+);
+
+
+CREATE INDEX IF NOT EXISTS payments_user_idx ON payments(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS payments_idempotency_key_uidx ON payments(idempotency_key) WHERE idempotency_key IS NOT NULL;
+
 -- a person belongs to at most one institution
 CREATE TABLE IF NOT EXISTS institution_members (
   institution_id uuid NOT NULL REFERENCES institutions(id) ON DELETE CASCADE,
