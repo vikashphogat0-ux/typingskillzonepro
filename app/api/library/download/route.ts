@@ -23,7 +23,7 @@ export async function GET(req: Request) {
         title: language === "hi" ? "दैनिक स्थानीय अभ्यास" : "Daily local practice",
         language, body: SAMPLE_PASSAGES[language][0]
       }));
-      return text(parts.map((p) => passageFile(p)).join("\\r\\n------------------------------\\r\\n\\r\\n"), "local-daily-pack.txt");
+      return text(parts.map((p) => passageFile(p)).join("\r\n------------------------------\r\n\r\n"), "local-daily-pack.txt");
     }
     const language = u.searchParams.get("lang") === "hi" ? "hi" : "en";
     const index = Number(u.searchParams.get("date") ? 0 : NaN);
