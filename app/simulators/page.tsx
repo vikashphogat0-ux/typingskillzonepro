@@ -8,13 +8,17 @@ interface Simulator {
   participants?: number; my_best?: number | string | null;
 }
 const examMark = (slug: string) => {
-  if (slug.includes("ssc-chsl")) return { mark: "SSC", tone: "violet", family: "Staff Selection Commission" };
-  if (slug.includes("ssc-cgl")) return { mark: "CGL", tone: "blue", family: "Combined Graduate Level" };
-  if (slug.includes("rrb") || slug.includes("railway")) return { mark: "RRB", tone: "orange", family: "Railway Recruitment" };
-  if (slug.includes("delhi-police")) return { mark: "DP", tone: "red", family: "Delhi Police" };
-  if (slug.includes("court")) return { mark: "HC", tone: "teal", family: "Court Typing" };
-  if (slug.includes("bsf")) return { mark: "BSF", tone: "green", family: "Border Security Force" };
-  return { mark: "TSZ", tone: "blue", family: "Typing practice" };
+  if (slug.includes("ssc-chsl")) return { mark: "SSC", tone: "violet", family: "Staff Selection Commission", short: "CHSL" };
+  if (slug.includes("ssc-cgl")) return { mark: "SSC", tone: "blue", family: "Staff Selection Commission", short: "CGL" };
+  if (slug.includes("ssc")) return { mark: "SSC", tone: "violet", family: "Staff Selection Commission", short: "SSC" };
+  if (slug.includes("rrb") || slug.includes("railway")) return { mark: "RRB", tone: "orange", family: "Railway Recruitment Board", short: "RRB" };
+  if (slug.includes("delhi-police") || slug.includes("dp-hcm")) return { mark: "DP", tone: "red", family: "Delhi Police", short: "HCM" };
+  if (slug.includes("court") || slug.includes("high-court")) return { mark: "HC", tone: "teal", family: "Court Recruitment", short: "COURT" };
+  if (slug.includes("bsf")) return { mark: "BSF", tone: "green", family: "Border Security Force", short: "HCM" };
+  if (slug.includes("cisf")) return { mark: "CISF", tone: "blue", family: "Central Industrial Security Force", short: "HCM" };
+  if (slug.includes("crpf")) return { mark: "CRPF", tone: "red", family: "Central Reserve Police Force", short: "HCM" };
+  if (slug.includes("dsssb")) return { mark: "DSSSB", tone: "violet", family: "Delhi Subordinate Services Selection Board", short: "LDC" };
+  return { mark: "TSZ", tone: "blue", family: "TypingSkillZone practice", short: "PRACTICE" };
 };
 const modeLabel = (mode: string) => mode === "highlighted" ? "Live character feedback" : mode === "unhighlighted" ? "Classic passage view" : "Paper-to-screen";
 const bsLabel = (bs: string) => bs === "full" ? "Backspace allowed" : bs === "word" ? "Current word only" : "Backspace disabled";
@@ -38,34 +42,44 @@ export default function SimulatorsPage() {
   const filtered = useMemo(() => filter === "all" ? sims : sims.filter(s => s.language === filter), [filter, sims]);
   return (
     <div className="page">
-      <section className="simulators-hero">
-        <div className="eyebrow"><span className="eyebrow-dot" /> FIND YOUR EXAM</div>
-        <h1>Explore exam options</h1>
-        <p>Choose your target exam, review its configured pattern, and enter a dedicated practice environment with its own leaderboard. Exam rules and qualifying criteria should always be checked against the official notification.</p>
-        <div className="cta-group"><a href="/test" className="go hero-primary">Try free practice <span>→</span></a><a href="/library" className="go hero-secondary">Browse passage library</a></div>
+      <section className="simulators-hero sim-v2-hero">
+        <div className="eyebrow"><span className="eyebrow-dot" /> YOUR EXAM · YOUR RULES</div>
+        <h1>Find your exam simulator</h1>
+        <p>Choose a dedicated typing environment, review its configured timing and scoring, then practise against a passage library designed for focused exam preparation.</p>
+        <div className="cta-group"><a href="/test" className="go hero-primary">Start free practice <span>→</span></a><a href="/library" className="go hero-secondary">Browse passage library</a></div>
+      <div className="sim-hero-stats"><span><strong>{sims.length || "25+"}</strong> exam patterns</span><span><strong>EN + हिन्दी</strong> language practice</span><span><strong>Live scoring</strong> and results</span></div>
       </section>
-      <div className="sim-filter-bar">
-        <label>Choose language <select value={filter} onChange={e => setFilter(e.target.value as "en" | "hi" | "all")}><option value="all">All languages</option><option value="en">English</option><option value="hi">हिंदी</option></select></label>
+      <div className="sim-filter-bar sim-filter-v2">
+        <label>Language <select value={filter} onChange={e => setFilter(e.target.value as "en" | "hi" | "all")}><option value="all">All languages</option><option value="en">English</option><option value="hi">हिंदी</option></select></label>
         {!loading && !error && <span className="sim-count">Showing {filtered.length} exam option{filtered.length === 1 ? "" : "s"}</span>}
       </div>
       {usingFallback && !loading && <div className="data-source-notice" role="status"><strong>Temporary catalogue mode</strong><p>The built-in exam presets are available for practice, but database-backed exam configuration and saved result history are unavailable. The database connection/schema needs repair.</p></div>}
       {loading ? <div className="exam-loading"><span className="loading-pulse" /> Loading exam options…</div> :
         error ? <div className="empty-state"><b>Exam options couldn't be loaded.</b><p>{error}</p><button className="go alt" onClick={() => {setLoading(true);setError("");api("/api/simulators").then(r=>{if(r.ok&&Array.isArray(r.data))setSims(r.data);else setError(r.data?.error??"Unable to load exams.");}).catch(()=>setError("Connection issue. Please try again.")).finally(()=>setLoading(false));}}>Try again</button></div> :
         !filtered.length ? <div className="empty-state"><b>No exams match this language.</b><p>Choose another language to see more exam options.</p><button className="go alt" onClick={() => setFilter("all")}>Show all exams</button></div> :
-        <div className="sim-page-grid">{filtered.map(sim => {
+        <div className="sim-page-grid sim-page-grid-v2">{filtered.map(sim => {
           const mark = examMark(sim.slug);
-          return <a key={sim.slug} className="sim-page-card" href={`/simulators/${sim.slug}`}>
-            <div className={`exam-emblem ${mark.tone}`}><span>{mark.mark}</span><small>EXAM PREP</small></div>
-            <div>
-              <div className="exam-card-top"><span className="exam-family">{mark.family}</span><span className="exam-arrow">↗</span></div>
+          const target = sim.scoring?.qualifyingWpm;
+          return <a key={sim.slug} className={`sim-page-card sim-page-card-v2 ${mark.tone}`} href={`/simulators/${sim.slug}`}>
+            <div className="sim-card-brand-row">
+              <div className={`exam-emblem ${mark.tone}`} aria-label={`${mark.mark} exam category`}><span>{mark.mark}</span><small>{mark.short}</small></div>
+              <div className="sim-card-brand-copy"><span className="exam-family">{mark.family}</span><span className="sim-notice-pill">Configured exam pattern</span></div>
+              <span className="exam-arrow" aria-hidden="true">↗</span>
+            </div>
+            <div className="sim-card-content">
               <h2>{sim.name}</h2>
-              <p>{sim.description || "A dedicated typing practice environment with exam-configured timing, display and scoring settings."}</p>
-              <div className="sim-page-tags"><span>{sim.language === "hi" ? "हिंदी" : "English"}</span><span>{Math.max(1, Math.round(sim.duration_sec / 60))} minutes</span><span>{bsLabel(sim.backspace)}</span></div>
-              {sim.scoring?.qualifyingWpm ? <p><strong>Configured target: {sim.scoring.qualifyingWpm} net WPM</strong></p> : <p>Practice and improve your baseline</p>}
-              <div className="sim-page-bottom"><span>Explore this exam <b>→</b></span><small>{sim.participants ?? 0} ranked participant{sim.participants === 1 ? "" : "s"}</small></div>
+              <p className="sim-card-description">{sim.description || "A dedicated typing environment with configured timing, display and scoring settings."}</p>
+              <div className="sim-rule-metrics">
+                <span><small>LANGUAGE</small><strong>{sim.language === "hi" ? "हिंदी" : "English"}</strong></span>
+                <span><small>DURATION</small><strong>{Math.max(1, Math.round(sim.duration_sec / 60))} min</strong></span>
+                <span><small>QUALIFYING TARGET</small><strong>{target ? `${target} net WPM` : sim.scoring?.unit === "keystrokes" ? "Key depressions" : "Practice score"}</strong></span>
+              </div>
+              <div className="sim-card-rule-line"><span><i className="sim-rule-dot" />{bsLabel(sim.backspace)}</span><span>{modeLabel(sim.display_mode)}</span></div>
+              <div className="sim-card-bottom"><span>Open dedicated simulator <b>→</b></span><small>{sim.participants ?? 0} participants</small></div>
             </div>
           </a>;
         })}</div>}
+      <div className="sim-official-note"><strong>Official rule reminder</strong><p>Cards display the current configured practice profile. Verify qualifying speed, duration, error rules, keyboard/layout requirements and test procedure against the latest recruitment notification. The category marks are not official government seals.</p></div>
       <p className="home-disclaimer">Exam marks are TypingSkillZone navigation artwork, not official government or recruitment-body logos. Confirm all qualifying rules from the current official notification.</p>
     </div>
   );
