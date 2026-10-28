@@ -8,7 +8,7 @@ Typing Skill Zone is a Next.js app for English/Hindi typing practice, exam simul
 - **Hosting:** Cloudflare Workers via OpenNext (wrangler.jsonc)
 - **Database:** Neon PostgreSQL (DATABASE_URL)
 - **Authentication:** Neon Auth (NEON_AUTH_BASE_URL) with application user mapping in public.users
-- **Payments:** Cashfree Payment Gateway hosted checkout (sandbox by default)
+- **Payments:** Cashfree Payment Gateway hosted checkout (sandbox by default; PG API version 2025-01-01)
 - **Plans:** Centralized student and institute catalog in lib/pricing.ts
 
 ## Start here
@@ -27,7 +27,7 @@ Read [SETUP.md](./SETUP.md) before configuring deployment. It replaces the older
    npm run build
    npm run preview
    ```
-6. Configure the Cashfree sandbox webhook to https://typingskillzone.in/api/webhook only after the deployment is reachable and its sandbox credentials are set.
+6. Configure the Cashfree sandbox webhook to https://typingskillzone.in/api/webhook and subscribe to PAYMENT_SUCCESS_WEBHOOK only after the deployment is reachable and its sandbox credentials are set. The route uses CF_SECRET_KEY to verify x-webhook-signature against the raw body and x-webhook-timestamp; do not set a separate webhook secret.
 
 ## Payment safety
 
