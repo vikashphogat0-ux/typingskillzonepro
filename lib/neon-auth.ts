@@ -23,10 +23,7 @@ export async function getNeonIdentity(req: Request): Promise<NeonIdentity | null
   return { id: String(user.id), email: String(user.email).trim().toLowerCase(), name: user.name ? String(user.name) : null };
 }
 
-/** Link a fresh Neon Auth identity to the app's existing UUID user record.
- * Old sessions/passwords are not accepted; the migration resets old roles.
- * Existing result, subscription, and institute data are not dropped.
- */
+/** Link a Neon Auth identity to the app's existing user record without changing application permissions. */
 export async function getOrCreateAppUser(identity: NeonIdentity): Promise<string> {
   const db = sql();
   const [linked] = await db`SELECT id FROM users WHERE neon_auth_user_id = ${identity.id} LIMIT 1`;
@@ -34,7 +31,14 @@ export async function getOrCreateAppUser(identity: NeonIdentity): Promise<string
 
   const [byEmail] = await db`SELECT id FROM users WHERE lower(email) = ${identity.email} LIMIT 1`;
   if (byEmail) {
-    await db`UPDATE users SET neon_auth_user_id = ${identity.id}, role = 'student', name = COALESCE(NULLIF(${identity.name ?? ""}, ''), name) WHERE id = ${byEmail.id}`;
+    // Preserve an existing role. In particular, authentication must never
+    // silently demote an administrator or alter institute-related permissions.
+    await db`
+      UPDATE users
+      SET neon_auth_user_id = ${identity.id},
+          name = COALESCE(NULLIF(${identity.name ?? ""}, ''), name)
+      WHERE id = ${byEmail.id}
+    `;
     return String(byEmail.id);
   }
 

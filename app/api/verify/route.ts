@@ -1,28 +1,61 @@
 import { sql } from "@/lib/db";
 import { getUserId } from "@/lib/auth";
 
-/** Called by the browser after the user completes payment. Idempotent — safe even if the webhook arrived first. */
-export async function POST(req: Request) {
-  const uid = await getUserId(req);
-  if (!uid) return Response.json({ error: "Sign in again to confirm your payment." }, { status: 401 });
-  const b = await req.json().catch(() => null);
-  if (!b?.orderId || !b?.paymentId) return Response.json({ error: "Invalid request." }, { status: 400 });
-  await processPaidOrder(String(b.orderId), String(b.paymentId)); // idempotent — safe even if webhook already processed it
-  return Response.json({ ok: true });
-}
+export const dynamic = "force-dynamic";
 
-async function processPaidOrder(orderId: string, paymentId: string): Promise<void> {
-  // DB safety: one row per order_id. A browser retry would not double-activate because of the unique constraint on order_id.
-  const db = sql();
-  const [{ claimed }] = await db`
-    UPDATE payments SET status = 'paid', payment_id = ${paymentId}, paid_at = now()
-    WHERE order_id = ${orderId} AND status <> 'paid' RETURNING true AS claimed`;
-  if (!claimed) return; // a retry or webhook already did it
-  const [user] = await db`SELECT user_id FROM payments WHERE order_id = ${orderId}`;
-  const [end] = await db`SELECT CURRENT_TIMESTAMP + CASE WHEN period = 'yearly' THEN interval '365 days' ELSE interval '30 days' END AS end_at
-    FROM payments WHERE order_id = ${orderId} LIMIT 1`;
-  await db`
-    INSERT INTO subscriptions (user_id, plan, status, starts_at, ends_at)
-    VALUES (${user.user_id}, 'pro', 'active', now(), ${end.end_at})
-    ON CONFLICT (user_id, plan, status) DO UPDATE SET ends_at = GREATEST(now(), subscriptions.ends_at)`;
+/**
+ * Read-only return-page check for Cashfree payment status.
+ *
+ * The browser is not a trusted payment verifier. Only the signed Cashfree
+ * webhook may transition a payment to paid and activate a subscription.
+ * This endpoint merely reports whether that webhook has already processed
+ * the specific order for the currently authenticated user.
+ */
+export async function POST(req: Request) {
+  try {
+    const uid = await getUserId(req);
+    if (!uid) {
+      return Response.json(
+        { ok: false, status: "unauthenticated", error: "Sign in again to check your payment." },
+        { status: 401, headers: { "cache-control": "no-store" } }
+      );
+    }
+
+    const body = await req.json().catch(() => null);
+    const orderId = typeof body?.orderId === "string" ? body.orderId.trim() : "";
+    const paymentId = typeof body?.paymentId === "string" ? body.paymentId.trim() : "";
+    if (!orderId || !paymentId || orderId.length > 128 || paymentId.length > 128) {
+      return Response.json(
+        { ok: false, status: "invalid_request", error: "A valid order ID and payment ID are required." },
+        { status: 400, headers: { "cache-control": "no-store" } }
+      );
+    }
+
+    const [payment] = await sql()`
+      SELECT status, payment_id
+      FROM payments
+      WHERE order_id = ${orderId} AND user_id = ${uid}
+      LIMIT 1
+    `;
+
+    if (payment?.status === "paid" && String(payment.payment_id ?? "") === paymentId) {
+      return Response.json(
+        { ok: true, status: "paid" },
+        { headers: { "cache-control": "no-store" } }
+      );
+    }
+
+    // The signed webhook may still be in flight. Do not change payment or
+    // subscription rows based on client-supplied identifiers.
+    return Response.json(
+      { ok: false, status: "pending", message: "Payment confirmation is pending. Refresh this page shortly." },
+      { status: 202, headers: { "cache-control": "no-store", "retry-after": "3" } }
+    );
+  } catch (error) {
+    console.error("Payment status check failed:", error instanceof Error ? error.message : "unknown error");
+    return Response.json(
+      { ok: false, status: "unavailable", error: "Could not check payment status. Please try again." },
+      { status: 503, headers: { "cache-control": "no-store" } }
+    );
+  }
 }
