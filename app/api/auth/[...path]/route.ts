@@ -12,8 +12,10 @@ async function proxy(req: Request, context: { params: Promise<{ path: string[] }
     const value = req.headers.get(key);
     if (value) headers.set(key, value);
   }
-  headers.set("x-forwarded-host", incoming.host);
-  headers.set("x-forwarded-proto", incoming.protocol.replace(":", ""));
+
+  // Do not forward the application's x-forwarded-host/proto to Neon Auth.
+  // The upstream managed Auth endpoint must validate its own request hostname;
+  // the browser Origin is preserved above for Neon Auth's trusted-domain checks.
   const method = req.method.toUpperCase();
   const upstream = await fetch(target, {
     method, headers,
