@@ -21,6 +21,20 @@ export default function Admin() {
   const [msg, setMsg] = useState("");
   const [tpls, setTpls] = useState<Tpl[]>([]);
   const [rows, setRows] = useState<Row[]>([]);
+  const [generationBusy, setGenerationBusy] = useState("");
+  const [generationMsg, setGenerationMsg] = useState("");
+
+  const runGeneration = async (slot: "morning" | "afternoon" | "live") => {
+    const label = slot === "morning" ? "7 AM batch (5 passages)" : slot === "afternoon" ? "1 PM batch (5 passages)" : "7 PM live batch (2 passages)";
+    if (!confirm(`Generate ${label}? This uses the configured AI provider and saves new passages to the shared library.`)) return;
+    setGenerationBusy(slot); setGenerationMsg("");
+    try {
+      const r = await post("/api/admin/passages/generate", { slot });
+      if (!r.ok) setGenerationMsg(r.data.error ?? "Generation failed. Check provider configuration and database migration.");
+      else { setGenerationMsg(`Generated ${r.data.generated} passage(s) for ${r.data.date} (${slot}). Word counts: ${(r.data.wordCounts ?? []).join(", ") || "already completed"}.`); await load(); }
+    } catch { setGenerationMsg("Network error while generating passages."); }
+    finally { setGenerationBusy(""); }
+  };
 
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([api("/api/admin/templates"), api("/api/admin/passages")]);
@@ -60,6 +74,17 @@ export default function Admin() {
     <div className="page admin">
       <h1>Admin</h1>
       <p><a href="/admin/subscribers">Manage subscribers</a> · <a href="/admin/institutions">Manage institutes</a></p>
+      <section className="admin-generation-panel">
+        <h2>Daily Passage Automation</h2>
+        <p className="hint">Each batch generates original passages of at least 500 words and stores them as shared library content. Simulator templates control only presentation and exam rules.</p>
+        <div className="cta-group">
+          <button className="go" disabled={!!generationBusy} onClick={() => runGeneration("morning")}>{generationBusy === "morning" ? "Generating…" : "Generate 7 AM · 5 passages"}</button>
+          <button className="go" disabled={!!generationBusy} onClick={() => runGeneration("afternoon")}>{generationBusy === "afternoon" ? "Generating…" : "Generate 1 PM · 5 passages"}</button>
+          <button className="go" disabled={!!generationBusy} onClick={() => runGeneration("live")}>{generationBusy === "live" ? "Generating…" : "Generate 7 PM · 2 live sets"}</button>
+        </div>
+        {generationMsg && <p className="flash-msg" role="status">{generationMsg}</p>}
+        <p className="hint">Automatic schedule also requires the additive SQL migrations and the GitHub repository secret PASSAGE_CRON_SECRET.</p>
+      </section>
       <div className="tabs" role="tablist">
         <button role="tab" aria-selected={tab === "passages"} onClick={() => setTab("passages")}>Passages</button>
         <button role="tab" aria-selected={tab === "templates"} onClick={() => setTab("templates")}>Exam templates</button>
