@@ -25,6 +25,7 @@ export default function TestPage() {
   const [loading, setLoading] = useState(false);
   const [limitMsg, setLimitMsg] = useState("");
   const [notice, setNotice] = useState("");
+  const [localResult, setLocalResult] = useState<SimResult | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -62,7 +63,7 @@ export default function TestPage() {
   };
 
   const start = async () => {
-    setLoading(true); setLimitMsg("");
+    setLoading(true); setLimitMsg(""); setLocalResult(null);
     let text: string | null = null;
     try {
       const r = await fetch(`/api/passages?lang=${preset.lang}&template=${encodeURIComponent(preset.slug)}`);
@@ -87,8 +88,27 @@ export default function TestPage() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...r, presetSlug: slug, mode, backspace: bs }),
     }).then((x) => x.json()).catch(() => null);
-    router.push(res?.id ? `/results/${res.id}` : "/dashboard");
+    if (res?.id) router.push(`/results/${res.id}`);
+    else { setLocalResult(r); setPassage(null); }
   }, [router, slug, mode, bs]);
+
+  if (localResult) return (
+    <div className="page practice-page">
+      <section className="practice-result">
+        <div className="eyebrow"><span className="eyebrow-dot" /> PRACTICE COMPLETE</div>
+        <h1>Your typing result</h1>
+        <p>{preset.name} · {Math.round(localResult.elapsedSec)} seconds practiced</p>
+        <div className="practice-result-grid">
+          <div><span>Gross speed</span><strong>{localResult.score.grossWpm} WPM</strong></div>
+          <div><span>Net speed</span><strong>{localResult.score.netWpm} WPM</strong></div>
+          <div><span>Accuracy</span><strong>{localResult.score.accuracy}%</strong></div>
+          <div><span>Errors</span><strong>{localResult.score.fullErrors + localResult.score.halfErrors}</strong></div>
+        </div>
+        <p className="practice-notice">This result is shown locally because the database or sign-in service is unavailable. It has not been saved to your account history.</p>
+        <div className="cta-group"><button className="practice-start" onClick={() => { setLocalResult(null); setPassage(null); setNotice(""); }}>Practise again →</button><a className="go hero-secondary" href="/library">Choose another passage</a></div>
+      </section>
+    </div>
+  );
 
   if (passage) return <div className="page"><TypingSimulator key={run} passage={passage} lang={preset.lang} durationSec={preset.durationSec} mode={mode} backspace={bs} profile={profile} onFinish={onFinish} /></div>;
 
