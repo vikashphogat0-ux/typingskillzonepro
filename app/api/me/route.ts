@@ -1,15 +1,16 @@
 import { sql } from "@/lib/db";
 import { getUserId } from "@/lib/auth";
+import { getNeonIdentity } from "@/lib/neon-auth";
 
 export async function GET(req: Request) {
+  const identity = await getNeonIdentity(req);
+  if (!identity) return Response.json({ error: "Sign in required." }, { status: 401 });
   const uid = await getUserId(req);
-  if (!uid) return Response.json({ error: "Sign in required." }, { status: 401 });
-  const db = sql();
-  const [user] = await db`SELECT id, name, email, created_at FROM users WHERE id = ${uid}`;
+  if (!uid) return Response.json({ error: "Unable to provision account." }, { status: 500 });
+  const [user] = await sql()`SELECT id, name, email, created_at FROM users WHERE id = ${uid}`;
   if (!user) return Response.json({ error: "User not found." }, { status: 404 });
-  return Response.json(user);
+  return Response.json({ ...user, name: user.name ?? identity.name });
 }
-
 export async function POST(req: Request) {
   const uid = await getUserId(req);
   if (!uid) return Response.json({ error: "Sign in required." }, { status: 401 });
