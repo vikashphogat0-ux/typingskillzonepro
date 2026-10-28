@@ -29,7 +29,8 @@ export async function GET(req: Request) {
       ORDER BY p.created_at DESC`;
     return Response.json({ today, daily, archive, list });
   } catch (error) {
-    if (!process.env.DATABASE_URL) {
+    console.error("GET /api/library failed; serving built-in sample passages as a temporary fallback:", error);
+    {
       const today = istDate();
       const samples = (["en", "hi"] as const).flatMap((language) => SAMPLE_PASSAGES[language].map((body, index) => ({
         id: `local-${language}-${index}`, title: language === "hi" ? `स्थानीय अभ्यास अनुच्छेद ${index + 1}` : `Local practice passage ${index + 1}`,
@@ -43,7 +44,7 @@ export async function GET(req: Request) {
       const qLower = q.toLocaleLowerCase();
       const filtered = samples.filter((p) => (!lang || p.language === lang) && (!qLower || p.title.toLocaleLowerCase().includes(qLower) || p.body.toLocaleLowerCase().includes(qLower)));
       const daily = Object.fromEntries((["en", "hi"] as const).map((l) => [l, { ...samples.find((p) => p.language === l)!, date: today }]));
-      return Response.json({ today, daily, archive: { en: [], hi: [] }, list: filtered, localFallback: true, notice: "Local sample passages only. Set DATABASE_URL to load the complete database passage library." });
+      return Response.json({ today, daily, archive: { en: [], hi: [] }, list: filtered, localFallback: true, notice: "Database-backed passages are temporarily unavailable. Built-in sample passages are shown while the database connection or schema is repaired." });
     }
     console.error("GET /api/library failed:", error);
     return Response.json({ error: "Passage library is temporarily unavailable. Check the database connection and passage table." }, { status: 503 });
