@@ -20,8 +20,9 @@ export async function GET(req: Request) {
     let rows = slug ? await db`SELECT id, title, body FROM passages WHERE language = ${lang} AND template_id = (SELECT id FROM exam_templates WHERE slug = ${slug}) ORDER BY random() LIMIT 1` : [];
     if (!rows.length) rows = await db`SELECT id, title, body FROM passages WHERE language = ${lang} ORDER BY random() LIMIT 1`;
     return rows.length ? Response.json(rows[0]) : Response.json({ error: "No passages yet." }, { status: 404 });
-  } catch {
-    if (!process.env.DATABASE_URL) {
+  } catch (error) {
+    console.error("GET /api/passages failed; serving a built-in sample passage as a temporary fallback:", error);
+    {
       const samples = SAMPLE_PASSAGES[lang];
       const localMatch = /^local-(en|hi)-(\d+)$/.exec(passageId);
       if (passageId && (!localMatch || localMatch[1] !== lang)) return Response.json({ error: "That passage is not available in the selected language." }, { status: 404 });
