@@ -1,0 +1,63 @@
+name: Daily passage generation
+
+on:
+  schedule:
+    - cron: "30 1 * * *"   # 07:00 IST
+    - cron: "30 7 * * *"   # 13:00 IST
+    - cron: "30 13 * * *"  # 19:00 IST
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: Generation batch to run
+        type: choice
+        required: true
+        options:
+          - morning
+          - afternoon
+          - live
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-passage-generation-${{ github.event.schedule || inputs.slot || 'scheduled' }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Select scheduled batch
+        id: batch
+        shell: bash
+        env:
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
+          MANUAL_SLOT: ${{ inputs.slot }}
+        run: |
+          if [[ -n "$MANUAL_SLOT" ]]; then
+            slot="$MANUAL_SLOT"
+          else
+            case "$EVENT_SCHEDULE" in
+              "30 1 * * *") slot="morning" ;;
+              "30 7 * * *") slot="afternoon" ;;
+              "30 13 * * *") slot="live" ;;
+              *) echo "Unknown schedule: $EVENT_SCHEDULE" >&2; exit 1 ;;
+            esac
+          fi
+          echo "slot=$slot" >> "$GITHUB_OUTPUT"
+      - name: Call secured passage generator
+        env:
+          PASSAGE_CRON_SECRET: ${{ secrets.PASSAGE_CRON_SECRET }}
+          SLOT: ${{ steps.batch.outputs.slot }}
+        shell: bash
+        run: |
+          if [[ -z "$PASSAGE_CRON_SECRET" ]]; then
+            echo "Repository secret PASSAGE_CRON_SECRET is not configured." >&2
+            exit 1
+          fi
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 5 \
+            -X POST "https://typingskillzone.in/api/admin/passages/generate" \
+            -H "Content-Type: application/json" \
+            -H "x-passage-cron-secret: $PASSAGE_CRON_SECRET" \
+            --data "{\"slot\":\"$SLOT\"}"
