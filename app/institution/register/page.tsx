@@ -22,7 +22,8 @@ export default function RegisterInstitute() {
   return (
     <div className="page setup">
       <h1>Register your typing centre</h1>
-      <p className="hint">After an admin approves it, you get a join code to share with students, plus batches, assignments, progress reports and your own leaderboard.</p>
+      <p className="hint">Create a free account or sign in first, then submit your institute details. Registration stays pending until an admin approves it. After approval, you get a student join code, batches, assignments, progress reports and an institute leaderboard.</p>
+      <p><a href="/login?next=%2Finstitution%2Fregister">Sign in or create an account</a></p>
       <form onSubmit={submit} className="form">
         <label>Institute name<input value={f.name} onChange={(e) => set("name", e.target.value)} required /></label>
         <label>City<input value={f.city} onChange={(e) => set("city", e.target.value)} required /></label>
@@ -30,7 +31,7 @@ export default function RegisterInstitute() {
         <label>Phone<input inputMode="tel" value={f.phone} onChange={(e) => set("phone", e.target.value)} required /></label>
         <label>Address (optional)<input value={f.address} onChange={(e) => set("address", e.target.value)} /></label>
         <label>Contact email (optional)<input type="email" value={f.contactEmail} onChange={(e) => set("contactEmail", e.target.value)} /></label>
-        {err && <p className="err" role="alert">{err} {err.startsWith("Sign in") && <a href="/login?next=/institution/register">Sign in</a>}</p>}
+        {err && <p className="err" role="alert">{err} {err.startsWith("Sign in") && <a href="/login?next=%2Finstitution%2Fregister">Sign in or create an account</a>}</p>}
         <button className="go" disabled={busy}>{busy ? "Sending…" : "Register institute"}</button>
       </form>
     </div>
