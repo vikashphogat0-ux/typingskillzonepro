@@ -3,7 +3,7 @@
 -- This migration is intentionally NOT run automatically by the app or deployment.
 --
 -- DELETES:
---   all users and legacy password hashes; sessions/reset tokens;
+--   all application users and legacy password hashes; sessions/reset tokens;
 --   user test attempts/results; personal saved passages; subscriptions;
 --   payment rows; institute records, memberships, batches, assignments,
 --   institute subscriptions/add-ons; admin action and audit history.
@@ -12,6 +12,8 @@
 --   exam templates, passage content (created_by is anonymized to NULL),
 --   contact/support messages, schema, and database/provider configuration.
 --
+-- IMPORTANT: this SQL does not delete identities stored separately by the
+-- Neon Auth service. Use its supported management interface if those must go.
 -- Execute only after a verified backup and explicit production approval.
 BEGIN;
 
@@ -31,7 +33,8 @@ DELETE FROM batches;
 DELETE FROM institution_members;
 DELETE FROM institutions;
 
--- Remove account-linked history. This is intentionally destructive.
+-- Remove account-linked history. This is intentionally destructive, including
+-- payment rows; revise this scope if payment/audit retention is required.
 DELETE FROM admin_actions;
 DELETE FROM audit_events;
 DELETE FROM saved_passages;
@@ -46,8 +49,8 @@ DELETE FROM reset_tokens;
 -- the reference to an account that is about to be deleted.
 UPDATE passages SET created_by = NULL WHERE created_by IS NOT NULL;
 
--- Finally remove every old account, including legacy password hashes,
--- provider IDs and all prior application roles.
+-- Finally remove every old application account, including legacy password
+-- hashes, provider IDs and all prior application roles.
 DELETE FROM users;
 
 COMMIT;
