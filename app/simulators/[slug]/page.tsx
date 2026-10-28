@@ -54,6 +54,7 @@ export default function SimulatorPage() {
   const [startErr, setStartErr] = useState("");
   const [passageOptions, setPassageOptions] = useState<{ id: string; title: string; word_count: number }[]>([]);
   const [selectedPassageId, setSelectedPassageId] = useState("");
+  const [passageSearch, setPassageSearch] = useState("");
 
   useEffect(() => {
     if (!slug) return;
@@ -134,6 +135,7 @@ export default function SimulatorPage() {
     );
   }
 
+  const visiblePassages = passageOptions.filter(p => !passageSearch.trim() || p.id.toLowerCase().includes(passageSearch.trim().toLowerCase()) || p.title.toLowerCase().includes(passageSearch.trim().toLowerCase()));
   const scoring = sim.scoring ?? {};
   const isQualifying = scoring.qualifyingWpm !== undefined;
 
@@ -269,14 +271,16 @@ export default function SimulatorPage() {
               </p>
             )}
 
-            <label className="practice-field" style={{ marginTop: 18, maxWidth: 620 }}>
-              Passage for this attempt
-              <select value={selectedPassageId} onChange={(e) => setSelectedPassageId(e.target.value)}>
+            <div className="practice-field simulator-passage-picker" style={{ marginTop: 18, maxWidth: 720 }}>
+              <label htmlFor="passage-id-search">Find passage by title or unique ID</label>
+              <input id="passage-id-search" value={passageSearch} onChange={e => setPassageSearch(e.target.value)} placeholder="Paste a passage ID or type a title…" autoComplete="off" />
+              <label htmlFor="passage-select">Passage for this attempt</label>
+              <select id="passage-select" value={selectedPassageId} onChange={(e) => setSelectedPassageId(e.target.value)}>
                 <option value="">Random passage for this exam language</option>
-                {passageOptions.map((p) => <option key={p.id} value={p.id}>{p.title} · {p.word_count} words</option>)}
+                {visiblePassages.map((p) => <option key={p.id} value={p.id}>{p.title} · {p.word_count} words · ID {p.id}</option>)}
               </select>
-              <small>Every passage in the selected language can be practised with this simulator&apos;s configured duration, scoring and backspace rules.</small>
-            </label>
+              <small>{visiblePassages.length} matching passage(s). Every passage in this language can be practised with this simulator&apos;s configured duration, scoring and backspace rules. Passage content stays the same; only this exam&apos;s typing pattern changes.</small>
+            </div>
 
             <div style={{ marginTop: 20, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
               <button
