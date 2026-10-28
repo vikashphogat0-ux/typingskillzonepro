@@ -22,10 +22,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       my_best: null
     });
   } catch (error) {
-    if (!process.env.DATABASE_URL) {
+    console.error("GET /api/simulators/[slug] failed; serving built-in preset as a temporary fallback:", error);
+    {
       const preset = PRESETS.find((p) => p.slug === slug);
       if (!preset) return Response.json({ error: "Simulator not found." }, { status: 404 });
-      return Response.json({ slug: preset.slug, name: preset.name, language: preset.lang, duration_sec: preset.durationSec, display_mode: preset.mode, backspace: preset.backspace, scoring: preset.profile ?? { id: preset.profileId }, description: "Local preset. Configure DATABASE_URL for database-backed passages and result history.", participants: 0, my_best: null });
+      return Response.json({ slug: preset.slug, name: preset.name, language: preset.lang, duration_sec: preset.durationSec, display_mode: preset.mode, backspace: preset.backspace, scoring: preset.profile ?? { id: preset.profileId }, description: "Temporary local fallback: database-backed exam details are unavailable; saved results require the database.", participants: 0, my_best: null });
     }
     console.error("GET /api/simulators/[slug] failed:", error);
     return Response.json({ error: "Simulator details are temporarily unavailable. Check the database connection and exam seed data." }, { status: 503 });
