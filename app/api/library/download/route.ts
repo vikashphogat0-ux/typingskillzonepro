@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   const u = new URL(req.url);
   const requestedId = u.searchParams.get("id");
   if (requestedId?.startsWith("local-")) {
-    const match = /^local-(en|hi)-(\\d+)$/.exec(requestedId);
+    const match = /^local-(en|hi)-(\d+)$/.exec(requestedId);
     if (!match) return Response.json({ error: "Not found." }, { status: 404 });
     const language = match[1] as "en" | "hi", index = Number(match[2]);
     const body = SAMPLE_PASSAGES[language][index];
@@ -74,7 +74,7 @@ export async function GET(req: Request) {
     console.error("GET /api/library/download failed; serving built-in sample text as a temporary fallback:", error);
     if (u.searchParams.get("pack") === "today") {
       const parts = ([ "en", "hi" ] as const).map((language) => ({ title: language === "hi" ? "दैनिक स्थानीय अभ्यास" : "Daily local practice", language, body: SAMPLE_PASSAGES[language][0] }));
-      return text(parts.map((p) => passageFile(p)).join("\\r\\n------------------------------\\r\\n\\r\\n"), "local-daily-pack.txt");
+      return text(parts.map((p) => passageFile(p)).join("\r\n------------------------------\r\n\r\n"), "local-daily-pack.txt");
     }
     if (u.searchParams.has("id")) return Response.json({ error: "The requested database passage is unavailable while the database is offline." }, { status: 503 });
     const language = u.searchParams.get("lang") === "hi" ? "hi" : "en";
