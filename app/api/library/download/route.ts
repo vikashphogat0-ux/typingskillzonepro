@@ -7,7 +7,20 @@ const text = (body: string, name: string) => new Response(body, { headers: { "Co
 /** ?id=uuid | ?date=YYYY-MM-DD&lang=en|hi | ?pack=today (both languages in one file) */
 export async function GET(req: Request) {
   const u = new URL(req.url);
-  if (!process.env.DATABASE_URL) {\n    const id = u.searchParams.get("id");\n    if (id?.startsWith("local-")) {\n      const match = /^local-(en|hi)-(\\d+)$/.exec(id);\n      if (!match) return Response.json({ error: "Not found." }, { status: 404 });\n      const language = match[1], index = Number(match[2]);\n      const body = SAMPLE_PASSAGES[language as "en" | "hi"][index];\n      if (!body) return Response.json({ error: "Not found." }, { status: 404 });\n      const title = language === "hi" ? `स्थानीय अभ्यास अनुच्छेद ${index + 1}` : `Local practice passage ${index + 1}`;\n      return text(passageFile({ title, language, body }), fileName(title, language));\n    }\n    return Response.json({ error: "DATABASE_URL is not set. Configure Neon to download the complete passage library." }, { status: 503 });\n  }\n  const db = sql();
+  if (!process.env.DATABASE_URL) {
+    const id = u.searchParams.get("id");
+    if (id?.startsWith("local-")) {
+      const match = /^local-(en|hi)-(\d+)$/.exec(id);
+      if (!match) return Response.json({ error: "Not found." }, { status: 404 });
+      const language = match[1], index = Number(match[2]);
+      const body = SAMPLE_PASSAGES[language as "en" | "hi"][index];
+      if (!body) return Response.json({ error: "Not found." }, { status: 404 });
+      const title = language === "hi" ? `स्थानीय अभ्यास अनुच्छेद ${index + 1}` : `Local practice passage ${index + 1}`;
+      return text(passageFile({ title, language, body }), fileName(title, language));
+    }
+    return Response.json({ error: "DATABASE_URL is not set. Configure Neon to download the complete passage library." }, { status: 503 });
+  }
+  const db = sql();
   const daily = async (date: string, lang: string) => {
     const pool = await db`SELECT id FROM passages WHERE language = ${lang} ORDER BY id`;
     const pick = dailyPick(pool as any[], date, lang);
