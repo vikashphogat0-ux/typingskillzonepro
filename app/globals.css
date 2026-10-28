@@ -215,3 +215,60 @@ body{background:#f7f8fc;color:var(--tsz-navy);font-family:Inter,"Atkinson Hyperl
 .plan-current-label{font-size:12px;color:#187d70;font-weight:800}.current-subscription,.subscription-notice,.pricing-message,.pricing-notes{padding:18px 20px;margin:18px 0;background:#fff;border:1px solid var(--tsz-border);border-radius:15px}.pricing-message{border-color:#f1d49a;background:#fff9e9}.pricing-message p{margin-top:0}.pricing-notes h2{margin-top:0;font-size:19px}.pricing-notes li{margin:7px 0;color:var(--tsz-muted);font-size:13px}
 .data-source-notice{margin:18px 0;padding:16px 19px;border:1px solid #f0d49a;border-radius:14px;background:#fff8e7;color:#72500a}.data-source-notice strong{display:block;font-size:14px}.data-source-notice p{margin:5px 0 0;font-size:13px;line-height:1.65}
 @media(max-width:620px){.plans{padding:20px 14px 46px}.plans-header{padding:25px 20px;border-radius:18px}.pricing-phone{grid-template-columns:1fr;padding:15px}.pricing-phone p{grid-column:1}.plans-grid{grid-template-columns:1fr}.plan-card{padding:20px}}
+
+/* Simulator catalogue refresh: responsive cards with exam-rule metadata. */
+.sim-v2-hero{position:relative;overflow:hidden;border-radius:26px;padding:clamp(28px,4.5vw,52px);background:radial-gradient(circle at 88% 14%,rgba(139,232,226,.23),transparent 27%),linear-gradient(128deg,#101b35 0%,#243d78 58%,#355bc0 100%);box-shadow:0 24px 56px rgba(20,35,76,.18)}
+.sim-v2-hero h1{max-width:780px;font-size:clamp(34px,5vw,56px);line-height:1.02;letter-spacing:-.055em}
+.sim-v2-hero>p{max-width:720px;color:#d5deef;line-height:1.8}
+.sim-hero-stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.sim-hero-stats span{display:flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(255,255,255,.08);color:#e7edfa;font-size:12px}
+.sim-hero-stats strong{color:#8be8e2}
+.sim-filter-v2{margin:22px 0;padding:16px 18px;border:1px solid #e1e7f1;border-radius:16px;background:#fff;box-shadow:0 7px 24px rgba(17,28,54,.04)}
+.sim-page-grid-v2{grid-template-columns:repeat(auto-fill,minmax(min(100%,430px),1fr));gap:18px}
+.sim-page-card-v2{position:relative;display:flex;flex-direction:column;gap:0;overflow:hidden;padding:0;border:1px solid #e0e6f0;border-radius:22px;background:linear-gradient(180deg,#fff,#fbfcff);box-shadow:0 9px 26px rgba(24,39,75,.055);transition:transform .18s,box-shadow .18s,border-color .18s}
+.sim-page-card-v2:before{content:"";height:5px;width:100%;background:linear-gradient(90deg,#3155bd,#86e3dc)}
+.sim-page-card-v2:hover{transform:translateY(-4px);border-color:#b7c8f2;box-shadow:0 18px 38px rgba(24,39,75,.12)}
+.sim-page-card-v2:focus-visible{outline:3px solid #6f8fe8;outline-offset:3px}
+.sim-card-brand-row{display:flex;align-items:center;gap:13px;padding:19px 20px 15px}
+.sim-page-card-v2 .exam-emblem{width:66px;height:66px;flex:0 0 66px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;border:1px solid rgba(255,255,255,.2);border-radius:16px;box-shadow:inset 0 1px rgba(255,255,255,.3)}
+.sim-page-card-v2 .exam-emblem span{font-size:17px;font-weight:950;letter-spacing:-.04em}
+.sim-page-card-v2 .exam-emblem small{font-size:8px;letter-spacing:.1em;font-weight:850}
+.sim-card-brand-copy{display:grid;gap:7px;min-width:0}
+.sim-card-brand-copy .exam-family{font-size:11px;line-height:1.4;letter-spacing:.08em;text-transform:uppercase;color:#66728a;font-weight:850}
+.sim-notice-pill{width:max-content;max-width:100%;padding:4px 8px;border:1px solid #dce6fb;border-radius:999px;background:#f1f5ff;color:#3854a1;font-size:10px;font-weight:800}
+.sim-page-card-v2 .exam-arrow{margin-left:auto;align-self:flex-start;color:#66728a;font-size:21px}
+.sim-card-content{display:flex;flex:1;flex-direction:column;padding:0 20px 20px}
+.sim-card-content h2{margin:0 0 8px;color:#17233e;font-size:clamp(19px,2.3vw,23px);line-height:1.25;letter-spacing:-.025em}
+.sim-card-description{margin:0 0 16px;color:#667085;font-size:13px;line-height:1.65}
+.sim-rule-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 13px}
+.sim-rule-metrics>span{display:flex;flex-direction:column;gap:6px;min-width:0;padding:11px;border:1px solid #e6ebf3;border-radius:12px;background:#f7f9fd}
+.sim-rule-metrics small{font-size:9px;letter-spacing:.08em;color:#768198;font-weight:900}
+.sim-rule-metrics strong{font-size:12px;color:#233451;overflow-wrap:anywhere}
+.sim-card-rule-line{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:12px 0;border-top:1px solid #edf0f6;color:#58657b;font-size:11px}
+.sim-card-rule-line>span{display:flex;align-items:center;gap:6px}
+.sim-rule-dot{width:7px;height:7px;border-radius:50%;background:#26a69a;display:inline-block}
+.sim-card-bottom{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:auto;padding-top:13px;border-top:1px solid #edf0f6;color:#3155bd;font-size:12px;font-weight:850}
+.sim-card-bottom small{color:#8490a5;font-size:10px;font-weight:600}
+.sim-official-note{margin:24px 0 0;padding:16px 18px;border:1px solid #e3e9f2;border-radius:15px;background:#f8faff;color:#536078}
+.sim-official-note strong{color:#273b62;font-size:13px}
+.sim-official-note p{margin:5px 0 0;font-size:12px;line-height:1.7}
+/* Monthly passage browser */
+.library-month-browser{margin-top:8px}
+.library-month-toolbar{display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:14px;margin:18px 0;padding:17px 19px;border:1px solid #e1e7f1;border-radius:16px;background:#fff}
+.library-month-toolbar label{display:grid;gap:7px;color:#263854;font-size:12px;font-weight:850}
+.library-month-toolbar select{min-width:230px;min-height:44px;padding:9px 12px;border:1px solid #d5deed;border-radius:10px;background:#fbfcff;color:#243451;font:inherit}
+.library-month-count{font-size:12px;color:#667085}
+.library-month-list{display:grid;gap:12px}
+.library-month-item{overflow:hidden;border:1px solid #e0e6f0;border-radius:16px;background:#fff;transition:border-color .15s,box-shadow .15s}
+.library-month-item.selected{border-color:#6e8ce1;box-shadow:0 8px 24px rgba(49,85,189,.09)}
+.library-month-select{width:100%;display:flex;align-items:center;gap:13px;text-align:left;padding:15px 17px;border:0;background:transparent;color:inherit;cursor:pointer}
+.library-language-mark{width:43px;height:43px;display:grid;place-items:center;flex:0 0 43px;border-radius:12px;background:#edf2ff;color:#3155bd;font-size:13px;font-weight:950}
+.library-language-mark.hindi{background:#e5f7f3;color:#13766e}
+.library-month-title{display:grid;gap:5px;min-width:0}
+.library-month-title strong{font-size:14px;color:#1c2c49}
+.library-month-title small{font-size:11px;color:#78849a}
+.library-month-chevron{margin-left:auto;color:#3155bd;font-size:11px;font-weight:850;white-space:nowrap}
+.library-month-detail{padding:0 17px 17px}
+.library-month-detail .passage-box{max-height:260px;margin-bottom:13px;border-radius:12px}
+.library-month-detail .library-day-actions{display:flex;flex-wrap:wrap;gap:8px}
+@media(max-width:560px){.sim-v2-hero{padding:25px 20px;border-radius:19px}.sim-hero-stats{display:grid;grid-template-columns:1fr}.sim-page-grid-v2{grid-template-columns:1fr}.sim-card-brand-row{padding:16px 15px 13px}.sim-card-content{padding:0 15px 16px}.sim-rule-metrics{gap:6px}.sim-rule-metrics>span{padding:8px}.sim-rule-metrics strong{font-size:11px}.sim-card-bottom{align-items:flex-start;flex-direction:column}.library-month-toolbar{align-items:stretch;flex-direction:column;padding:14px}.library-month-toolbar select{width:100%;min-width:0}.library-month-select{padding:13px 12px;gap:9px}.library-language-mark{width:36px;height:36px;flex-basis:36px}.library-month-title strong{font-size:12px}.library-month-chevron{font-size:10px}.library-month-detail{padding:0 12px 12px}}
