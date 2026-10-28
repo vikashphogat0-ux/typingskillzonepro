@@ -1,23 +1,12 @@
 import { sql } from "@/lib/db";
-import { getUserId } from "@/lib/auth";
 
-export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const slug = (await params).slug;
   try {
     const db = sql();
-    const [t] = await db`SELECT slug, name, language, duration_sec, display_mode, backspace, scoring, description FROM exam_templates WHERE slug = ${slug} AND is_active`;
+    const [t] = await db`SELECT slug, name, language, duration_sec, display_mode, backspace, scoring, description
+      FROM exam_templates WHERE slug = ${slug} AND is_active = true`;
     if (!t) return Response.json({ error: "Simulator not found." }, { status: 404 });
-
-    // Get participants count
-    const [p] = await db`SELECT count(DISTINCT user_id)::int AS participants FROM results WHERE template_id = ${t.id} AND NOT flagged`;
-
-    // Get user's best score if signed in
-    const uid = await getUserId(req).catch(() => null);
-    let myBest = null;
-    if (uid) {
-      const [best] = await db`SELECT max(net_wpm) AS best FROM results WHERE template_id = ${t.id} AND user_id = ${uid} AND NOT flagged`;
-      myBest = best?.best;
-    }
 
     return Response.json({
       slug: t.slug,
@@ -28,10 +17,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
       backspace: t.backspace,
       scoring: t.scoring,
       description: t.description,
-      participants: p?.participants ?? 0,
-      my_best: myBest
+      participants: 0,
+      my_best: null
     });
-  } catch (err) {
-    return Response.json({ error: "Failed to load simulator." }, { status: 500 });
+  } catch (error) {
+    console.error("GET /api/simulators/[slug] failed:", error);
+    return Response.json({ error: "Simulator details are temporarily unavailable. Check the database connection and exam seed data." }, { status: 503 });
   }
 }
