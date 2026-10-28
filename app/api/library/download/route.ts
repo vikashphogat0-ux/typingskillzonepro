@@ -18,6 +18,20 @@ export async function GET(req: Request) {
       const title = language === "hi" ? `स्थानीय अभ्यास अनुच्छेद ${index + 1}` : `Local practice passage ${index + 1}`;
       return text(passageFile({ title, language, body }), fileName(title, language));
     }
+    if (u.searchParams.get("pack") === "today") {
+      const parts = (["en", "hi"] as const).map((language) => ({
+        title: language === "hi" ? "दैनिक स्थानीय अभ्यास" : "Daily local practice",
+        language, body: SAMPLE_PASSAGES[language][0]
+      }));
+      return text(parts.map((p) => passageFile(p)).join("\\r\\n------------------------------\\r\\n\\r\\n"), "local-daily-pack.txt");
+    }
+    const language = u.searchParams.get("lang") === "hi" ? "hi" : "en";
+    const index = Number(u.searchParams.get("date") ? 0 : NaN);
+    if (Number.isFinite(index)) {
+      const body = SAMPLE_PASSAGES[language][index];
+      const title = language === "hi" ? "दैनिक स्थानीय अभ्यास" : "Daily local practice";
+      return text(passageFile({ title, language, body }, u.searchParams.get("date") ?? undefined), fileName(title, language, u.searchParams.get("date") ?? undefined));
+    }
     return Response.json({ error: "DATABASE_URL is not set. Configure Neon to download the complete passage library." }, { status: 503 });
   }
   const db = sql();
