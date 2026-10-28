@@ -74,7 +74,7 @@ test("Cashfree order creation uses the PG Orders API and never returns credentia
     assert.equal(capturedUrl, "https://sandbox.cashfree.com/pg/orders");
     assert.equal(new Headers(capturedInit?.headers).get("x-client-id"), "sandbox-app-id");
     assert.equal(new Headers(capturedInit?.headers).get("x-client-secret"), "sandbox-secret");
-    assert.equal(new Headers(capturedInit?.headers).get("x-api-version"), "2023-08-01");
+    assert.equal(new Headers(capturedInit?.headers).get("x-api-version"), "2025-01-01");
     const sentBody = JSON.parse(String(capturedInit?.body));
     assert.equal(sentBody.order_amount, 99);
     assert.equal(sentBody.order_currency, "INR");
