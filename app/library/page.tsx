@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { api, fmtDate } from "@/lib/clientApi";
 
 interface P { id: string; title: string; word_count: number; language?: string; body?: string; date?: string; preview?: string; exam?: string | null }
-type LibraryData = { today?: string; daily: Record<string, P | undefined>; archive: Record<string, P[]>; list: P[] };
+type LibraryData = { today?: string; daily: Record<string, P | undefined>; archive: Record<string, P[]>; list: P[]; localFallback?: boolean; notice?: string };
 export default function Library() {
   const [d, setD] = useState<LibraryData | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -75,6 +75,7 @@ export default function Library() {
       <div className="tabs" role="tablist" aria-label="Passage library sections">
         {(["today", "archive", "all"] as const).map(t => <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{t === "today" ? "Today’s passages" : t === "archive" ? "14-day archive" : "Search library"}</button>)}
       </div>
+      {d?.localFallback && <div className="data-source-notice" role="status"><strong>Temporary sample mode</strong><p>{d.notice ?? "The database-backed passage library is unavailable. Built-in samples are shown temporarily."} Real library records will return when the database connection and schema are repaired.</p></div>}
       {loadError && <div className="empty-state"><b>We couldn’t load today’s passages.</b><p>{loadError}</p><button className="go alt" onClick={retry}>Try again</button></div>}
       {tab === "today" && !loadError && (!d ? <div className="exam-loading"><span className="loading-pulse" /> Loading today’s passages…</div> : (
         <>
