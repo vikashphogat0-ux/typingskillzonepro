@@ -125,6 +125,9 @@ export default function SimulatorPage() {
           mode={testData.mode}
           backspace={testData.backspace}
           profile={testData.profile}
+          fontSizePt={testData.fontSizePt ?? 12}
+          passageLayout={testData.passageLayout ?? "continuous"}
+          examName={testData.name ?? sim.name}
           onFinish={onFinish}
         />
       </div>
