@@ -27,7 +27,7 @@ const examMark = (slug: string) => {
   if (slug.includes("ssc-chsl")) return { mark: "SSC", tone: "violet", family: "Staff Selection Commission" };
   if (slug.includes("ssc-cgl")) return { mark: "CGL", tone: "blue", family: "Combined Graduate Level" };
   if (slug.includes("rrb") || slug.includes("railway")) return { mark: "RRB", tone: "orange", family: "Railway Recruitment" };
-  if (slug.includes("delhi-police")) return { mark: "DP", tone: "red", family: "Delhi Police" };
+  if (slug.includes("delhi-police") || slug.includes("dp-hcm")) return { mark: "DP", tone: "red", family: "Delhi Police · Head Constable Ministerial" };
   if (slug.includes("court")) return { mark: "HC", tone: "teal", family: "Court Typing" };
   if (slug.includes("bsf")) return { mark: "BSF", tone: "green", family: "Border Security Force" };
   return { mark: "TSZ", tone: "blue", family: "Typing practice" };
@@ -146,7 +146,7 @@ export default function SimulatorPage() {
       </nav>
 
       <section className="sim-detail-hero">
-        <div className={`exam-emblem ${examMark(sim.slug).tone}`}><span>{examMark(sim.slug).mark}</span><small>EXAM PREP</small></div>
+        <div className={`exam-emblem ${examMark(sim.slug).tone}`} aria-label={`${examMark(sim.slug).family} category mark`}><span>{examMark(sim.slug).mark}</span><small>{sim.slug.includes("dp-hcm") || sim.slug.includes("delhi-police") ? "DELHI POLICE" : sim.slug.includes("bsf") ? "BSF HCM" : "EXAM PREP"}</small></div>
         <div>
           <div className="eyebrow">{examMark(sim.slug).family}</div>
           <h1>{sim.name}</h1>
