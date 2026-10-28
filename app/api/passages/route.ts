@@ -23,7 +23,7 @@ export async function GET(req: Request) {
   } catch {
     if (!process.env.DATABASE_URL) {
       const samples = SAMPLE_PASSAGES[lang];
-      const localMatch = /^local-(en|hi)-(\\d+)$/.exec(passageId);
+      const localMatch = /^local-(en|hi)-(\d+)$/.exec(passageId);
       if (passageId && (!localMatch || localMatch[1] !== lang)) return Response.json({ error: "That passage is not available in the selected language." }, { status: 404 });
       const index = localMatch ? Number(localMatch[2]) : Math.floor(Math.random() * samples.length);
       const body = samples[index];
