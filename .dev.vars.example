@@ -1,0 +1,15 @@
+# Copy this file to .dev.vars locally. Never commit the real .dev.vars file.
+# Use SANDBOX credentials while CF_ENVIRONMENT=sandbox.
+
+CF_ENVIRONMENT=sandbox
+CF_MERCHANT_ID=YOUR_CASHFREE_SANDBOX_APP_ID
+CF_SECRET_KEY=YOUR_CASHFREE_SANDBOX_SECRET_KEY
+
+# Cashfree PG webhook verification uses CF_SECRET_KEY for
+# x-webhook-signature + x-webhook-timestamp validation.
+# Do not add CF_WEBHOOK_SECRET unless the app is deliberately changed
+# to support a separate webhook signing secret.
+DATABASE_URL=YOUR_NEON_APPLICATION_DATABASE_URL
+NEON_AUTH_BASE_URL=YOUR_NEON_AUTH_BASE_URL
+NEXT_PUBLIC_NEON_AUTH_URL=YOUR_NEON_AUTH_BASE_URL
+NEXT_PUBLIC_URL=http://localhost:3000

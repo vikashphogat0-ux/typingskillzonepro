@@ -144,35 +144,96 @@ export async function getStudentAccess(
 export async function processPaidOrder(
   orderId: string,
   paymentId: string,
-  planId: StudentPlanId
+  amountPaise: number,
+  currency: string
 ): Promise<boolean> {
-  const plan = getStudentPlan(planId);
-
-  if (!plan || planId === "free" || !plan.durationDays) {
-    throw new Error("Invalid paid student plan.");
+  if (!orderId || !paymentId || !Number.isSafeInteger(amountPaise) || amountPaise <= 0 || currency !== "INR") {
+    return false;
   }
 
-  /*
-   * IMPORTANT:
-   * Implement this operation using your existing database
-   * transaction support and actual payments schema:
-   *
-   * 1. Lock/claim the pending order.
-   * 2. Verify its user, plan, amount and currency against
-   *    the stored order and central pricing catalog.
-   * 3. Return false if the order was already processed.
-   * 4. Mark the payment paid.
-   * 5. Extend or create the subscription exactly once.
-   * 6. Commit both changes atomically.
-   *
-   * Do not use a client-supplied plan or amount as proof
-   * of payment. Do not activate access before verification.
-   */
+  const db = sql();
+  const [payment] = await db`
+    SELECT user_id, plan_id, amount_paise, currency, status, payment_id
+    FROM payments
+    WHERE order_id = ${orderId} AND provider = 'cashfree'
+    LIMIT 1
+  `;
 
-  throw new Error(
-    `Connect verified Cashfree order ${orderId} / ${paymentId} ` +
-      `to the existing transactional payment processor for ${planId}.`
-  );
+  if (!payment) return false;
+  if (payment.status === "paid") {
+    return String(payment.payment_id ?? "") === paymentId;
+  }
+  if (
+    payment.status !== "pending" ||
+    !payment.user_id ||
+    Number(payment.amount_paise) !== amountPaise ||
+    String(payment.currency) !== currency
+  ) return false;
+
+  const planId = String(payment.plan_id ?? "") as StudentPlanId;
+  const plan = getStudentPlan(planId);
+  if (!plan || planId === "free" || !plan.durationDays) return false;
+
+  // A single SQL statement claims the pending payment and activates/extends
+  // the subscription. Replayed webhook events cannot claim the row twice.
+  const [result] = await db`
+    WITH claimed AS (
+      UPDATE payments
+      SET status = 'paid',
+          payment_id = ${paymentId},
+          gateway_event_id = ${paymentId},
+          verified_at = now(),
+          paid_at = now(),
+          updated_at = now(),
+          failure_reason = NULL
+      WHERE order_id = ${orderId}
+        AND provider = 'cashfree'
+        AND status = 'pending'
+        AND user_id = ${payment.user_id}
+        AND plan_id = ${planId}
+        AND amount_paise = ${amountPaise}
+        AND currency = ${currency}
+      RETURNING user_id, plan_id
+    ),
+    existing AS (
+      SELECT s.id
+      FROM subscriptions s
+      JOIN claimed c ON c.user_id = s.user_id AND c.plan_id = s.plan
+      ORDER BY s.ends_at DESC NULLS LAST
+      LIMIT 1
+    ),
+    updated AS (
+      UPDATE subscriptions s
+      SET starts_at = COALESCE(s.starts_at, now()),
+          ends_at = GREATEST(COALESCE(s.ends_at, now()), now()) + (${plan.durationDays} * interval '1 day'),
+          status = 'active'
+      FROM existing e
+      WHERE s.id = e.id
+      RETURNING s.id
+    ),
+    inserted AS (
+      INSERT INTO subscriptions (user_id, plan, status, starts_at, ends_at, is_institute)
+      SELECT c.user_id, c.plan_id, 'active', now(),
+             now() + (${plan.durationDays} * interval '1 day'), false
+      FROM claimed c
+      WHERE NOT EXISTS (SELECT 1 FROM updated)
+      RETURNING id
+    )
+    SELECT (SELECT count(*)::int FROM claimed) AS claimed_count,
+           (SELECT count(*)::int FROM updated) AS updated_count,
+           (SELECT count(*)::int FROM inserted) AS inserted_count
+  `;
+
+  if (Number(result?.claimed_count ?? 0) === 1) return true;
+
+  // Handles concurrent/retried webhooks after another request completed.
+  const [latest] = await db`
+    SELECT status, payment_id
+    FROM payments
+    WHERE order_id = ${orderId} AND provider = 'cashfree'
+    LIMIT 1
+  `;
+  return latest?.status === "paid" && String(latest.payment_id ?? "") === paymentId;
 }
 
 export async function grantPro(
