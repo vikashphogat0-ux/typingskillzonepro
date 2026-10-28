@@ -13,7 +13,7 @@ Admin panel at `/admin` (passages, bulk upload, exam templates). Promote yoursel
 Subscriptions: Free and Pro plans (`lib/plans.ts`), Razorpay one-time checkout, verify and webhook routes under `app/api/subscription`, `/pricing`, and `/admin/subscribers` for manual grants. Re-run `db/schema.sql` (safe to repeat) to add the payments table. Set the RAZORPAY_* variables and add the webhook in the Razorpay dashboard. Test with test keys first.
 
 ## Institutes, simulators, leaderboards, library
-- Simulators = rows in `exam_templates`. Run `db/seed-simulators.sql` once for five starters. Rules (display, backspace, time, scoring) are locked per simulator and applied by the server.
+- Simulators = rows in `exam_templates`. Run `db/seed-simulators.sql` to insert/update the exam catalogue (safe to re-run). Run `db/seed-practice-passages.sql` to insert missing English and Hindi starter passages for the public Passage Library (safe to re-run; it never overwrites existing passages). Apply `db/schema.sql` first if the tables have not been created. Rules (display, backspace, time, scoring) are locked per simulator and applied by the server.
 - `POST /api/tests/start` makes the server pick and store the reference text. `POST /api/results` with `testId` verifies the key log, recomputes the score and flags impossible speed. Flagged attempts stay off leaderboards.
 - Leaderboard per simulator: `lib/leaderboard.ts` (best valid attempt per student, full-length only). Scopes: all students or own institute; all time, 30 days, 7 days.
 - Institutes: `/institution/register`, admin approval at `/admin/institutions`, panel at `/institution`, students join at `/join` with a code. Members of an approved institute get unlimited tests.
