@@ -83,7 +83,7 @@ export default function Admin() {
           <button className="go" disabled={!!generationBusy} onClick={() => runGeneration("live")}>{generationBusy === "live" ? "Generating…" : "Generate 7 PM · 2 live sets"}</button>
         </div>
         {generationMsg && <p className="flash-msg" role="status">{generationMsg}</p>}
-        <p className="hint">Automatic schedule also requires the additive SQL migrations and the GitHub repository secret PASSAGE_CRON_SECRET.</p>
+        <p className="hint">Automatic schedule requires the additive SQL migrations plus the same strong PASSAGE_CRON_SECRET configured in both GitHub Actions secrets and Cloudflare Worker secrets.</p>
       </section>
       <div className="tabs" role="tablist">
         <button role="tab" aria-selected={tab === "passages"} onClick={() => setTab("passages")}>Passages</button>
