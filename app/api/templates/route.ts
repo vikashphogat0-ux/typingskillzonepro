@@ -4,12 +4,14 @@ import { sql } from "@/lib/db";
 export async function GET() {
   try {
     const rows = await sql()`
-      SELECT t.slug, t.name, t.language, t.duration_sec, t.display_mode, t.backspace, t.scoring,
-        (SELECT count(*)::int FROM results r WHERE r.template_id = t.id AND NOT r.flagged) AS participants
-      FROM exam_templates t WHERE t.is_active ORDER BY t.name
+      SELECT t.slug, t.name, t.language, t.duration_sec, t.display_mode, t.backspace, t.scoring
+      FROM exam_templates t
+      WHERE t.is_active = true
+      ORDER BY t.name
     `;
     return Response.json(rows);
-  } catch {
-    return Response.json([]);
+  } catch (error) {
+    console.error("GET /api/templates failed:", error);
+    return Response.json({ error: "Exam presets are temporarily unavailable. Check the database configuration and exam seed data." }, { status: 503 });
   }
 }
