@@ -1,12 +1,13 @@
 import { sql } from "@/lib/db";
 import { dailyPick, fileName, istDate, passageFile } from "@/lib/library";
+import { SAMPLE_PASSAGES } from "@/lib/presets";
 
 const text = (body: string, name: string) => new Response(body, { headers: { "Content-Type": "text/plain; charset=utf-8", "Content-Disposition": `attachment; filename="${name}"`, "Cache-Control": "public, max-age=300" } });
 
 /** ?id=uuid | ?date=YYYY-MM-DD&lang=en|hi | ?pack=today (both languages in one file) */
 export async function GET(req: Request) {
   const u = new URL(req.url);
-  const db = sql();
+  if (!process.env.DATABASE_URL) {\n    const id = u.searchParams.get("id");\n    if (id?.startsWith("local-")) {\n      const match = /^local-(en|hi)-(\\d+)$/.exec(id);\n      if (!match) return Response.json({ error: "Not found." }, { status: 404 });\n      const language = match[1], index = Number(match[2]);\n      const body = SAMPLE_PASSAGES[language as "en" | "hi"][index];\n      if (!body) return Response.json({ error: "Not found." }, { status: 404 });\n      const title = language === "hi" ? `स्थानीय अभ्यास अनुच्छेद ${index + 1}` : `Local practice passage ${index + 1}`;\n      return text(passageFile({ title, language, body }), fileName(title, language));\n    }\n    return Response.json({ error: "DATABASE_URL is not set. Configure Neon to download the complete passage library." }, { status: 503 });\n  }\n  const db = sql();
   const daily = async (date: string, lang: string) => {
     const pool = await db`SELECT id FROM passages WHERE language = ${lang} ORDER BY id`;
     const pick = dailyPick(pool as any[], date, lang);
