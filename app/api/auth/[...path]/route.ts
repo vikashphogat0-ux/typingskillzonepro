@@ -1,6 +1,5 @@
 import { neonAuthUrl } from "@/lib/neon-auth";
 
-export const runtime = "edge";
 export const dynamic = "force-dynamic";
 
 async function proxy(req: Request, context: { params: Promise<{ path: string[] }> }) {
