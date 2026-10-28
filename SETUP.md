@@ -20,6 +20,12 @@ Before applying any schema or migration:
 4. If only `neon_auth.*` tables appear, stop. You are not looking at the application schema expected by this repository. Do not run account-reset SQL and do not create `users` manually.
 5. Back up the intended database and test any schema changes against a separate staging branch first.
 
+## Local Wrangler development secrets
+
+For local Cloudflare/OpenNext development, copy `.dev.vars.example` to `.dev.vars` and fill in the real sandbox values. The real `.dev.vars` file is intentionally git-ignored and must never be committed.
+
+Use `CF_SECRET_KEY` as the Cashfree PG client secret for both order creation and webhook signature verification. This project does **not** read a separate `CF_WEBHOOK_SECRET` variable. If you already have a `CF_WEBHOOK_SECRET` entry in your local `.dev.vars`, remove it and make sure `CF_SECRET_KEY` contains the matching environment's Cashfree secret. Never paste secret values into chat or GitHub.
+
 ## Environment variables
 
 Set variables in Cloudflare Dashboard → Workers & Pages → `typing-skill-zone-v2` → Settings → Variables and secrets. Set them for **Production** only after sandbox/staging tests pass. Do not commit credentials.
