@@ -20,11 +20,26 @@ async function proxy(req: Request, context: { params: Promise<{ path: string[] }
     body: method === "GET" || method === "HEAD" ? undefined : await req.arrayBuffer(),
     redirect: "manual", cache: "no-store",
   });
+
   const responseHeaders = new Headers();
-  for (const key of ["content-type", "cache-control", "location", "set-cookie", "www-authenticate"]) {
+  for (const key of ["content-type", "cache-control", "location", "www-authenticate"]) {
     const value = upstream.headers.get(key);
     if (value) responseHeaders.set(key, value);
   }
+
+  // Preserve every Set-Cookie independently. Collapsing multiple cookies into
+  // one comma-separated header can corrupt session cookies and Expires dates.
+  const headersWithCookieSupport = upstream.headers as Headers & {
+    getSetCookie?: () => string[];
+  };
+  const cookies = headersWithCookieSupport.getSetCookie?.();
+  if (cookies?.length) {
+    for (const cookie of cookies) responseHeaders.append("set-cookie", cookie);
+  } else {
+    const cookie = upstream.headers.get("set-cookie");
+    if (cookie) responseHeaders.append("set-cookie", cookie);
+  }
+
   responseHeaders.set("cache-control", "no-store");
   return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
 }
