@@ -33,7 +33,6 @@ Set variables in Cloudflare Dashboard → Workers & Pages → `typing-skill-zone
 | `CF_ENVIRONMENT` | Variable | Set to `sandbox` while testing; set to `production` only for live payments |
 | `CF_MERCHANT_ID` | Secret | Cashfree PG App ID / Client ID |
 | `CF_SECRET_KEY` | Secret | Cashfree PG Client Secret |
-| `CF_WEBHOOK_SECRET` | Secret | Use the Cashfree PG client secret unless the merchant dashboard explicitly supplies a separate signing secret |
 | `GROQ_API_KEY` | Secret (optional) | AI feedback, if enabled |
 | `GROQ_MODEL` | Variable (optional) | AI model name |
 
