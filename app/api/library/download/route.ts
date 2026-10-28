@@ -7,6 +7,16 @@ const text = (body: string, name: string) => new Response(body, { headers: { "Co
 /** ?id=uuid | ?date=YYYY-MM-DD&lang=en|hi | ?pack=today (both languages in one file) */
 export async function GET(req: Request) {
   const u = new URL(req.url);
+  const requestedId = u.searchParams.get("id");
+  if (requestedId?.startsWith("local-")) {
+    const match = /^local-(en|hi)-(\d+)$/.exec(requestedId);
+    if (!match) return Response.json({ error: "Not found." }, { status: 404 });
+    const language = match[1] as "en" | "hi", index = Number(match[2]);
+    const body = SAMPLE_PASSAGES[language][index];
+    if (!body) return Response.json({ error: "Not found." }, { status: 404 });
+    const title = language === "hi" ? `स्थानीय अभ्यास अनुच्छेद ${index + 1}` : `Local practice passage ${index + 1}`;
+    return text(passageFile({ title, language, body }), fileName(title, language));
+  }
   if (!process.env.DATABASE_URL) {
     const id = u.searchParams.get("id");
     if (id?.startsWith("local-")) {
@@ -34,6 +44,7 @@ export async function GET(req: Request) {
     }
     return Response.json({ error: "DATABASE_URL is not set. Configure Neon to download the complete passage library." }, { status: 503 });
   }
+  try {
   const db = sql();
   const daily = async (date: string, lang: string) => {
     const pool = await db`SELECT id FROM passages WHERE language = ${lang} ORDER BY id`;
@@ -59,4 +70,15 @@ export async function GET(req: Request) {
   const lang = u.searchParams.get("lang") === "hi" ? "hi" : "en";
   const p = await daily(date, lang);
   return p ? text(passageFile(p, date), fileName(p.title, lang, date)) : Response.json({ error: "No passage for that day." }, { status: 404 });
+  } catch (error) {
+    console.error("GET /api/library/download failed; serving built-in sample text as a temporary fallback:", error);
+    if (u.searchParams.get("pack") === "today") {
+      const parts = ([ "en", "hi" ] as const).map((language) => ({ title: language === "hi" ? "दैनिक स्थानीय अभ्यास" : "Daily local practice", language, body: SAMPLE_PASSAGES[language][0] }));
+      return text(parts.map((p) => passageFile(p)).join("\r\n------------------------------\r\n\r\n"), "local-daily-pack.txt");
+    }
+    if (u.searchParams.has("id")) return Response.json({ error: "The requested database passage is unavailable while the database is offline." }, { status: 503 });
+    const language = u.searchParams.get("lang") === "hi" ? "hi" : "en";
+    const title = language === "hi" ? "दैनिक स्थानीय अभ्यास" : "Daily local practice";
+    return text(passageFile({ title, language, body: SAMPLE_PASSAGES[language][0] }, u.searchParams.get("date") ?? undefined), fileName(title, language, u.searchParams.get("date") ?? undefined));
+  }
 }

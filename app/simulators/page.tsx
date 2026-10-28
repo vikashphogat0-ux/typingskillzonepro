@@ -34,6 +34,7 @@ export default function SimulatorsPage() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
+  const usingFallback = sims.some(s => s.description?.includes("Temporary local fallback"));
   const filtered = useMemo(() => filter === "all" ? sims : sims.filter(s => s.language === filter), [filter, sims]);
   return (
     <div className="page">
@@ -47,6 +48,7 @@ export default function SimulatorsPage() {
         <label>Choose language <select value={filter} onChange={e => setFilter(e.target.value as "en" | "hi" | "all")}><option value="all">All languages</option><option value="en">English</option><option value="hi">हिंदी</option></select></label>
         {!loading && !error && <span className="sim-count">Showing {filtered.length} exam option{filtered.length === 1 ? "" : "s"}</span>}
       </div>
+      {usingFallback && !loading && <div className="data-source-notice" role="status"><strong>Temporary catalogue mode</strong><p>The built-in exam presets are available for practice, but database-backed exam configuration and saved result history are unavailable. The database connection/schema needs repair.</p></div>}
       {loading ? <div className="exam-loading"><span className="loading-pulse" /> Loading exam options…</div> :
         error ? <div className="empty-state"><b>Exam options couldn't be loaded.</b><p>{error}</p><button className="go alt" onClick={() => {setLoading(true);setError("");api("/api/simulators").then(r=>{if(r.ok&&Array.isArray(r.data))setSims(r.data);else setError(r.data?.error??"Unable to load exams.");}).catch(()=>setError("Connection issue. Please try again.")).finally(()=>setLoading(false));}}>Try again</button></div> :
         !filtered.length ? <div className="empty-state"><b>No exams match this language.</b><p>Choose another language to see more exam options.</p><button className="go alt" onClick={() => setFilter("all")}>Show all exams</button></div> :

@@ -10,12 +10,13 @@ export async function GET() {
       ORDER BY et.name`;
     return Response.json(rows);
   } catch (error) {
-    if (!process.env.DATABASE_URL) {
+    console.error("GET /api/simulators failed; serving built-in exam presets as a temporary fallback:", error);
+    {
       // Keep local UI and practice setup usable before the developer configures Neon.
       return Response.json(PRESETS.map((p) => ({
         slug: p.slug, name: p.name, language: p.lang, duration_sec: p.durationSec,
         display_mode: p.mode, backspace: p.backspace, scoring: p.profile ?? { id: p.profileId },
-        description: "Local preset. Configure DATABASE_URL to load the full database-backed catalogue and passages."
+        description: "Temporary local fallback: database-backed exam catalogue is unavailable; results and saved history require the database."
       })));
     }
     console.error("GET /api/simulators failed:", error);
