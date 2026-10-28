@@ -191,3 +191,27 @@ body{background:#f7f8fc;color:var(--tsz-navy);font-family:Inter,"Atkinson Hyperl
 .practice-result-grid span{font-size:13px;color:#667085}
 .practice-result-grid strong{font-size:clamp(20px,3vw,28px);color:#172033}
 @media(max-width:640px){.practice-result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* Student pricing page polish and transparent database-fallback notices */
+.plans{max-width:1240px;padding-top:42px}
+.plans-header{padding:clamp(28px,4vw,48px);margin-bottom:22px;border-radius:24px;background:radial-gradient(circle at 90% 10%,rgba(139,232,226,.18),transparent 28%),linear-gradient(125deg,#111c36,#26396a);color:#fff;box-shadow:0 18px 42px rgba(16,31,59,.12)}
+.plans-header .plans-eyebrow{font-size:11px;font-weight:850;letter-spacing:.16em;color:#8be8e2;margin:0 0 12px}
+.plans-header h1{font-size:clamp(32px,4vw,48px);letter-spacing:-.055em;line-height:1.08;margin:0 0 12px}
+.plans-header>p:last-child{max-width:72ch;color:#c4cde0;margin:0}
+.pricing-phone{display:grid;grid-template-columns:minmax(180px,.5fr) minmax(220px,1fr);gap:8px 16px;align-items:center;margin:22px 0;padding:18px 20px;background:#fff;border:1px solid var(--tsz-border);border-radius:16px}
+.pricing-phone label{font-weight:800;font-size:14px}.pricing-phone input{width:100%;max-width:360px;min-height:46px;padding:10px 13px;border:1px solid #d3daea;border-radius:10px;font:inherit;color:var(--tsz-navy);background:#fff}
+.pricing-phone p{grid-column:2;margin:0;color:var(--tsz-muted);font-size:12px;line-height:1.6}
+.plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:18px;align-items:stretch;margin:22px 0 34px}
+.plan-card{position:relative;display:flex;flex-direction:column;padding:23px;background:#fff;border:1px solid var(--tsz-border);border-radius:19px;box-shadow:0 8px 24px rgba(17,28,54,.045);transition:transform .18s,border-color .18s,box-shadow .18s}
+.plan-card:hover{transform:translateY(-3px);border-color:#c5ceff;box-shadow:0 18px 38px rgba(17,28,54,.09)}
+.plan-card-featured{border:2px solid #3159e8;box-shadow:0 12px 32px rgba(49,89,232,.1)}
+.plan-card h2{font-size:20px;line-height:1.3;letter-spacing:-.035em;margin:0 0 12px}
+.plan-price{font-size:30px;letter-spacing:-.05em;margin:0 0 2px}.plan-billing,.plan-duration{font-size:13px;color:var(--tsz-muted);margin:3px 0}
+.plan-features{list-style:none;padding:0;margin:18px 0 22px;display:grid;gap:9px;font-size:13px;color:#4f5c74}.plan-features li{position:relative;padding-left:23px}.plan-features li:before{content:"✓";position:absolute;left:0;top:1px;display:grid;place-items:center;width:16px;height:16px;border-radius:50%;background:#e2f8f3;color:#187d70;font-size:10px;font-weight:900}
+.plan-badge{align-self:flex-start;margin:0 0 12px;padding:5px 9px;border-radius:999px;background:#edf0ff;color:#3159e8;font-size:10px;font-weight:850;letter-spacing:.06em;text-transform:uppercase}
+.plan-action{margin-top:auto;width:100%;min-height:46px;padding:10px 14px;border:1px solid #3159e8;border-radius:11px;background:#3159e8;color:#fff;font:inherit;font-weight:800;cursor:pointer;transition:background .15s,transform .15s}
+.plan-action:hover:not(:disabled){background:#2549d0;transform:translateY(-1px)}.plan-action:disabled{opacity:.6;cursor:not-allowed;background:#eef1f7;border-color:#dfe4ef;color:#59657b;box-shadow:none}
+.plan-current-label{font-size:12px;color:#187d70;font-weight:800}.current-subscription,.subscription-notice,.pricing-message,.pricing-notes{padding:18px 20px;margin:18px 0;background:#fff;border:1px solid var(--tsz-border);border-radius:15px}.pricing-message{border-color:#f1d49a;background:#fff9e9}.pricing-message p{margin-top:0}.pricing-notes h2{margin-top:0;font-size:19px}.pricing-notes li{margin:7px 0;color:var(--tsz-muted);font-size:13px}
+.data-source-notice{margin:18px 0;padding:16px 19px;border:1px solid #f0d49a;border-radius:14px;background:#fff8e7;color:#72500a}.data-source-notice strong{display:block;font-size:14px}.data-source-notice p{margin:5px 0 0;font-size:13px;line-height:1.65}
+@media(max-width:620px){.plans{padding:20px 14px 46px}.plans-header{padding:25px 20px;border-radius:18px}.pricing-phone{grid-template-columns:1fr;padding:15px}.pricing-phone p{grid-column:1}.plans-grid{grid-template-columns:1fr}.plan-card{padding:20px}}
