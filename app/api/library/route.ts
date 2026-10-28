@@ -27,5 +27,8 @@ export async function GET(req: Request) {
       WHERE (${lang}::text IS NULL OR p.language = ${lang}) AND (${q} = '' OR p.title ILIKE ${like}) AND (${tpl} = '' OR et.slug = ${tpl})
       ORDER BY p.created_at DESC LIMIT 100`;
     return Response.json({ today, daily, archive, list });
-  } catch { return Response.json({ today: istDate(), daily: {}, archive: { en: [], hi: [] }, list: [] }); }
+  } catch (error) {
+    console.error("GET /api/library failed:", error);
+    return Response.json({ error: "Passage library is temporarily unavailable. Check the database connection and passage table." }, { status: 503 });
+  }
 }
