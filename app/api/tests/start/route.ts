@@ -24,9 +24,16 @@ export async function POST(req: Request) {
     assignmentId = a?.id ?? null;
   }
 
-  let rows = await db`SELECT body FROM passages WHERE language = ${t.language} AND template_id = ${t.id} ORDER BY random() LIMIT 30`;
-  if (!rows.length) rows = await db`SELECT body FROM passages WHERE language = ${t.language} ORDER BY random() LIMIT 30`;
-  const bodies = rows.length ? rows.map((r: any) => r.body as string) : SAMPLE_PASSAGES[t.language as "en" | "hi"];
+  let bodies: string[];
+  if (b.passageId) {
+    const [selected] = await db`SELECT body FROM passages WHERE id = ${String(b.passageId)} AND language = ${t.language}`;
+    if (!selected) return Response.json({ error: "That passage is unavailable for this simulator language." }, { status: 404 });
+    bodies = [selected.body as string];
+  } else {
+    let rows = await db`SELECT body FROM passages WHERE language = ${t.language} AND template_id = ${t.id} ORDER BY random() LIMIT 30`;
+    if (!rows.length) rows = await db`SELECT body FROM passages WHERE language = ${t.language} ORDER BY random() LIMIT 30`;
+    bodies = rows.length ? rows.map((r: any) => r.body as string) : SAMPLE_PASSAGES[t.language as "en" | "hi"];
+  }
   const reference = buildReference(bodies, minCharsFor(t.duration_sec));
 
   const [row] = await db`INSERT INTO tests (user_id, template_id, language, display_mode, backspace, duration_sec, reference_text, assignment_id)
