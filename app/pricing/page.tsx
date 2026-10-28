@@ -173,8 +173,8 @@ export default function Pricing() {
       return;
     }
 
-    const normalizedPhone = customerPhone.replace(/\\D/g, "");
-    if (!/^\\d{10}$/.test(normalizedPhone)) {
+    const normalizedPhone = customerPhone.replace(/\D/g, "");
+    if (!/^\d{10}$/.test(normalizedPhone)) {
       setMsg("Enter your 10-digit mobile number before starting Cashfree checkout.");
       return;
     }
@@ -332,7 +332,7 @@ export default function Pricing() {
           maxLength={10}
           pattern="[0-9]{10}"
           value={customerPhone}
-          onChange={(event) => setCustomerPhone(event.target.value.replace(/\\D/g, "").slice(0, 10))}
+          onChange={(event) => setCustomerPhone(event.target.value.replace(/\D/g, "").slice(0, 10))}
           placeholder="10-digit mobile number"
           aria-describedby="cashfree-phone-help"
         />
