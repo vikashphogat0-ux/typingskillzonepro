@@ -8,11 +8,18 @@ export const dynamic = "force-dynamic";
  * Configure this exact URL in Cashfree: https://typingskillzone.in/api/webhook
  * Verify the signature against the untouched raw body before parsing JSON.
  */
+export async function GET() {
+  // Safe reachability probe for Cashfree/dashboard troubleshooting; never exposes configuration or secrets.
+  return Response.json({ ok: true, endpoint: "cashfree-pg-webhook" }, {
+    headers: { "cache-control": "no-store" },
+  });
+}
+
 export async function POST(req: Request) {
   const rawBody = await req.text();
   const signature = req.headers.get("x-webhook-signature") ?? "";
   const timestamp = req.headers.get("x-webhook-timestamp") ?? "";
-  const secret = process.env.CF_WEBHOOK_SECRET?.trim() || process.env.CF_SECRET_KEY?.trim();
+  const secret = process.env.CF_SECRET_KEY?.trim();
 
   if (!secret || !verifyWebhookSignature(rawBody, timestamp, signature, secret)) {
     return new Response("Invalid webhook signature", { status: 400 });
