@@ -121,6 +121,20 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
     if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown", "Tab"].includes(e.key)) e.preventDefault();
     if ((e.ctrlKey || e.metaKey) && ["a", "v", "x", "z", "y"].includes(e.key.toLowerCase())) e.preventDefault();
   };
+  const printReference = () => {
+    const target = window.open("", "_blank");
+    if (!target) {
+      window.alert("Allow pop-ups for this site to print the passage or save it as PDF.");
+      return;
+    }
+    const escaped = reference.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    target.document.open();
+    target.document.write(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Typing practice passage</title><style>body{font-family:Arial,"Noto Sans Devanagari",sans-serif;max-width:850px;margin:36px auto;padding:0 24px;color:#172033;line-height:1.9}h1{font-size:22px;margin-bottom:8px}p{white-space:pre-wrap;font-size:18px}@media print{body{margin:0;max-width:none}}</style></head><body><h1>Typing practice passage</h1><p>${escaped}</p></body></html>`);
+    target.document.close();
+    target.focus();
+    target.print();
+  };
+
   const block = (e: React.SyntheticEvent) => e.preventDefault();
 
   const typedChars = Array.from(value);
@@ -137,6 +151,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
         </div>
       </div>
 
+      {mode === "offscreen" && <div className="offscreen-print-tools"><p>The passage is hidden during this exam mode. Print it or choose “Save as PDF” before typing, then return here to start.</p><button type="button" className="go alt" onClick={printReference}>Print passage / Save as PDF</button></div>}
       <div className={`sheet ${lang === "hi" ? "hi" : ""} ${mode}`} ref={boxRef} lang={lang} tabIndex={-1} onClick={() => taRef.current?.focus()}>
         {mode === "highlighted"
           ? tokens.map((tk, i) => {
@@ -144,7 +159,9 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
               const active = !tk.space && activeIdx >= tk.start && activeIdx <= tk.start + tk.len && !done;
               return tk.space ? <span key={i}>{tk.text}</span> : <Word key={i} text={tk.text} typed={slice} active={active} />;
             })
-          : <span className="plain">{reference}</span>}
+          : mode === "unhighlighted"
+            ? <span className="plain">{reference}</span>
+            : <div className="offscreen-placeholder">Paper-to-screen mode · passage hidden</div>}
       </div>
 
       <textarea
