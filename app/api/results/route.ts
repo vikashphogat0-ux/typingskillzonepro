@@ -3,6 +3,7 @@ import { getUserId } from "@/lib/auth";
 import { getStudentAccess } from "@/lib/subscription";
 import { LIMITS } from "@/lib/pricing";
 import { calculateScore, PROFILES, type KeyEvent } from "@/lib/wpmCalculator";
+import { PRESETS } from "@/lib/presets";
 import { validateAttempt } from "@/lib/antiCheat";
 
 export async function GET(req: Request) {
@@ -62,18 +63,24 @@ async function submitSimulator(uid: string, b: any) {
 async function submitPractice(uid: string, b: any) {
   const access = await getStudentAccess(uid);
   if (access.testsLeft !== null && access.testsLeft <= 0) return Response.json({ error: "Daily free limit reached. Upgrade to Pro to save more tests.", upgrade: true }, { status: 402 });
-  const profile = PROFILES[b.profileId];
+  const preset = typeof b.presetSlug === "string" ? PRESETS.find((p) => p.slug === b.presetSlug) : undefined;
+  const db = sql();
+  const [savedTemplate] = typeof b.presetSlug === "string"
+    ? await db`SELECT slug, duration_sec, scoring FROM exam_templates WHERE slug = ${b.presetSlug} AND is_active = true LIMIT 1`
+    : [];
+  // Prefer server-owned canonical presets over stale seed rows; custom saved templates use their DB-owned scoring JSON.
+  const profile = preset?.profile ?? (savedTemplate?.scoring as typeof PROFILES.practice | undefined) ?? PROFILES[b.profileId];
   if (!profile || typeof b.reference !== "string" || typeof b.typed !== "string") return Response.json({ error: "Invalid result." }, { status: 400 });
   if (b.reference.length > 30000 || b.typed.length > 30000 || !Array.isArray(b.events) || b.events.length > 40000) {
     return Response.json({ error: "Invalid result payload or typing log is too large." }, { status: 400 });
   }
   const events: KeyEvent[] = b.events;
-  const duration = Math.min(Math.max(Number(b.durationSec) || 0, 30), 3600);
+  const configuredDuration = preset?.durationSec ?? (savedTemplate?.duration_sec ? Number(savedTemplate.duration_sec) : Number(b.durationSec));
+  const duration = Math.min(Math.max(Number(configuredDuration) || 0, 30), 3600);
   const reference = b.reference, typed = b.typed;
   const check = validateAttempt({ typed, events, elapsedSec: Number(b.elapsedSec) || 0, durationSec: duration });
   if (check.tampered) return Response.json({ error: "This result could not be verified." }, { status: 400 });
   const s = calculateScore({ reference, typed, elapsedSec: check.elapsedSec, durationSec: duration, profile, keyEvents: events });
-  const db = sql();
   const enforceDailyLimit = access.testsLeft !== null;
   // Enforce the free quota at write time and save test + result atomically.
   // This closes the race where parallel requests could exceed the daily cap,
