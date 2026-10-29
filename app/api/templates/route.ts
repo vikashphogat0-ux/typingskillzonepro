@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { PRESETS } from "@/lib/presets";
+import { PRESETS, getVerifiedPreset } from "@/lib/presets";
 
 /** Public: active exam templates for the test setup page. */
 export async function GET() {
@@ -10,7 +10,17 @@ export async function GET() {
       WHERE t.is_active = true
       ORDER BY t.name
     `;
-    return Response.json(rows);
+    return Response.json(rows.map((t: any) => {
+      const verified = getVerifiedPreset(String(t.slug));
+      if (!verified) return t;
+      return {
+        ...t,
+        duration_sec: verified.durationSec,
+        display_mode: verified.mode,
+        backspace: verified.backspace,
+        scoring: verified.profile,
+      };
+    }));
   } catch (error) {
     if (!process.env.DATABASE_URL) {
       // Keep local UI and practice setup usable before the developer configures Neon.
