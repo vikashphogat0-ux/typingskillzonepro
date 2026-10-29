@@ -258,8 +258,7 @@ export function calculateScore(input: ScoreInput): ScoreResult {
   const passed = hasPassRule
     ? (p.qualifyingWpm === undefined || qualificationWpm >= p.qualifyingWpm) &&
       (p.maxErrorPercent === undefined || errorPercent <= p.maxErrorPercent) &&
-      (p.minWords === undefined || typedWords.length >= p.minWords) &&
-      (p.netMethod !== "rrb" || reached >= refWords.length)
+      (p.minWords === undefined || typedWords.length >= p.minWords)
     : null;
   return {
     minutes: round2(minutes), typedChars, typedWords: typedWords.length, referenceWordsReached: reached,
