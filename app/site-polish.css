@@ -106,3 +106,54 @@ main{min-width:0}
  .top{padding:12px 16px}
  .top nav{gap:8px 12px}
 }
+
+
+/* Desktop-first shell refinements: keep the navigation in one intentional row on wide screens. */
+@media(min-width:1001px){
+  .top{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:24px;padding:14px clamp(24px,3.5vw,56px)}
+  .top nav{grid-column:2;grid-row:1;justify-content:flex-end;flex-wrap:nowrap;gap:clamp(8px,.95vw,16px);flex-basis:auto}
+  .top nav>a,.top nav>button,.top nav>div{font-size:clamp(12px,.88vw,14px)}
+  .top .brand{font-size:clamp(18px,1.35vw,22px)}
+  .footer-content{align-items:start}
+}
+.top nav a:not(.nav-home-link){padding:7px 0}
+.top nav a:not(.nav-home-link):hover{color:#6ce9ff}
+.top nav a:focus-visible,.footer a:focus-visible{outline:2px solid #67eaff;outline-offset:4px;border-radius:4px}
+.footer{box-sizing:border-box;overflow:hidden}
+.footer-content{box-sizing:border-box}
+.footer-section a{display:inline-block;padding:2px 0;overflow-wrap:anywhere}
+.footer-section .hint{line-height:1.75}
+.footer-bottom{line-height:1.6}
+
+/* Passage library: predictable spacing and a low-friction path from discovery to practice. */
+.library-page .library-hero{margin-bottom:24px}
+.library-page .tabs{position:relative;z-index:0}
+.library-page .library-intro p{margin:4px 0 0;color:#526982;line-height:1.65}
+.library-page .library-month-toolbar select,.library-page .library-tools select,.library-page .library-tools input{min-height:48px}
+.library-page .library-month-item:focus-within,.library-page .pitem:focus-within{outline:2px solid #0b9acb;outline-offset:2px}
+.library-page .library-month-select:hover{background:#f4faff}
+.library-page .library-month-select:focus-visible{outline:3px solid #139ed0;outline-offset:-3px}
+.library-page .library-month-detail .passage-box{max-height:520px}
+.library-page .library-day-body .passage-box{max-height:480px}
+.library-page .library-day-actions .go{min-height:42px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.library-page .pitem>div{line-height:1.8;overflow-wrap:anywhere}
+.library-page .pitem p{line-height:1.75}
+.library-page .empty-state p,.library-page .data-source-notice p{line-height:1.7}
+.library-page .library-month-count{align-self:center;line-height:1.5}
+@media(min-width:1001px){
+  .library-page .library-day-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+  .library-page .library-day-card{display:flex;flex-direction:column}
+  .library-page .library-day-body{display:flex;flex:1;flex-direction:column}
+  .library-page .library-day-body .passage-box{flex:1;min-height:240px}
+  .library-page .library-day-actions{margin-top:auto;padding-top:8px}
+}
+@media(max-width:1000px){
+  .top{gap:12px}
+  .top nav{flex-basis:100%;row-gap:8px}
+}
+@media(max-width:680px){
+  .library-page .library-hero{border-radius:18px}
+  .library-page .library-hero .cta-group .go{width:100%;text-align:center}
+  .library-page .library-month-select .library-month-title small{font-size:12px}
+  .library-page .library-day-body{padding:15px}
+}
