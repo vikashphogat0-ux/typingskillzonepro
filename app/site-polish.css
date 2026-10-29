@@ -82,3 +82,32 @@ html,body{max-width:100%;overflow-x:clip}
  .site-menu-toggle{padding:9px 10px}
  .site-nav>a,.site-nav-auth a{flex:1 1 calc(50% - 7px)}
 }
+
+/* Shared emblem treatment: official images keep their natural proportions and colours. */
+.exam-card-emblem{box-sizing:border-box;width:96px;height:112px;flex:0 0 96px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:16px;background:linear-gradient(145deg,#0b2c57,#071a35);border:1px solid rgba(82,173,255,.3);padding:10px;box-shadow:inset 0 1px rgba(255,255,255,.07)}
+.exam-card-emblem img{display:block;width:100%;height:100%;object-fit:contain;background:transparent}
+.exam-card-fallback{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:100%;height:100%;text-align:center;color:#f2fbff;font-size:20px;font-weight:950;letter-spacing:-.03em}
+.exam-card-fallback small{display:block;font-size:9px;font-weight:800;letter-spacing:.13em;opacity:.8}
+.exam-card-emblem-green{background:linear-gradient(150deg,#0a805e,#064c4e)}
+.exam-card-emblem-red{background:linear-gradient(150deg,#7d2942,#2c1e43)}
+.exam-card-emblem-violet{background:linear-gradient(150deg,#4b3e9d,#1d2d5f)}
+.exam-card-emblem-orange{background:linear-gradient(150deg,#a95520,#49301f)}
+.exam-card-emblem-blue{background:linear-gradient(150deg,#1458a5,#0a2855)}
+.exam-card-emblem-teal{background:linear-gradient(150deg,#087a83,#103e5a)}
+.home-v2{max-width:1440px;padding:clamp(20px,3vw,42px) clamp(16px,3vw,36px) 0}
+.home-hero{min-height:460px;border:1px solid rgba(118,184,255,.24);background:radial-gradient(ellipse at 85% 12%,rgba(0,195,255,.25),transparent 33%),radial-gradient(ellipse at 4% 100%,rgba(32,105,255,.25),transparent 40%),linear-gradient(125deg,#07162f 0%,#102a58 56%,#123d7a 100%);box-shadow:0 24px 65px rgba(0,0,0,.25),inset 0 1px rgba(255,255,255,.08)}
+.home-hero:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 55%,rgba(34,211,238,.07))}
+.home-hero h1{letter-spacing:-.07em}
+.home-hero h1 span{background:linear-gradient(90deg,#7df5e7,#5eb7ff);background-clip:text;-webkit-background-clip:text;color:transparent}
+.home-exam-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.home-exam-card{grid-template-columns:88px minmax(0,1fr);align-items:stretch;gap:15px;min-height:205px;padding:18px;background:linear-gradient(155deg,#fff,#f5f8ff);border-color:#dbe5f5;box-shadow:0 10px 28px rgba(15,39,82,.07);transition:transform .2s,border-color .2s,box-shadow .2s}
+.home-exam-card:hover{transform:translateY(-5px);border-color:#36b9ef;box-shadow:0 20px 42px rgba(18,80,153,.15)}
+.home-exam-card .exam-card-emblem{width:88px;height:112px;flex-basis:88px;align-self:start}
+.home-exam-card .exam-card-content{min-width:0}
+.home-exam-card h3{overflow-wrap:anywhere}
+.home-exam-card .exam-card-top{display:flex;align-items:center;gap:8px}
+.home-exam-card .exam-family{line-height:1.35}
+.home-exam-card .exam-card-meta{flex-wrap:wrap}
+.home-exam-card .exam-target{margin-top:12px}
+@media(max-width:1080px){.home-exam-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.home-hero{gap:22px;padding:44px 32px}}
+@media(max-width:680px){.home-v2{padding:18px 12px 0}.home-hero{grid-template-columns:minmax(0,1fr);min-height:0;padding:30px 22px;border-radius:22px}.home-hero h1{font-size:clamp(42px,12vw,62px)}.hero-lede{font-size:15px}.hero-art{min-height:280px}.home-benefits{grid-template-columns:minmax(0,1fr);gap:10px;padding-bottom:42px}.home-exam-grid{grid-template-columns:minmax(0,1fr)}.home-exam-card{grid-template-columns:76px minmax(0,1fr);padding:14px;gap:12px}.home-exam-card .exam-card-emblem{width:76px;height:96px;flex-basis:76px}.home-library-cta,.home-bottom-cta{align-items:flex-start;flex-direction:column}}
