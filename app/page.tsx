@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import { api, fmtDate } from "@/lib/clientApi";
 import ExamEmblem from "@/components/ExamEmblem";
 
@@ -104,7 +105,7 @@ export default function Home() {
 
     <section className="dash-analytics-grid">
       <article className="dash-panel dash-speed-panel"><div className="dash-panel-head"><div><span className="dash-eyebrow">PERFORMANCE</span><h3>Speed over recent tests</h3></div><span className="dash-panel-chip">NET WPM</span></div><div className="dash-chart-summary"><strong>{fmt(averageSpeed, averageSpeed === null ? "" : " WPM")}</strong><span>average speed</span></div><MiniLine values={trend}/><div className="dash-chart-axis"><span>Older attempts</span><span>Recent attempts</span></div>{!results?.length && <p className="dash-chart-empty">Your speed trend will appear after your first saved test.</p>}</article>
-      <article className="dash-panel dash-accuracy-panel"><div className="dash-panel-head"><div><span className="dash-eyebrow">PRECISION</span><h3>Accuracy snapshot</h3></div><span className="dash-metric-icon purple">◎</span></div><div className="dash-ring-wrap"><div className="dash-ring" style={{"--accuracy":`${Math.max(0,Math.min(100,averageAccuracy ?? 0))}%`} as React.CSSProperties}><div><strong>{fmt(averageAccuracy, averageAccuracy === null ? "" : "%")}</strong><span>average accuracy</span></div></div></div><p className="dash-panel-note">{results?.length ? "Build repeatable accuracy before pushing for higher speed." : "Complete a practice test to start measuring accuracy."}</p></article>
+      <article className="dash-panel dash-accuracy-panel"><div className="dash-panel-head"><div><span className="dash-eyebrow">PRECISION</span><h3>Accuracy snapshot</h3></div><span className="dash-metric-icon purple">◎</span></div><div className="dash-ring-wrap"><div className="dash-ring" style={{"--accuracy":`${Math.max(0,Math.min(100,averageAccuracy ?? 0))}%`} as CSSProperties}><div><strong>{fmt(averageAccuracy, averageAccuracy === null ? "" : "%")}</strong><span>average accuracy</span></div></div></div><p className="dash-panel-note">{results?.length ? "Build repeatable accuracy before pushing for higher speed." : "Complete a practice test to start measuring accuracy."}</p></article>
       <article className="dash-panel dash-focus-panel"><span className="dash-eyebrow">YOUR NEXT STEP</span><h3>{results?.length ? "Make your next session count" : "Start your progress journey"}</h3><p>{results?.length ? "Review your last attempt, identify recurring errors, then practise one focused passage." : "Take a short test to establish your baseline. Your speed, accuracy and history will populate here."}</p><a className="dash-secondary-btn" href={results?.length ? "/dashboard" : "/test"}>{results?.length ? "Review my results" : "Take first test"} <span>↗</span></a><div className="dash-focus-decoration" aria-hidden="true">TSZ<span>PROGRESS / 01</span></div></article>
     </section>
 
