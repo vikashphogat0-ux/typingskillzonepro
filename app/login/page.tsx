@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type Mode = "in" | "up" | "verify" | "forgot" | "forgot-sent";
 
@@ -21,12 +21,28 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const clear = () => { setErr(""); setNotice(""); };
 
-  const finishSignIn = () => {
+  const finishSignIn = useCallback(() => {
     const next = new URLSearchParams(window.location.search).get("next");
     window.location.href = next && next.startsWith("/") && !next.startsWith("//")
       ? next
       : "/dashboard";
-  };
+  }, []);
+
+  // Keep /login consistent with the shared header/sidebar session state.
+  // A transient API error must not be mistaken for a signed-out session.
+  useEffect(() => {
+    let active = true;
+    const checkSession = async () => {
+      try {
+        const response = await fetch("/api/me", { credentials: "same-origin", cache: "no-store", headers: { Accept: "application/json" } });
+        if (active && response.ok) finishSignIn();
+      } catch {
+        // Keep the sign-in form usable if the session endpoint is temporarily unavailable.
+      }
+    };
+    void checkSession();
+    return () => { active = false; };
+  }, [finishSignIn]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

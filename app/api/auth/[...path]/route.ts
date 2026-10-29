@@ -39,7 +39,12 @@ async function proxy(req: Request, context: { params: Promise<{ path: string[] }
     for (const cookie of cookies) responseHeaders.append("set-cookie", cookie);
   } else {
     const cookie = upstream.headers.get("set-cookie");
-    if (cookie) responseHeaders.append("set-cookie", cookie);
+    if (cookie) {
+      // Some runtimes expose combined Set-Cookie values instead of getSetCookie().
+      // Split only at a comma that begins the next cookie name=value pair; this
+      // avoids splitting the comma inside an Expires date.
+      for (const value of cookie.split(/,(?=\s*[^;,\s]+=)/)) responseHeaders.append("set-cookie", value.trim());
+    }
   }
 
   responseHeaders.set("cache-control", "no-store");
