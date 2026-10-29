@@ -61,6 +61,10 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
 
   const [value, setValue] = useState("");
   const [left, setLeft] = useState(durationSec);
+  const hasRrbPhases = profile.netMethod === "rrb";
+  const [phase, setPhase] = useState<"warmup" | "break" | "test">(hasRrbPhases ? "warmup" : "test");
+  const [phaseLeft, setPhaseLeft] = useState(60);
+  const phaseStartRef = useRef<number | null>(hasRrbPhases ? Date.now() : null);
   const [done, setDone] = useState(false);
   const valueRef = useRef("");
   const events = useRef<KeyEvent[]>([]);
@@ -79,16 +83,40 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
     onFinish({ reference, typed, elapsedSec: Math.min(elapsed, durationSec), durationSec, events: events.current, score, profileId: profile.id });
   }, [reference, durationSec, profile, onFinish]);
 
-  // countdown with automatic submission
+  // RRB CBTST has a one-minute warm-up, a one-minute break, then the scored 10-minute test.
+  // Warm-up text/events are discarded so they never affect the submitted result.
   useEffect(() => {
     const id = setInterval(() => {
-      if (startRef.current === null || doneRef.current) return;
+      if (doneRef.current) return;
+      if (phase !== "test") {
+        if (phaseStartRef.current === null) phaseStartRef.current = Date.now();
+        const rem = 60 - (Date.now() - phaseStartRef.current) / 1000;
+        setPhaseLeft(rem);
+        if (rem <= 0) {
+          if (phase === "warmup") {
+            valueRef.current = "";
+            setValue("");
+            events.current = [];
+            startRef.current = null;
+            phaseStartRef.current = Date.now();
+            setPhaseLeft(60);
+            setPhase("break");
+          } else {
+            phaseStartRef.current = null;
+            setLeft(durationSec);
+            setPhaseLeft(0);
+            setPhase("test");
+          }
+        }
+        return;
+      }
+      if (startRef.current === null) return;
       const rem = durationSec - (Date.now() - startRef.current) / 1000;
       setLeft(rem);
       if (rem <= 0) finish();
     }, 200);
     return () => clearInterval(id);
-  }, [durationSec, finish]);
+  }, [durationSec, finish, phase]);
 
   useEffect(() => { taRef.current?.focus(); }, []);
 
@@ -100,7 +128,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
   }, [value]);
 
   const onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (doneRef.current) return;
+    if (doneRef.current || phase === "break") return;
     const prev = valueRef.current;
     const res = checkEdit(prev, e.target.value, backspace);
     if (!res.ok) { e.target.value = prev; return; }
@@ -114,7 +142,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
     b.slice(cp).forEach((ch) => events.current.push({ t, type: "ins", ch }));
     valueRef.current = next;
     setValue(next);
-    if (b.length >= refChars.length) finish();
+    if (phase === "test" && b.length >= refChars.length) finish();
   };
 
   // exam rules: caret stays at the end, no arrow keys, no paste, no drag
@@ -163,7 +191,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
   return (
     <section className="sim" aria-label="Typing test">
       <div className="sim-bar">
-        <div className={left < 30 ? "clock low" : "clock"} role="timer" aria-live="off">{fmt(left)}</div>
+        <div className={(phase === "test" ? left : phaseLeft) < 30 ? "clock low" : "clock"} role="timer" aria-live="off">{fmt(phase === "test" ? left : phaseLeft)}</div>
         <div className="meter" aria-hidden><i style={{ width: `${refChars.length ? Math.min(100, (typedChars.length / refChars.length) * 100) : 0}%` }} /></div>
         <div className="rules">
           {mode === "highlighted" ? "Highlighted" : mode === "unhighlighted" ? "Unhighlighted" : "Paper to screen"} ·{" "}
@@ -171,6 +199,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
         </div>
       </div>
 
+      {hasRrbPhases && phase !== "test" && <div className="mode-note" role="status"><strong>{phase === "warmup" ? "RRB CBTST warm-up" : "Break before scored test"}</strong><p>{phase === "warmup" ? "Practise for one minute. This typing is not scored and will be cleared automatically." : "Your one-minute break is in progress. The scored 10-minute test starts automatically when it ends."}</p></div>}
       {mode === "offscreen" && <div className="offscreen-print-tools"><p>The passage is hidden during this exam mode. Print it or choose “Save as PDF” before typing, then return here to start.</p><button type="button" className="go alt" onClick={printReference}>Print passage / Save as PDF</button></div>}
       <div className={`sheet ${lang === "hi" ? "hi" : ""} ${mode} layout-${passageLayout}`} ref={boxRef} lang={lang} tabIndex={-1} onClick={() => taRef.current?.focus()} style={{ fontSize: `${Math.max(8, Math.min(24, fontSizePt))}pt`, whiteSpace: passageLayout === "continuous" ? "normal" : "pre-wrap" }}>
         {mode === "highlighted"
@@ -189,7 +218,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
         className="entry"
         value={value}
         lang={lang}
-        readOnly={done}
+        readOnly={done || phase === "break"}
         onChange={onChange}
         onKeyDown={onKeyDown}
         onSelect={lockCaret}
@@ -202,7 +231,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
         autoCorrect="off"
         autoCapitalize="off"
         autoComplete="off"
-        placeholder={mode === "offscreen" ? "Type the printed passage here. The timer starts with your first key." : "Start typing. The timer starts with your first key."}
+        placeholder={phase === "warmup" ? "Warm-up only — this text will be cleared before the scored test." : phase === "break" ? "Break in progress — please wait for the scored test." : mode === "offscreen" ? "Type the printed passage here. The timer starts with your first key." : "Start typing. The timer starts with your first key."}
         aria-label="Type here"
         rows={mode === "offscreen" ? 8 : 4}
       />
