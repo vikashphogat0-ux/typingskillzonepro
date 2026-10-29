@@ -55,7 +55,7 @@ export default function SimulatorPage() {
   const [startErr, setStartErr] = useState("");
   const [passageOptions, setPassageOptions] = useState<{ id: string; title: string; word_count: number }[]>([]);
   const [selectedPassageId, setSelectedPassageId] = useState("");
-  const [passageSearch, setPassageSearch] = useState("");
+  const [passageSearch, setPassageSearch] = useState("");\n  const [passageSource, setPassageSource] = useState<"library" | "custom">("library");\n  const [customPassage, setCustomPassage] = useState("");
 
   useEffect(() => {
     if (!slug) return;
