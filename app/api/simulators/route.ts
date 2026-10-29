@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { PRESETS, getVerifiedPreset } from "@/lib/presets";
+import { PRESETS, getBuiltInPreset } from "@/lib/presets";
 
 /** Public list of active exam simulators. Keep this endpoint independent of result-history columns. */
 export async function GET() {
@@ -9,7 +9,7 @@ export async function GET() {
       WHERE et.is_active = true
       ORDER BY et.name`;
     return Response.json(rows.map((row: any) => {
-      const verified = getVerifiedPreset(String(row.slug));
+      const verified = getBuiltInPreset(String(row.slug));
       return {
         ...row,
         duration_sec: verified?.durationSec ?? row.duration_sec,
