@@ -156,7 +156,7 @@ test("every lesson drill uses only its own keys and every key has a finger", () 
   }
 });
 
-import { validatePassage, parseBulk, validateTemplate, defaultScoring, countWords } from "../lib/adminValidation.ts";
+import { validatePassage, parseBulk, validateTemplate, validateScoring, defaultScoring, countWords } from "../lib/adminValidation.ts";
 const en30 = Array.from({ length: 35 }, (_, i) => "word" + i).join(" ");
 test("passage validation: length, script and warnings", () => {
   assert.equal(validatePassage({ title: "A", language: "en", body: en30 }).ok, true);
