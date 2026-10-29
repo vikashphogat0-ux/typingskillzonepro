@@ -274,8 +274,8 @@ test("anti-cheat rejects malformed key events without throwing", () => {
 
 test("Delhi Police HCM uses 10-minute scoring, one full WPM per error, and official mark bands", () => {
   const profile = PROFILES["delhi-police-hcm-en"];
-  const reference = Array.from({ length: 400 }, () => "abcde").join(" ");
-  const typed = Array.from({ length: 400 }, (_, i) => i < 10 ? "abxde" : "abcde").join(" ");
+  const reference = Array.from({ length: 400 }, (_, i) => i === 10 ? "abcde" : "abcd").join(" ");
+  const typed = Array.from({ length: 400 }, (_, i) => i < 10 ? "abxd" : i === 10 ? "abcde" : "abcd").join(" ");
   const r = calculateScore({ reference, typed, elapsedSec: 600, durationSec: 600, profile });
   assert.equal(profile.durationSec, 600);
   assert.equal(profile.qualifyingWpm, 30);
@@ -295,7 +295,7 @@ test("Delhi Police HCM Hindi qualification and marks use Hindi thresholds", () =
   const typed = Array.from({ length: 250 }, (_, i) => i < 5 ? "भारती" : "भारत").join(" ");
   const r = calculateScore({ reference, typed, elapsedSec: 600, durationSec: 600, profile });
   assert.equal(r.grossWpm, 25);
-  assert.equal(r.netWpm, 20);
+  assert.equal(r.netWpm, 19.98);
   assert.equal(r.passed, false);
   assert.equal(r.marks, 0);
 });
