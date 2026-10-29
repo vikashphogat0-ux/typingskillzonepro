@@ -24,6 +24,8 @@ interface Props {
   fontSizePt?: number;
   passageLayout?: string;
   examName?: string;
+  enterKeyPolicy?: "newline" | "blocked";
+  tabKeyPolicy?: "blocked" | "insert";
   onFinish: (r: SimResult) => void;
 }
 
@@ -44,7 +46,7 @@ const Word = memo(function Word({ text, typed, active }: { text: string; typed: 
   );
 });
 
-export default function TypingSimulator({ passage, lang, durationSec, mode, backspace, profile, fontSizePt = 12, passageLayout = "continuous", examName = "Typing practice", onFinish }: Props) {
+export default function TypingSimulator({ passage, lang, durationSec, mode, backspace, profile, fontSizePt = 12, passageLayout = "continuous", examName = "Typing practice", enterKeyPolicy = "newline", tabKeyPolicy = "blocked", onFinish }: Props) {
   const reference = useMemo(() => norm(passage), [passage]);
   const refChars = useMemo(() => Array.from(reference), [reference]);
   const tokens = useMemo(() => {
@@ -121,7 +123,9 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
     if (t.selectionStart !== n || t.selectionEnd !== n) t.setSelectionRange(n, n);
   };
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown", "Tab"].includes(e.key)) e.preventDefault();
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(e.key)) e.preventDefault();
+    if (e.key === "Tab" && tabKeyPolicy === "blocked") e.preventDefault();
+    if (e.key === "Enter" && enterKeyPolicy === "blocked") e.preventDefault();
     if ((e.ctrlKey || e.metaKey) && ["a", "v", "x", "z", "y"].includes(e.key.toLowerCase())) e.preventDefault();
   };
   const printReference = () => {

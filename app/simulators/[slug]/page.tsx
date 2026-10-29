@@ -139,6 +139,8 @@ export default function SimulatorPage() {
           fontSizePt={testData.fontSizePt ?? 12}
           passageLayout={testData.passageLayout ?? "continuous"}
           examName={testData.name ?? sim.name}
+          enterKeyPolicy={testData.enterKeyPolicy ?? "newline"}
+          tabKeyPolicy={testData.tabKeyPolicy ?? "blocked"}
           onFinish={onFinish}
         />
       </div>
