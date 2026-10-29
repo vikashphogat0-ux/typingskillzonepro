@@ -48,6 +48,16 @@ export async function DELETE(req: Request) {
   if (!(await requireAdmin(req))) return deny();
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return Response.json({ error: "Missing id." }, { status: 400 });
-  await sql()`DELETE FROM passages WHERE id = ${id}`;
-  return Response.json({ ok: true });
+  try {
+    const [referenced] = await sql()`SELECT 1 AS used FROM tests WHERE passage_id = ${id} LIMIT 1`;
+    if (referenced) {
+      return Response.json({ error: "This passage is attached to a test record and cannot be deleted safely." }, { status: 409 });
+    }
+    const deleted = await sql()`DELETE FROM passages WHERE id = ${id} RETURNING id`;
+    if (!deleted.length) return Response.json({ error: "Passage not found." }, { status: 404 });
+    return Response.json({ ok: true });
+  } catch (error) {
+    console.error("DELETE /api/admin/passages failed:", error);
+    return Response.json({ error: "Passage could not be deleted. Check whether it is in use." }, { status: 409 });
+  }
 }
