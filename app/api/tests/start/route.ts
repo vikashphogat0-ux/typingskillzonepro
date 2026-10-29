@@ -16,6 +16,11 @@ export async function POST(req: Request) {
   const [t] = await db`SELECT id, slug, name, language, duration_sec, display_mode, backspace, scoring, font_size_pt, passage_layout, enter_key_policy, tab_key_policy FROM exam_templates WHERE slug = ${String(b.slug)} AND is_active`;
   if (!t) return Response.json({ error: "Simulator not found." }, { status: 404 });
 
+  const requestedCustom = typeof b.customPassage === "string" ? b.customPassage.trim() : "";
+  if (requestedCustom && (requestedCustom.split(/\\s+/u).filter(Boolean).length < 10 || Array.from(requestedCustom).length > 50000)) {
+    return Response.json({ error: "Custom passages must contain at least 10 words and no more than 50,000 characters." }, { status: 400 });
+  }
+
   let assignmentId: string | null = null;
   if (b.assignmentId) {
     const [a] = await db`SELECT a.id FROM assignments a JOIN institution_members im ON im.institution_id = a.institution_id AND im.user_id = ${uid}
@@ -34,9 +39,9 @@ export async function POST(req: Request) {
     const rows = await db`SELECT body FROM passages WHERE language = ${t.language} ORDER BY random() LIMIT 30`;
     bodies = rows.length ? rows.map((r: any) => r.body as string) : SAMPLE_PASSAGES[t.language as "en" | "hi"];
   }
-  const reference = buildReference(bodies, minCharsFor(t.duration_sec));
+  const reference = requestedCustom ? requestedCustom : buildReference(bodies, minCharsFor(t.duration_sec));\n  const backspace = t.slug.startsWith("bsf-") ? "disabled" : t.slug.startsWith("dp-hcm-") ? "full" : t.backspace;
 
   const [row] = await db`INSERT INTO tests (user_id, template_id, language, display_mode, backspace, duration_sec, reference_text, assignment_id)
-    VALUES (${uid}, ${t.id}, ${t.language}, ${t.display_mode}, ${t.backspace}, ${t.duration_sec}, ${reference}, ${assignmentId}) RETURNING id`;
-  return Response.json({ testId: row.id, reference, lang: t.language, durationSec: t.duration_sec, mode: t.display_mode, backspace: t.backspace, profile: t.scoring, name: t.name, slug: t.slug, fontSizePt: t.font_size_pt ?? 12, passageLayout: t.passage_layout ?? "continuous", enterKeyPolicy: t.enter_key_policy ?? "newline", tabKeyPolicy: t.tab_key_policy ?? "blocked" });
+    VALUES (${uid}, ${t.id}, ${t.language}, ${t.display_mode}, ${backspace}, ${t.duration_sec}, ${reference}, ${assignmentId}) RETURNING id`;
+  return Response.json({ testId: row.id, reference, lang: t.language, durationSec: t.duration_sec, mode: t.display_mode, backspace, profile: t.scoring, name: t.name, slug: t.slug, fontSizePt: t.font_size_pt ?? 12, passageLayout: t.passage_layout ?? "continuous", enterKeyPolicy: t.enter_key_policy ?? "newline", tabKeyPolicy: t.tab_key_policy ?? "blocked" });
 }
