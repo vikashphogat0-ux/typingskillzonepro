@@ -30,8 +30,11 @@ async function submitSimulator(uid: string, b: any) {
     FROM tests t LEFT JOIN exam_templates et ON et.id = t.template_id WHERE t.id = ${String(b.testId)} AND t.user_id = ${uid}`;
   if (!t || !t.reference_text) return Response.json({ error: "Test not found." }, { status: 404 });
   if (t.submitted) return Response.json({ error: "This test was already submitted." }, { status: 409 });
-  const typed = String(b.typed ?? "").slice(0, 30000);
-  const events: KeyEvent[] = Array.isArray(b.events) ? b.events.slice(0, 40001) : [];
+  if (typeof b.typed !== "string" || b.typed.length > 30000 || !Array.isArray(b.events) || b.events.length > 40000) {
+    return Response.json({ error: "Invalid result payload or typing log is too large." }, { status: 400 });
+  }
+  const typed = b.typed;
+  const events: KeyEvent[] = b.events;
   const check = validateAttempt({ typed, events, elapsedSec: Number(b.elapsedSec) || 0, durationSec: t.duration_sec });
   if (check.tampered) return Response.json({ error: "This result could not be verified." }, { status: 400 });
   const profile = t.scoring ?? PROFILES.practice;
@@ -61,9 +64,12 @@ async function submitPractice(uid: string, b: any) {
   if (access.testsLeft !== null && access.testsLeft <= 0) return Response.json({ error: "Daily free limit reached. Upgrade to Pro to save more tests.", upgrade: true }, { status: 402 });
   const profile = PROFILES[b.profileId];
   if (!profile || typeof b.reference !== "string" || typeof b.typed !== "string") return Response.json({ error: "Invalid result." }, { status: 400 });
-  const events: KeyEvent[] = Array.isArray(b.events) ? b.events.slice(0, 40000) : [];
+  if (b.reference.length > 30000 || b.typed.length > 30000 || !Array.isArray(b.events) || b.events.length > 40000) {
+    return Response.json({ error: "Invalid result payload or typing log is too large." }, { status: 400 });
+  }
+  const events: KeyEvent[] = b.events;
   const duration = Math.min(Math.max(Number(b.durationSec) || 0, 30), 3600);
-  const reference = b.reference.slice(0, 30000), typed = b.typed.slice(0, 30000);
+  const reference = b.reference, typed = b.typed;
   const check = validateAttempt({ typed, events, elapsedSec: Number(b.elapsedSec) || 0, durationSec: duration });
   if (check.tampered) return Response.json({ error: "This result could not be verified." }, { status: 400 });
   const s = calculateScore({ reference, typed, elapsedSec: check.elapsedSec, durationSec: duration, profile, keyEvents: events });
