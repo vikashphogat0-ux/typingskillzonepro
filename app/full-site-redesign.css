@@ -512,3 +512,59 @@ hr{border-color:#37414d!important}
 @media(min-width:761px) and (max-width:1120px){
   .plans-grid>.plan-card{padding:18px!important}
 }
+
+
+/* Global shell alignment correction.
+   Legacy design-system rules applied a fixed left margin to every <main>, even inside
+   the new sidebar/content grid. Reset that legacy offset for the application shell. */
+html,body{width:100%;max-width:100%;overflow-x:clip}
+.tsz-app-shell{
+  display:grid!important;
+  grid-template-columns:248px minmax(0,1fr)!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  margin:0!important;padding:0!important;gap:0!important;
+}
+.tsz-main-column{
+  display:flex!important;flex-direction:column!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  margin:0!important;padding:0!important;gap:0!important;
+}
+main.tsz-content{
+  display:block!important;position:relative!important;
+  width:100%!important;max-width:none!important;min-width:0!important;
+  margin:0!important;margin-left:0!important;
+  padding:clamp(16px,2.2vw,30px)!important;
+  inset:auto!important;left:auto!important;right:auto!important;
+  transform:none!important;overflow-x:clip!important;
+}
+.tsz-content>.page,.tsz-content>.home,.tsz-content>.library-page,
+.tsz-content>.plans,.tsz-content>.practice-page,.tsz-content>.sim-page-grid,
+.tsz-content>main,.tsz-content>section{
+  width:100%!important;max-width:1480px!important;min-width:0!important;
+  margin-left:auto!important;margin-right:auto!important;
+}
+.tsz-content .library-page{max-width:1480px!important;padding:0 0 40px!important}
+.tsz-content .library-hero,.tsz-content .simulators-hero,.tsz-content .plans-header{width:100%!important;max-width:none!important}
+.tsz-content :where(.library-tools,.library-month-toolbar,.library-day-grid,.library-month-list,.plist,.sim-page-grid,.sim-page-grid-v2,.plans-grid,.practice-layout,.home-exam-grid,.tiles){
+  min-width:0!important;max-width:100%!important;
+}
+.tsz-content :where(input,select,textarea,button){max-width:100%}
+.tsz-content :where(img,svg,video,canvas){max-width:100%}
+.tsz-footer,.site-footer,footer.footer{
+  width:100%!important;max-width:100%!important;margin-left:0!important;
+}
+@media(max-width:1200px){
+  .tsz-app-shell{grid-template-columns:218px minmax(0,1fr)!important}
+}
+@media(max-width:1050px){
+  .tsz-app-shell{grid-template-columns:76px minmax(0,1fr)!important}
+}
+@media(max-width:680px){
+  .tsz-app-shell{display:block!important;width:100%!important}
+  .tsz-sidebar{width:100%!important;max-width:100%!important}
+  main.tsz-content{width:100%!important;margin:0!important;padding:14px!important}
+  .tsz-content>.page,.tsz-content>.home,.tsz-content>.library-page,.tsz-content>.plans,
+  .tsz-content>.practice-page,.tsz-content>.sim-page-grid,.tsz-content>main,.tsz-content>section{
+    width:100%!important;max-width:none!important;margin:0!important
+  }
+}
