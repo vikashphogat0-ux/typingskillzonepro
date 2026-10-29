@@ -122,7 +122,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
     const t = e.currentTarget, n = t.value.length;
     if (t.selectionStart !== n || t.selectionEnd !== n) t.setSelectionRange(n, n);
   };
-  const onKeyDown = (e: React.KeyboardEvent) => {
+  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(e.key)) e.preventDefault();
     if (e.key === "Tab") {
       if (tabKeyPolicy === "blocked") {
