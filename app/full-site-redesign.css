@@ -426,3 +426,89 @@ hr{border-color:#37414d!important}
   .sim-page-grid-v2 .exam-card-emblem{width:52px!important;min-width:52px!important;max-width:52px!important;height:52px!important;min-height:52px!important;max-height:52px!important;padding:6px!important}
   .sim-page-grid-v2 .home-style-exam-footer small{margin-left:0!important}
 }
+
+
+/* Pricing page: unify the page shell with the rest of TSZ and keep plans readable at every width. */
+.plans{
+  width:100%!important;max-width:1480px!important;min-width:0!important;margin:0 auto!important;
+  padding:0 0 40px!important;color:#d6dde5!important;
+}
+.plans-header{
+  width:100%!important;min-width:0!important;margin:0 0 18px!important;padding:clamp(22px,3vw,38px)!important;
+  border:1px solid #3b4a55!important;border-radius:20px!important;
+  background:radial-gradient(ellipse at 95% 0%,rgba(128,200,189,.07),transparent 38%),linear-gradient(125deg,#222a33,#202e31)!important;
+  color:#d6dde5!important;box-shadow:0 8px 24px rgba(0,0,0,.13)!important;
+}
+.plans-header .plans-eyebrow{color:#9bd5c9!important;font-weight:800;letter-spacing:.1em}
+.plans-header h1{color:#edf1f5!important;font-size:clamp(28px,3vw,42px)!important;line-height:1.15!important;margin:8px 0 12px!important}
+.plans-header>p:last-child{max-width:72ch;color:#c0cbd5!important}
+.current-subscription,.subscription-notice,.pricing-message,.pricing-phone,.pricing-notes{
+  width:100%!important;min-width:0!important;margin:14px 0!important;padding:clamp(15px,2vw,22px)!important;
+  border:1px solid #37414d!important;border-radius:16px!important;background:#20262e!important;
+  color:#d6dde5!important;box-shadow:0 6px 18px rgba(0,0,0,.12)!important;overflow-wrap:anywhere;
+}
+.current-subscription h2,.pricing-notes h2{color:#edf1f5!important;margin-top:0}
+.current-subscription p,.subscription-notice p,.pricing-message p,.pricing-phone p,.pricing-notes li{color:#c3ccd6!important}
+.pricing-phone{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(220px,360px)!important;align-items:center!important;gap:12px 18px!important}
+.pricing-phone label{color:#e2e8ee!important;font-weight:700}
+.pricing-phone input{width:100%!important;min-width:0!important;min-height:46px!important;border:1px solid #46525f!important;border-radius:10px!important;background:#1a2027!important;color:#edf1f5!important;padding:11px 13px!important}
+.pricing-phone p{grid-column:1/-1!important;margin:0!important;font-size:13px!important;color:#aeb9c5!important}
+.plans-grid{
+  display:grid!important;width:100%!important;min-width:0!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:stretch!important;gap:18px!important;
+  margin:18px 0 26px!important;
+}
+.plans-grid>.plan-card{
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  min-width:0!important;width:100%!important;height:100%!important;margin:0!important;
+  padding:clamp(17px,2vw,24px)!important;overflow:hidden!important;
+  border:1px solid #3b4a55!important;border-radius:18px!important;
+  background:linear-gradient(160deg,#232b35 0%,#20262e 72%)!important;color:#d6dde5!important;
+  box-shadow:0 7px 20px rgba(0,0,0,.14)!important;
+}
+.plans-grid>.plan-card-featured{
+  border-color:#5a8995!important;
+  background:linear-gradient(160deg,#263b45 0%,#202b34 70%)!important;
+  box-shadow:0 8px 24px rgba(0,0,0,.18)!important;
+}
+.plan-card h2{color:#edf1f5!important;font-size:clamp(18px,1.6vw,22px)!important;line-height:1.35!important;overflow-wrap:anywhere;margin:8px 0 12px!important}
+.plan-badge{align-self:flex-start!important;display:inline-flex!important;margin:0 0 8px!important;padding:5px 10px!important;border:1px solid #47616b!important;border-radius:999px!important;background:#2a414a!important;color:#c2e8e5!important;font-size:11px!important;font-weight:800!important;text-transform:uppercase;letter-spacing:.06em}
+.plan-price{margin:0 0 8px!important;color:#edf1f5!important}
+.plan-price strong{font-size:clamp(27px,2.4vw,36px)!important;line-height:1.2!important;color:#f4f6f8!important;letter-spacing:-.03em}
+.plan-billing,.plan-duration{margin:4px 0!important;color:#b9c4ce!important;font-size:13px!important;line-height:1.55!important}
+.plan-features{display:grid!important;gap:10px!important;list-style:none!important;margin:18px 0 20px!important;padding:0!important;flex:1 1 auto!important}
+.plan-features li{position:relative!important;margin:0!important;padding:0 0 0 27px!important;color:#cbd4dd!important;font-size:14px!important;line-height:1.5!important;overflow-wrap:anywhere}
+.plan-features li::before{content:"✓";position:absolute;left:0;top:1px;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#314a50;color:#a9ddd1;font-size:12px;font-weight:900}
+.plan-current-label{margin:0 0 10px!important;color:#a9ddd1!important;font-size:13px!important;font-weight:800}
+.plan-action{
+  display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;
+  width:100%!important;min-width:0!important;min-height:46px!important;margin-top:auto!important;padding:11px 14px!important;
+  border:1px solid #527e8d!important;border-radius:11px!important;background:#426d7c!important;color:#fff!important;
+  font-weight:800!important;text-align:center!important;white-space:normal!important;overflow-wrap:anywhere!important;
+  box-shadow:none!important;cursor:pointer!important;
+}
+.plan-action:hover:not(:disabled){background:#507f8f!important;border-color:#719aa7!important}
+.plan-action:focus-visible{outline:3px solid #80c8bd!important;outline-offset:3px!important}
+.plan-action:disabled{opacity:.72!important;cursor:not-allowed!important}
+.pricing-notes{margin-top:22px!important}
+.pricing-notes ul{padding-left:20px!important}
+.pricing-notes li{margin:8px 0!important}
+.subscription-notice button,.pricing-message button{
+  min-height:42px!important;padding:9px 14px!important;border:1px solid #527e8d!important;border-radius:10px!important;
+  background:#31434c!important;color:#edf1f5!important;font-weight:750!important
+}
+@media(max-width:1120px){
+  .plans-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:760px){
+  .plans{padding-bottom:24px!important}
+  .plans-header{padding:22px 18px!important;border-radius:16px!important}
+  .pricing-phone{grid-template-columns:minmax(0,1fr)!important}
+  .pricing-phone p{grid-column:1!important}
+  .plans-grid{grid-template-columns:minmax(0,1fr)!important;gap:14px!important}
+  .plans-grid>.plan-card{padding:18px!important}
+  .plan-features{gap:9px!important}
+}
+@media(min-width:761px) and (max-width:1120px){
+  .plans-grid>.plan-card{padding:18px!important}
+}
