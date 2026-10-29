@@ -7,7 +7,7 @@ type LibraryData = { today?: string; daily: Record<string, P | undefined>; archi
 export default function Library() {
   const [d, setD] = useState<LibraryData | null>(null);
   const [loadError, setLoadError] = useState("");
-  const [tab, setTab] = useState<"today" | "archive" | "all">("today");
+  const [tab, setTab] = useState<"today" | "archive" | "all">("all");
   const [q, setQ] = useState("");
   const [lang, setLang] = useState("");
   const [list, setList] = useState<P[]>([]);
@@ -61,8 +61,8 @@ export default function Library() {
       return () => { clearTimeout(t); window.removeEventListener("afterprint", done); };
     }
   }, [printing]);
-  const view = async (p: P) => {
-    if (open?.id === p.id) { setOpen(null); return; }
+  const view = async (p: P, toggle = true) => {
+    if (toggle && open?.id === p.id) { setOpen(null); return; }
     if (p.body) { setOpen(p); return; }
     const r = await api(`/api/library?id=${encodeURIComponent(p.id)}`);
     if (r.ok) setOpen(r.data);
@@ -92,7 +92,7 @@ export default function Library() {
         <div className="cta-group"><a className="go hero-primary" href="/test">Start a practice test <span>→</span></a><a className="go hero-secondary" href="/simulators">Explore exam options</a></div>
       </section>
       <div className="tabs" role="tablist" aria-label="Passage library sections">
-        {(["today", "archive", "all"] as const).map(t => <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{t === "today" ? "Today’s passages" : t === "archive" ? "Browse by month" : "Search library"}</button>)}
+        {(["today", "archive", "all"] as const).map(t => <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{t === "today" ? "Today’s passages" : t === "archive" ? "Browse by month" : "All passages"}</button>)}
       </div>
       {d?.localFallback && <div className="data-source-notice" role="status"><strong>Temporary sample mode</strong><p>{d.notice ?? "The database-backed passage library is unavailable. Built-in samples are shown temporarily."} Real library records will return when the database connection and schema are repaired.</p></div>}
       {loadError && <div className="empty-state"><b>We couldn’t load today’s passages.</b><p>{loadError}</p><button className="go alt" onClick={retry}>Try again</button></div>}
@@ -110,7 +110,7 @@ export default function Library() {
         </div>
         {!monthLoading && monthly.length === 0 ? <div className="empty-state"><b>No passages found for this month.</b><p>Choose another month or use Search Library to find any available passage.</p><button className="go alt" onClick={() => setTab("all")}>Search all passages</button></div> :
           <div className="library-month-list">{monthly.map(p => <article key={p.id} className={`library-month-item ${selectedPassage === p.id ? "selected" : ""}`}>
-            <button className="library-month-select" onClick={() => { setSelectedPassage(p.id); void view(p); }} aria-pressed={selectedPassage === p.id}>
+            <button className="library-month-select" onClick={() => { setSelectedPassage(p.id); void view(p, false); }} aria-pressed={selectedPassage === p.id}>
               <span className={`library-language-mark ${p.language === "hi" ? "hindi" : "english"}`}>{p.language === "hi" ? "हि" : "EN"}</span>
               <span className="library-month-title"><strong>{p.title}</strong><small>{p.language === "hi" ? "Hindi folder" : "English folder"} · {p.word_count} words · ID: {p.id}{p.exam ? ` · ${p.exam}` : ""}</small></span>
               <span className="library-month-chevron">{selectedPassage === p.id ? "Selected" : "Select"} ↗</span>
@@ -122,10 +122,10 @@ export default function Library() {
           </article>)}</div>}
       </section>}
       {tab === "all" && <section className="library-archive">
-        <div className="library-intro"><div><h2>Search all passages</h2><p>Filter by title and language, then read, download text, or use Save as PDF / Print. In the print dialog choose “Save as PDF”.</p></div></div>
-        <div className="library-tools"><label>Search by title, text or passage ID<input value={q} onChange={e => setQ(e.target.value)} placeholder="Paste full passage ID or search title/text…" /></label><label>Language<select value={lang} onChange={e => setLang(e.target.value)}><option value="">Both languages</option><option value="en">English</option><option value="hi">Hindi</option></select></label></div>
+        <div className="library-intro"><div><h2>Find any passage</h2><p>Search the full collection by passage ID, title or text. Filter English and Hindi separately, then open, download, print or practise the exact passage.</p></div></div>
+        <div className="library-tools"><label>Search by title, text or passage ID<input value={q} onChange={e => setQ(e.target.value)} placeholder="Search passage ID, title or a phrase…" /></label><label>Language<select value={lang} onChange={e => setLang(e.target.value)}><option value="">Both languages</option><option value="en">English</option><option value="hi">Hindi</option></select></label></div>
         {searching && <p className="hint">Searching passages…</p>}
-        <div className="plist">{list.map(p => <article key={p.id} className="pitem">
+        <div className="library-search-summary" aria-live="polite">{searching ? "Searching the library…" : `${list.length} matching passage${list.length === 1 ? "" : "s"}`}</div><div className="plist">{list.map(p => <article key={p.id} className="pitem">
           <div><b>{p.title}</b> <span className="tag">{p.language === "hi" ? "Hindi folder" : "English folder"}</span> <span className="tag">ID: {p.id}</span>{p.exam && <span className="tag">{p.exam}</span>} <span className="hint">{p.word_count} words</span></div>
           {open?.id === p.id ? <div className={`passage-box${p.language === "hi" ? " hi" : ""}`} lang={p.language}>{open.body}</div> : <p className="hint">{p.preview || "Open to read this passage."}{p.preview ? "…" : ""}</p>}
           <p><button className="link" onClick={() => view(p)}>{open?.id === p.id ? "Hide passage" : "Read passage"}</button> · <a href={`/api/library/download?id=${encodeURIComponent(p.id)}`}>Download</a> · <button className="link" onClick={() => print(p)}>Save as PDF / Print</button></p>
