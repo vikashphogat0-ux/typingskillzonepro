@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { PRESETS, getVerifiedPreset } from "@/lib/presets";
+import { PRESETS, getBuiltInPreset } from "@/lib/presets";
 
 /** Public: active exam templates for the test setup page. */
 export async function GET() {
@@ -11,7 +11,7 @@ export async function GET() {
       ORDER BY t.name
     `;
     return Response.json(rows.map((t: any) => {
-      const verified = getVerifiedPreset(String(t.slug));
+      const verified = getBuiltInPreset(String(t.slug));
       if (!verified) return t;
       return {
         ...t,
