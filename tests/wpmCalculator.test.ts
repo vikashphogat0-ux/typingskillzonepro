@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { calculateScore, PROFILES, analyzeKeyLog, type KeyEvent } from "../lib/wpmCalculator.ts";
 import { checkEdit } from "../lib/backspacePolicy.ts";
+import { PRESETS, getVerifiedPreset } from "../lib/presets.ts";
 
 const P = { ...PROFILES.practice };
 const ref = "the quick brown fox jumps over the lazy dog";
@@ -66,6 +67,16 @@ test("pass rule uses net WPM and error percent", () => {
   assert.equal(r.passed, true);
 });
 
+
+
+test("verified simulator presets use canonical scoring profiles and exam-specific editing rules", () => {
+  assert.equal(PRESETS.find((p) => p.slug === "dp-hcm-en")?.profile?.id, "delhi-police-hcm-en");
+  assert.equal(PRESETS.find((p) => p.slug === "dp-hcm-hi")?.profile?.id, "delhi-police-hcm-hi");
+  assert.equal(PRESETS.find((p) => p.slug === "rrb-ntpc-en")?.backspace, "disabled");
+  assert.equal(getVerifiedPreset("rrb-ntpc-en")?.profile?.netMethod, "rrb");
+  assert.equal(getVerifiedPreset("delhi-high-court-jja-en")?.durationSec, 600);
+  assert.equal(getVerifiedPreset("bsf-hcm-en"), undefined);
+});
 
 test("SSC CHSL profile uses a 10-minute timer and gross-speed qualification", () => {
   assert.equal(PROFILES["ssc-chsl-en"].durationSec, 600);
