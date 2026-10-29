@@ -293,9 +293,7 @@ export default function SimulatorPage() {
               )}
               {sim.display_mode === "offscreen" && (
                 <div className="mode-note">
-                  <strong>Paper to screen mode:</strong> The passage is shown above <em>before</em> the test. Once you
-                  start typing the passage scrolls away. Type what you read — just like a real exam where you copy
-                  from a printed sheet.
+                  <strong>Paper-to-screen mode:</strong> The passage stays hidden while you type. Use the print / Save as PDF control in the test screen before your first keystroke, then type from the printed copy like a real exam.
                 </div>
               )}
             </div>
