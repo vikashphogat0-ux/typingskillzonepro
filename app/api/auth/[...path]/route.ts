@@ -43,7 +43,7 @@ async function proxy(req: Request, context: { params: Promise<{ path: string[] }
       // Some runtimes expose combined Set-Cookie values instead of getSetCookie().
       // Split only at a comma that begins the next cookie name=value pair; this
       // avoids splitting the comma inside an Expires date.
-      for (const value of cookie.split(/,(?=\\s*[^;,\\s]+=)/)) responseHeaders.append("set-cookie", value.trim());
+      for (const value of cookie.split(/,(?=\s*[^;,\s]+=)/)) responseHeaders.append("set-cookie", value.trim());
     }
   }
 
