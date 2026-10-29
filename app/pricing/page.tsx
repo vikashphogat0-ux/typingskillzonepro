@@ -60,11 +60,11 @@ function getBillingLabel(interval: string, durationDays: number | null) {
   if (interval === "one_time") {
     return durationDays ? `${durationDays} days of access` : "One-time payment";
   }
-  if (durationDays === 30) return "Billed for 30 days";
-  if (durationDays === 90) return "Billed for 90 days";
-  if (durationDays === 180) return "Billed for 180 days";
-  if (durationDays === 365) return "Billed for 365 days";
-  return "Subscription access";
+  if (durationDays === 30) return "30-day access · one-time payment";
+  if (durationDays === 90) return "90-day access · one-time payment";
+  if (durationDays === 180) return "180-day access · one-time payment";
+  if (durationDays === 365) return "365-day access · one-time payment";
+  return "Time-limited access · one-time payment";
 }
 
 function loadCheckout(): Promise<boolean> {
@@ -122,6 +122,7 @@ export default function Pricing() {
   const [busyPlan, setBusyPlan] = useState<StudentPlanId | null>(null);
   const [customerPhone, setCustomerPhone] = useState("");
   const [loading, setLoading] = useState(true);
+  const [orderStatus, setOrderStatus] = useState<"checking" | "pending" | "paid" | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -158,6 +159,50 @@ export default function Pricing() {
 
   useEffect(() => {
     void refresh();
+  }, [refresh]);
+
+  // Cashfree returns to /pricing?order_id=...; the webhook is authoritative,
+  // so poll our own user-scoped payment record while it is being processed.
+  useEffect(() => {
+    const orderId = new URLSearchParams(window.location.search).get("order_id");
+    if (!orderId) return;
+
+    let cancelled = false;
+    let attempts = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    setOrderStatus("checking");
+
+    const checkOrder = async () => {
+      try {
+        const response = await fetch(
+          `/api/checkout/status?order_id=${encodeURIComponent(orderId)}`,
+          { credentials: "same-origin", cache: "no-store" }
+        );
+        const data = await response.json();
+        if (response.ok && data.status === "paid") {
+          if (!cancelled) {
+            setOrderStatus("paid");
+            await refresh();
+          }
+          return;
+        }
+      } catch {
+        // A temporary network failure should not imply payment failure.
+      }
+
+      attempts += 1;
+      if (!cancelled && attempts < 20) {
+        timer = setTimeout(checkOrder, 2000);
+      } else if (!cancelled) {
+        setOrderStatus("pending");
+      }
+    };
+
+    void checkOrder();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [refresh]);
 
   const buy = async (planId: StudentPlanId) => {
@@ -274,6 +319,19 @@ export default function Pricing() {
         <p role="status" aria-live="polite">
           Loading your subscription information…
         </p>
+      )}
+
+      {orderStatus === "checking" && (
+        <p className="subscription-notice" role="status" aria-live="polite">Checking your payment confirmation… Do not pay again while we verify the order.</p>
+      )}
+      {orderStatus === "paid" && (
+        <p className="subscription-notice" role="status" aria-live="polite">Payment confirmed. Your subscription status has been refreshed.</p>
+      )}
+      {orderStatus === "pending" && (
+        <div className="subscription-notice" role="status" aria-live="polite">
+          <p>We have not received final payment confirmation yet. Your access will update after Cashfree confirms the payment.</p>
+          <button type="button" onClick={() => void refresh()}>Refresh subscription status</button>
+        </div>
       )}
 
       {!loading && info?.signedIn && (
