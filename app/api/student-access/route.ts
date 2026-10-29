@@ -1,7 +1,7 @@
 import { sql } from "@/lib/db";
 import { getUserId } from "@/lib/auth";
 import { getStudentAccess } from "@/lib/subscription";
-import { STUDENT_PLANS, getStudentPlan } from "@/lib/pricing";
+import { getStudentPlan } from "@/lib/pricing";
 
 /** Returns the current user's subscription status, plan, and remaining test limits. */
 export async function GET(req: Request) {
