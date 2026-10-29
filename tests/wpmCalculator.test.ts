@@ -259,3 +259,11 @@ test("key log rejects invalid event order and malformed deletion lengths", () =>
   assert.throws(() => analyzeKeyLog([{ t: 5, type: "ins", ch: "a" }, { t: 4, type: "ins", ch: "b" }], "ab"), /non-decreasing/);
   assert.throws(() => analyzeKeyLog([{ t: 1, type: "del", n: 0 }], "a"), /positive integer/);
 });
+
+
+test("anti-cheat rejects malformed key events without throwing", () => {
+  assert.equal(validateAttempt({ typed: "a", events: [null as unknown as KeyEvent], elapsedSec: 1, durationSec: 60 }).tampered, true);
+  assert.equal(validateAttempt({ typed: "a", events: [{ t: Number.NaN, type: "ins", ch: "a" }], elapsedSec: 1, durationSec: 60 }).tampered, true);
+  assert.equal(validateAttempt({ typed: "a", events: [{ t: 1, type: "del", n: 0 }], elapsedSec: 1, durationSec: 60 }).tampered, true);
+  assert.equal(validateAttempt({ typed: "ab", events: [{ t: 1, type: "ins", ch: "ab" }], elapsedSec: 1, durationSec: 60 }).tampered, true);
+});
