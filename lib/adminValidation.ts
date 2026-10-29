@@ -66,6 +66,8 @@ export function validateScoring(raw: unknown): { scoring?: ScoringProfile; error
       id: String(s.id ?? "custom").slice(0, 40), label: String(s.label ?? "Custom").slice(0, 80),
       unit: s.unit, netMethod: s.netMethod, charsPerWord: s.charsPerWord!, fullErrorWeight: s.fullErrorWeight!, halfErrorWeight: s.halfErrorWeight!,
       halfRules: { caseOnly: !!s.halfRules?.caseOnly, punctuationOnly: !!s.halfRules?.punctuationOnly },
+      ...(s.errorPercentBasis ? { errorPercentBasis: s.errorPercentBasis } : {}),
+      ...(s.durationSec !== undefined ? { durationSec: s.durationSec } : {}),
       ...(s.qualifyingWpm !== undefined ? { qualifyingWpm: s.qualifyingWpm } : {}),
       ...(s.maxErrorPercent !== undefined ? { maxErrorPercent: s.maxErrorPercent } : {}),
     },
