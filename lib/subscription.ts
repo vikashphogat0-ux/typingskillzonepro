@@ -2,6 +2,7 @@ import { sql } from "./db";
 import {
   STUDENT_PLANS,
   getStudentPlan,
+  LIMITS,
   type StudentPlanId,
 } from "./pricing";
 
@@ -30,12 +31,6 @@ export interface StudentAccess {
   isPaid: boolean;
 }
 
-/**
- * The Free daily allowance below is a temporary default.
- * Move it to the central pricing catalog before production.
- */
-const FREE_TESTS_PER_DAY = 3;
-
 export async function getStudentAccess(
   uid: string
 ): Promise<StudentAccess> {
@@ -45,6 +40,9 @@ export async function getStudentAccess(
     SELECT plan, status, ends_at
     FROM subscriptions
     WHERE user_id = ${uid}
+      AND status = 'active'
+      AND ends_at > now()
+      AND plan <> 'free'
     ORDER BY ends_at DESC NULLS LAST
     LIMIT 1
   `;
@@ -79,10 +77,8 @@ export async function getStudentAccess(
     LIMIT 1
   `;
 
-  const subscriptionActive =
-    subscription?.status === "active" &&
-    subscription?.ends_at != null &&
-    new Date(subscription.ends_at).getTime() > Date.now();
+  // The query only returns a currently active, unexpired paid subscription.
+  const subscriptionActive = Boolean(subscription);
 
   const planId: StudentPlanId =
     validPlanId !== "free" && subscriptionActive
@@ -100,7 +96,7 @@ export async function getStudentAccess(
     testsPerDay:
       viaInstitution || entitlements.unlimitedTests
         ? null
-        : FREE_TESTS_PER_DAY,
+        : LIMITS.free.testsPerDay,
     historyRows: viaInstitution
       ? 100
       : entitlements.historyRows,

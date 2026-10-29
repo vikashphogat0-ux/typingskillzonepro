@@ -48,7 +48,7 @@ export default function SimulatorsPage() {
         <h1>Find your exam simulator</h1>
         <p>Choose a dedicated typing environment, review its configured timing and scoring, then practise against a passage library designed for focused exam preparation.</p>
         <div className="cta-group"><a href="/test" className="go hero-primary">Start free practice <span>→</span></a><a href="/library" className="go hero-secondary">Browse passage library</a></div>
-      <div className="sim-hero-stats"><span><strong>{sims.length || "25+"}</strong> exam patterns</span><span><strong>EN + हिन्दी</strong> language practice</span><span><strong>Live scoring</strong> and results</span></div>
+      <div className="sim-hero-stats"><span><strong>{sims.length}</strong> exam options</span><span><strong>EN + हिन्दी</strong> language practice</span><span><strong>Live scoring</strong> and results</span></div>
       </section>
       <div className="sim-filter-bar sim-filter-v2">
         <label>Language <select value={filter} onChange={e => setFilter(e.target.value as "en" | "hi" | "all")}><option value="all">All languages</option><option value="en">English</option><option value="hi">हिंदी</option></select></label>
@@ -69,8 +69,8 @@ export default function SimulatorsPage() {
               <h2>{sim.name}</h2>
               <p className="sim-card-description">{sim.description || "A dedicated typing environment with configured timing, display and scoring settings."}</p>
               <div className="home-style-exam-meta"><span>{sim.language === "hi" ? "हिंदी" : "English"}</span><i /> <span>{Math.max(1, Math.round(sim.duration_sec / 60))} min</span><i /> <span>{bsLabel(sim.backspace)}</span></div>
-              <div className="exam-target"><span>{target ? "Configured qualifying target" : "Practice mode"}</span><b>{target ? <>{target} <small>net WPM</small></> : sim.scoring?.unit === "keystrokes" ? "Key depressions" : "Build skills"}</b></div>
-              <div className="home-style-exam-footer"><span>Open dedicated simulator</span><span>→</span><small>{sim.participants ?? 0} participants</small></div>
+              <div className="exam-target"><span>{target ? "Configured target · verify official rules" : "Practice mode"}</span><b>{target ? <>{target} <small>net WPM</small></> : sim.scoring?.unit === "keystrokes" ? "Key depressions" : "Build skills"}</b></div>
+              <div className="home-style-exam-footer"><span>Open dedicated simulator</span><span>→</span><small>Exam pattern configured for practice</small></div>
             </div>
           </a>;
         })}</div>}

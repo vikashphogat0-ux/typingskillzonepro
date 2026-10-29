@@ -10,16 +10,15 @@ export async function GET() {
       ORDER BY et.name`;
     return Response.json(rows.map((row: any) => ({ ...row, backspace: String(row.slug).startsWith("bsf-") ? "disabled" : String(row.slug).startsWith("dp-hcm-") ? "full" : row.backspace })));
   } catch (error) {
-    console.error("GET /api/simulators failed; serving built-in exam presets as a temporary fallback:", error);
-    {
-      // Keep local UI and practice setup usable before the developer configures Neon.
+    if (!process.env.DATABASE_URL) {
+      // Keep local UI usable before the developer configures Neon.
       return Response.json(PRESETS.map((p) => ({
         slug: p.slug, name: p.name, language: p.lang, duration_sec: p.durationSec,
         display_mode: p.mode, backspace: p.backspace, scoring: p.profile ?? { id: p.profileId },
-        description: "Temporary local fallback: database-backed exam catalogue is unavailable; results and saved history require the database."
+        description: "Local preset. Configure DATABASE_URL to load the database-backed catalogue and passages."
       })));
     }
     console.error("GET /api/simulators failed:", error);
-    return Response.json({ error: "Exam catalogue is temporarily unavailable. Check the database configuration and exam seed data." }, { status: 503 });
+    return Response.json({ error: "Exam catalogue is temporarily unavailable. Please try again shortly." }, { status: 503 });
   }
 }

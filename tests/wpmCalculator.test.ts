@@ -154,8 +154,11 @@ test("daily test limit and price overrides", () => {
   assert.equal(testsLeft("free", 0), LIMITS.free.testsPerDay);
   assert.equal(testsLeft("free", 99), 0);
   assert.equal(testsLeft("pro", 99), null);
-  assert.equal(priceFor("monthly", { PRO_MONTHLY_PAISE: "19900" }), 19900);
-  assert.equal(priceFor("monthly", { PRO_MONTHLY_PAISE: "abc" }), 14900);
+  assert.equal(priceFor("monthly", { PRO_MONTHLY_PAISE: "19900" }), 9900);
+  assert.equal(priceFor("monthly", { PRO_MONTHLY_PAISE: "abc" }), 9900);
+  assert.equal(priceFor("yearly", { PRO_YEARLY_PAISE: "99900" }), 79900);
+  assert.equal(LIMITS.free.historyRows, 10);
+  assert.equal(LIMITS.pro.aiFeedback, false);
 });
 import { decideLink } from "../lib/identity.ts";
 test("identity linking never lets an unverified email claim an existing account", () => {
@@ -258,4 +261,12 @@ test("Unicode code points are counted consistently for Hindi", () => {
 test("key log rejects invalid event order and malformed deletion lengths", () => {
   assert.throws(() => analyzeKeyLog([{ t: 5, type: "ins", ch: "a" }, { t: 4, type: "ins", ch: "b" }], "ab"), /non-decreasing/);
   assert.throws(() => analyzeKeyLog([{ t: 1, type: "del", n: 0 }], "a"), /positive integer/);
+});
+
+
+test("anti-cheat rejects malformed key events without throwing", () => {
+  assert.equal(validateAttempt({ typed: "a", events: [null as unknown as KeyEvent], elapsedSec: 1, durationSec: 60 }).tampered, true);
+  assert.equal(validateAttempt({ typed: "a", events: [{ t: Number.NaN, type: "ins", ch: "a" }], elapsedSec: 1, durationSec: 60 }).tampered, true);
+  assert.equal(validateAttempt({ typed: "a", events: [{ t: 1, type: "del", n: 0 }], elapsedSec: 1, durationSec: 60 }).tampered, true);
+  assert.equal(validateAttempt({ typed: "ab", events: [{ t: 1, type: "ins", ch: "ab" }], elapsedSec: 1, durationSec: 60 }).tampered, true);
 });
