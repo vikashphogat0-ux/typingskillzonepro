@@ -78,17 +78,16 @@ async function submitPractice(uid: string, b: any) {
   // Enforce the free quota at write time and save test + result atomically.
   // This closes the race where parallel requests could exceed the daily cap,
   // and prevents orphan test rows if result persistence fails.
-  const [saved] = await db`
-    WITH user_lock AS MATERIALIZED (
-      SELECT pg_advisory_xact_lock(hashtextextended(${uid}::text, 0))
-    ), eligibility AS MATERIALIZED (
+  const transactionResults = await db.transaction([
+    db`SELECT pg_advisory_xact_lock(hashtextextended(${uid}::text, 0))`,
+    db`
+    WITH eligibility AS MATERIALIZED (
       SELECT
         ${!enforceDailyLimit}::boolean AS unlimited,
         (SELECT count(*)::int FROM tests
           WHERE user_id = ${uid}
             AND started_at >= (date_trunc('day', now() AT TIME ZONE 'Asia/Kolkata') AT TIME ZONE 'Asia/Kolkata')
         ) AS tests_today
-      FROM user_lock
     ), created_test AS (
       INSERT INTO tests (user_id, language, display_mode, backspace, duration_sec, reference_text, submitted)
       SELECT ${uid}, ${/[\u0900-\u097F]/.test(reference) ? "hi" : "en"}, ${String(b.mode)}, ${String(b.backspace)}, ${duration}, ${reference}, true
@@ -102,7 +101,9 @@ async function submitPractice(uid: string, b: any) {
       FROM created_test
       RETURNING id
     ) SELECT id FROM saved_result
-  `;
+    `,
+  ]);
+  const [saved] = transactionResults[1] as Array<{ id: string }>;
   if (!saved) return Response.json({ error: "Daily free limit reached. Upgrade to Pro to save more tests.", upgrade: true }, { status: 402 });
   return Response.json({ ok: true, id: saved.id, score: s });
 }
