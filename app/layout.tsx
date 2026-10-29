@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import AuthLink from "@/components/AuthLink";
 import "./site-polish.css";
+import "./desktop-header-fix.css";
 
 export const metadata: Metadata = {
   title: "Typing Skill Zone | Exam-focused typing practice",
