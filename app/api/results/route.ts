@@ -3,7 +3,7 @@ import { getUserId } from "@/lib/auth";
 import { getStudentAccess } from "@/lib/subscription";
 import { LIMITS } from "@/lib/pricing";
 import { calculateScore, PROFILES, type KeyEvent } from "@/lib/wpmCalculator";
-import { PRESETS } from "@/lib/presets";
+import { PRESETS, getVerifiedPreset } from "@/lib/presets";
 import { validateAttempt } from "@/lib/antiCheat";
 
 export async function GET(req: Request) {
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 /** Simulator attempt: the server's stored text is the reference, and the key log must reproduce the typed text. */
 async function submitSimulator(uid: string, b: any) {
   const db = sql();
-  const [t] = await db`SELECT t.id, t.template_id, t.assignment_id, t.duration_sec, t.reference_text, t.submitted, t.display_mode, t.backspace, et.scoring
+  const [t] = await db`SELECT t.id, t.template_id, t.assignment_id, t.duration_sec, t.reference_text, t.submitted, t.display_mode, t.backspace, et.slug AS template_slug, et.scoring
     FROM tests t LEFT JOIN exam_templates et ON et.id = t.template_id WHERE t.id = ${String(b.testId)} AND t.user_id = ${uid}`;
   if (!t || !t.reference_text) return Response.json({ error: "Test not found." }, { status: 404 });
   if (t.submitted) return Response.json({ error: "This test was already submitted." }, { status: 409 });
@@ -38,7 +38,7 @@ async function submitSimulator(uid: string, b: any) {
   const events: KeyEvent[] = b.events;
   const check = validateAttempt({ typed, events, elapsedSec: Number(b.elapsedSec) || 0, durationSec: t.duration_sec });
   if (check.tampered) return Response.json({ error: "This result could not be verified." }, { status: 400 });
-  const profile = t.scoring ?? PROFILES.practice;
+  const profile = getVerifiedPreset(String(t.template_slug ?? ""))?.profile ?? t.scoring ?? PROFILES.practice;
   const s = calculateScore({ reference: t.reference_text, typed, elapsedSec: check.elapsedSec, durationSec: t.duration_sec, profile, keyEvents: events });
   // Claim the attempt and save its result atomically. If result insertion fails,
   // PostgreSQL rolls back the claim, so a legitimate retry is not locked out.
