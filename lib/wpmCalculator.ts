@@ -300,6 +300,22 @@ export const PROFILES: Record<string, ScoringProfile> = {
     fullErrorWeight: 1, halfErrorWeight: 0, halfRules: { caseOnly: false, punctuationOnly: false },
     netMethod: "per-error", errorPercentBasis: "referenceWords",
   },
+
+  // Provisional practice profiles: official criteria vary by notification/post.
+  "ssc-cgl-ldc-en": { ...base, id: "ssc-cgl-ldc-en", label: "SSC CGL LDC / Tax Assistant (verify post-specific criteria)", language: "en", durationSec: 600 },
+  "crpf-hcm-en": { ...base, id: "crpf-hcm-en", label: "CRPF HCM English (verify current notification)", language: "en", durationSec: 600 },
+  "cisf-hcm-en": { ...base, id: "cisf-hcm-en", label: "CISF HCM English (verify current notification)", language: "en", durationSec: 600 },
+  "dsssb-ldc-en": { ...base, id: "dsssb-ldc-en", label: "DSSSB LDC English (post-specific rules)", language: "en", durationSec: 600 },
+  "dsssb-ldc-hi": { ...base, id: "dsssb-ldc-hi", label: "DSSSB LDC Hindi (post-specific rules)", language: "hi", durationSec: 600 },
+  "hc-clerk-en": { ...base, id: "hc-clerk-en", label: "High Court Clerk English (court-specific rules)", language: "en", durationSec: 600 },
+  "hc-clerk-hi": { ...base, id: "hc-clerk-hi", label: "High Court Clerk Hindi (court-specific rules)", language: "hi", durationSec: 600 },
+  "district-court-en": { ...base, id: "district-court-en", label: "District Court Clerk English (court-specific rules)", language: "en", durationSec: 600 },
+  "district-court-hi": { ...base, id: "district-court-hi", label: "District Court Clerk Hindi (court-specific rules)", language: "hi", durationSec: 600 },
+  "upssc-ldc-hi": { ...base, id: "upssc-ldc-hi", label: "UPSSSC / UP Courts Hindi (verify post-specific rules)", language: "hi", durationSec: 600 },
+  "upsssc-hi": { ...base, id: "upsssc-hi", label: "UPSSSC Hindi (verify current notification)", language: "hi", durationSec: 600 },
+  "rsmssb-ldc-hi": { ...base, id: "rsmssb-ldc-hi", label: "Rajasthan LDC Hindi (verify current notification)", language: "hi", durationSec: 600 },
+  "rsmssb-ldc-en": { ...base, id: "rsmssb-ldc-en", label: "Rajasthan LDC English (verify current notification)", language: "en", durationSec: 600 },
+  "ibps-dest": { ...base, id: "ibps-dest", label: "IBPS DEST (verify recruitment-specific criteria)", language: "en", unit: "keystrokes", durationSec: 300 },
   "court-typing-en": { ...base, id: "court-typing-en", label: "Court Typing (English; court-specific rules required)", language: "en" },
   "delhi-high-court-jja-en": {
     ...base, id: "delhi-high-court-jja-en", label: "Delhi High Court JJA/Restorer 2026 (English)",
