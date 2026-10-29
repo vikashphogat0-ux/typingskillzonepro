@@ -26,7 +26,7 @@ async function generateOne(language: Lang, slot: Slot, index: number, apiKey: st
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model, temperature: 0.75, max_tokens: 4096,
+      model, temperature: 0.75, max_completion_tokens: 4096,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: "You write original, high-quality typing passages. Follow exact language and word-count requirements. Output valid JSON only." },
@@ -34,7 +34,21 @@ async function generateOne(language: Lang, slot: Slot, index: number, apiKey: st
       ],
     }),
   });
-  if (!response.ok) throw new Error(`Passage provider returned HTTP ${response.status}.`);
+  if (!response.ok) {
+    // Preserve the provider's structured error so 400 responses can be diagnosed
+    // from Worker logs instead of being reduced to an opaque status code.
+    const providerError = await response.text();
+    console.error("[passage-generator] Groq API request failed", {
+      status: response.status,
+      model,
+      language,
+      slot,
+      errorBody: providerError.slice(0, 2000),
+    });
+    throw new Error(
+      `Passage provider returned HTTP ${response.status}: ${providerError.slice(0, 500)}`
+    );
+  }
   const payload: any = await response.json();
   const raw = payload?.choices?.[0]?.message?.content;
   if (typeof raw !== "string") throw new Error("Passage provider returned an empty response.");
