@@ -1,5 +1,5 @@
 /** Legacy plan helpers kept for compatibility; pricing and entitlements come from lib/pricing.ts. */
-import { LIMITS as CATALOG_LIMITS, STUDENT_PLANS } from "./pricing";
+import { LIMITS as CATALOG_LIMITS, STUDENT_PLANS } from "./pricing.ts";
 export type PlanId = "free" | "pro";
 export type Period = "monthly" | "yearly";
 
