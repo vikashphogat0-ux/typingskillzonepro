@@ -18,7 +18,15 @@ export interface ScoringProfile {
   fullErrorWeight: number;
   halfErrorWeight: number;
   halfRules: { caseOnly: boolean; punctuationOnly: boolean };
-  netMethod: "penalty" | "accuracy" | "per-error";
+  netMethod: "penalty" | "accuracy" | "per-error" | "rrb";
+  /** RRB CBTST ignores this percentage of weighted errors before speed calculation. */
+  errorAllowancePercent?: number;
+  /** Which speed is used for qualification; defaults to net speed for compatibility. */
+  qualificationBasis?: "gross" | "net";
+  /** Passage completion target, where a notification explicitly requires it. */
+  minWords?: number;
+  /** Approximate target key depressions for data-entry practice; not automatically a pass rule. */
+  targetKeystrokes?: number;
   /** How error percentage is normalized. Default preserves legacy behavior. */
   errorPercentBasis?: ErrorPercentBasis;
   /** Optional exam duration metadata. The attempt duration is still passed to calculateScore. */
@@ -84,6 +92,7 @@ function assertValidProfile(p: ScoringProfile) {
   if (p.qualifyingWpm !== undefined && (!Number.isFinite(p.qualifyingWpm) || p.qualifyingWpm < 0)) throw new RangeError("qualifyingWpm must be a finite non-negative number.");
   if (p.maxErrorPercent !== undefined && (!Number.isFinite(p.maxErrorPercent) || p.maxErrorPercent < 0 || p.maxErrorPercent > 100)) throw new RangeError("maxErrorPercent must be between 0 and 100.");
   if (p.durationSec !== undefined && (!Number.isFinite(p.durationSec) || p.durationSec <= 0)) throw new RangeError("Profile durationSec must be a positive finite number.");
+  if (p.errorAllowancePercent !== undefined && (!Number.isFinite(p.errorAllowancePercent) || p.errorAllowancePercent < 0 || p.errorAllowancePercent > 100)) throw new RangeError("errorAllowancePercent must be between 0 and 100.");
 }
 export function classifyWord(typed: string, ref: string, p: ScoringProfile): "ok" | "half" | "full" {
   if (typed === ref) return "ok";
@@ -215,6 +224,9 @@ export function calculateScore(input: ScoreInput): ScoreResult {
   const fullErrors = ops.filter(o => o.op === "full" || o.op === "omit" || o.op === "extra").length;
   const halfErrors = ops.filter(o => o.op === "half").length;
   const errorUnits = fullErrors * p.fullErrorWeight + halfErrors * p.halfErrorWeight;
+  const evaluatedErrorUnits = p.netMethod === "rrb"
+    ? Math.max(0, errorUnits - typedWords.length * ((p.errorAllowancePercent ?? 5) / 100))
+    : errorUnits;
   const typedChars = chars(typedText).length;
   const log = input.keyEvents ? analyzeKeyLog(input.keyEvents, refText) : null;
   const keystrokes = log ? log.keystrokes : typedChars;
@@ -231,16 +243,22 @@ export function calculateScore(input: ScoreInput): ScoreResult {
   // independent of elapsed minutes. Half-errors are disabled in that profile.
   const penaltyWpm = p.netMethod === "per-error"
     ? Math.min(grossWpm, errorUnits)
-    : p.netMethod === "penalty" ? Math.min(grossWpm, errorUnits / minutes) : 0;
-  const netWpm = p.netMethod === "per-error" || p.netMethod === "penalty"
-    ? Math.max(0, grossWpm - penaltyWpm)
-    : grossWpm * accuracy / 100;
+    : p.netMethod === "rrb"
+      ? Math.min(grossWpm, (evaluatedErrorUnits * 10) / minutes)
+      : p.netMethod === "penalty" ? Math.min(grossWpm, errorUnits / minutes) : 0;
+  const netWpm = p.netMethod === "rrb"
+    ? Math.max(0, (typedWords.length - evaluatedErrorUnits * 10) / minutes)
+    : p.netMethod === "per-error" || p.netMethod === "penalty"
+      ? Math.max(0, grossWpm - penaltyWpm)
+      : grossWpm * accuracy / 100;
   const isDpHcm = p.id === "delhi-police-hcm-en" || p.id === "delhi-police-hcm-hi";
   const marks = isDpHcm ? dpHcmMarks(p.id.endsWith("-hi") ? "hi" : "en", netWpm) : null;
   const hasPassRule = p.qualifyingWpm !== undefined || p.maxErrorPercent !== undefined;
+  const qualificationWpm = p.qualificationBasis === "gross" ? grossWpm : netWpm;
   const passed = hasPassRule
-    ? (p.qualifyingWpm === undefined || netWpm >= p.qualifyingWpm) &&
-      (p.maxErrorPercent === undefined || errorPercent <= p.maxErrorPercent)
+    ? (p.qualifyingWpm === undefined || qualificationWpm >= p.qualifyingWpm) &&
+      (p.maxErrorPercent === undefined || errorPercent <= p.maxErrorPercent) &&
+      (p.minWords === undefined || typedWords.length >= p.minWords)
     : null;
   return {
     minutes: round2(minutes), typedChars, typedWords: typedWords.length, referenceWordsReached: reached,
@@ -265,11 +283,11 @@ const base: Omit<ScoringProfile, "id" | "label"> = {
 export const PROFILES: Record<string, ScoringProfile> = {
   // Existing targets retained for backward compatibility. Verify official criteria
   // before enabling pass/fail decisions in production.
-  "ssc-chsl-en": { ...base, id: "ssc-chsl-en", label: "SSC CHSL (English)", language: "en", qualifyingWpm: 35 },
-  "ssc-chsl-hi": { ...base, id: "ssc-chsl-hi", label: "SSC CHSL (Hindi)", language: "hi", qualifyingWpm: 30 },
-  "ssc-cgl-dest": { ...base, id: "ssc-cgl-dest", label: "SSC CGL DEST (key depressions)", unit: "keystrokes", language: "en", qualifyingWpm: 26.7 },
-  "rrb-ntpc-en": { ...base, id: "rrb-ntpc-en", label: "RRB NTPC (English)", language: "en", qualifyingWpm: 30 },
-  "rrb-ntpc-hi": { ...base, id: "rrb-ntpc-hi", label: "RRB NTPC (Hindi)", language: "hi", qualifyingWpm: 25 },
+  "ssc-chsl-en": { ...base, id: "ssc-chsl-en", label: "SSC CHSL LDC/JSA (English)", language: "en", durationSec: 600, qualifyingWpm: 35, qualificationBasis: "gross" },
+  "ssc-chsl-hi": { ...base, id: "ssc-chsl-hi", label: "SSC CHSL LDC/JSA (Hindi)", language: "hi", durationSec: 600, qualifyingWpm: 30, qualificationBasis: "gross" },
+  "ssc-cgl-dest": { ...base, id: "ssc-cgl-dest", label: "SSC CGL DEST (15-minute key-depression practice)", unit: "keystrokes", language: "en", durationSec: 900, targetKeystrokes: 2000 },
+  "rrb-ntpc-en": { ...base, id: "rrb-ntpc-en", label: "RRB NTPC CBTST (English)", language: "en", durationSec: 600, minWords: 300, qualifyingWpm: 30, qualificationBasis: "net", netMethod: "rrb", errorAllowancePercent: 5 },
+  "rrb-ntpc-hi": { ...base, id: "rrb-ntpc-hi", label: "RRB NTPC CBTST (Hindi)", language: "hi", durationSec: 600, minWords: 250, qualifyingWpm: 25, qualificationBasis: "net", netMethod: "rrb", errorAllowancePercent: 5 },
   "delhi-police-hcm-en": {
     ...base, id: "delhi-police-hcm-en", label: "Delhi Police Head Constable (Ministerial) — English",
     language: "en", unit: "words", durationSec: 600, qualifyingWpm: 30,
@@ -282,9 +300,9 @@ export const PROFILES: Record<string, ScoringProfile> = {
     fullErrorWeight: 1, halfErrorWeight: 0, halfRules: { caseOnly: false, punctuationOnly: false },
     netMethod: "per-error", errorPercentBasis: "referenceWords",
   },
-  "court-typing-en": { ...base, id: "court-typing-en", label: "Court Typing (English; configure per court)", language: "en" },
-  "court-typing-hi": { ...base, id: "court-typing-hi", label: "Court Typing (Hindi; configure per court)", language: "hi" },
-  "bsf-typing-en": { ...base, id: "bsf-typing-en", label: "BSF Typing (English; verify exam rules)", language: "en" },
+  "court-typing-en": { ...base, id: "court-typing-en", label: "Court Typing (English; court-specific rules required)", language: "en" },
+  "court-typing-hi": { ...base, id: "court-typing-hi", label: "Court Typing (Hindi; court-specific rules required)", language: "hi" },
+  "bsf-typing-en": { ...base, id: "bsf-typing-en", label: "BSF HCM (English; verify recruitment notification)", language: "en" },
   "high-court": { ...base, id: "high-court", label: "High Court clerical (editable)" },
   practice: { ...base, id: "practice", label: "Free practice" },
 };
