@@ -39,8 +39,9 @@ Set variables in Cloudflare Dashboard → Workers & Pages → `typing-skill-zone
 | `CF_ENVIRONMENT` | Variable | Set to `sandbox` while testing; set to `production` only for live payments |
 | `CF_MERCHANT_ID` | Secret | Cashfree PG App ID / Client ID |
 | `CF_SECRET_KEY` | Secret | Cashfree PG Client Secret |
-| `GROQ_API_KEY` | Secret (optional) | AI feedback, if enabled |
-| `GROQ_MODEL` | Variable (optional) | AI model name |
+| `GROQ_API_KEY` | Secret | Groq API key used by scheduled passage generation and any enabled AI feedback |
+| `GROQ_MODEL` | Variable | Model ID; use `openai/gpt-oss-120b` |
+| `PASSAGE_CRON_SECRET` | Secret | Strong shared secret required to authorize scheduled passage-generation requests; caller must send it in `x-passage-cron-secret` or `Authorization: Bearer ...` |
 
 Cashfree secrets must be sandbox credentials while `CF_ENVIRONMENT=sandbox`. Never send credentials in chat, screenshots, issues, or pull requests.
 
