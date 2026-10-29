@@ -231,7 +231,7 @@ export function calculateScore(input: ScoreInput): ScoreResult {
   const log = input.keyEvents ? analyzeKeyLog(input.keyEvents, refText) : null;
   const keystrokes = log ? log.keystrokes : typedChars;
   const basis = p.unit === "keystrokes" ? keystrokes : typedChars;
-  const grossWpm = basis / p.charsPerWord / minutes;
+  const grossWpm = p.netMethod === "rrb" ? typedWords.length / minutes : basis / p.charsPerWord / minutes;
   const denominator = p.errorPercentBasis === "referenceWords"
     ? refWords.length
     : p.errorPercentBasis === "referenceWordsReached"
@@ -301,6 +301,11 @@ export const PROFILES: Record<string, ScoringProfile> = {
     netMethod: "per-error", errorPercentBasis: "referenceWords",
   },
   "court-typing-en": { ...base, id: "court-typing-en", label: "Court Typing (English; court-specific rules required)", language: "en" },
+  "delhi-high-court-jja-en": {
+    ...base, id: "delhi-high-court-jja-en", label: "Delhi High Court JJA/Restorer 2026 (English)",
+    language: "en", durationSec: 600, qualifyingWpm: 35, qualificationBasis: "gross", maxErrorPercent: 3,
+    halfRules: { caseOnly: false, punctuationOnly: false },
+  },
   "court-typing-hi": { ...base, id: "court-typing-hi", label: "Court Typing (Hindi; court-specific rules required)", language: "hi" },
   "bsf-typing-en": { ...base, id: "bsf-typing-en", label: "BSF HCM (English; verify recruitment notification)", language: "en" },
   "high-court": { ...base, id: "high-court", label: "High Court clerical (editable)" },
