@@ -179,6 +179,16 @@ test("bulk parsing with and without titles", () => {
   assert.equal(items[0].title, "First");
   assert.equal(items[1].title, "second passage text here");
 });
+
+test("admin scoring validation preserves RRB-specific settings", () => {
+  const checked = validateScoring(defaultScoring("rrb-ntpc-en"));
+  assert.equal(checked.error, undefined);
+  assert.equal(checked.scoring?.netMethod, "rrb");
+  assert.equal(checked.scoring?.durationSec, 600);
+  assert.equal(checked.scoring?.errorAllowancePercent, 5);
+  assert.equal(checked.scoring?.minWords, 300);
+});
+
 test("template validation", () => {
   const ok = { slug: "ssc-cgl", name: "SSC CGL", language: "en" as const, durationSec: 900, displayMode: "highlighted" as const, backspace: "full" as const, scoring: defaultScoring("ssc-cgl-dest") };
   assert.equal(validateTemplate(ok).errors.length, 0);
