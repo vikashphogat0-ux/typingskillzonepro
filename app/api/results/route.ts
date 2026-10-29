@@ -3,7 +3,7 @@ import { getUserId } from "@/lib/auth";
 import { getStudentAccess } from "@/lib/subscription";
 import { LIMITS } from "@/lib/pricing";
 import { calculateScore, PROFILES, type KeyEvent } from "@/lib/wpmCalculator";
-import { PRESETS, getVerifiedPreset } from "@/lib/presets";
+import { PRESETS, getBuiltInPreset } from "@/lib/presets";
 import { validateAttempt } from "@/lib/antiCheat";
 
 export async function GET(req: Request) {
@@ -38,7 +38,7 @@ async function submitSimulator(uid: string, b: any) {
   const events: KeyEvent[] = b.events;
   const check = validateAttempt({ typed, events, elapsedSec: Number(b.elapsedSec) || 0, durationSec: t.duration_sec });
   if (check.tampered) return Response.json({ error: "This result could not be verified." }, { status: 400 });
-  const profile = getVerifiedPreset(String(t.template_slug ?? ""))?.profile ?? t.scoring ?? PROFILES.practice;
+  const profile = getBuiltInPreset(String(t.template_slug ?? ""))?.profile ?? t.scoring ?? PROFILES.practice;
   const s = calculateScore({ reference: t.reference_text, typed, elapsedSec: check.elapsedSec, durationSec: t.duration_sec, profile, keyEvents: events });
   // Claim the attempt and save its result atomically. If result insertion fails,
   // PostgreSQL rolls back the claim, so a legitimate retry is not locked out.
