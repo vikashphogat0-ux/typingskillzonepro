@@ -22,8 +22,10 @@ export async function POST(req: Request) {
   const displayMode = verified?.mode ?? String(t.display_mode);
   const scoring = verified?.profile ?? t.scoring;
   const requestedCustom = typeof b.customPassage === "string" ? b.customPassage.trim() : "";
-  if (requestedCustom && (requestedCustom.split(/\s+/u).filter(Boolean).length < 10 || Array.from(requestedCustom).length > 50000)) {
-    return Response.json({ error: "Custom passages must contain at least 10 words and no more than 50,000 characters." }, { status: 400 });
+  const customWords = requestedCustom ? requestedCustom.split(/\s+/u).filter(Boolean).length : 0;
+  const requiredCustomWords = t.slug === "dp-hcm-en" ? 400 : t.slug === "dp-hcm-hi" ? 350 : t.slug === "rrb-ntpc-en" ? 300 : t.slug === "rrb-ntpc-hi" ? 250 : 10;
+  if (requestedCustom && (customWords < requiredCustomWords || Array.from(requestedCustom).length > 50000)) {
+    return Response.json({ error: `Custom passage must contain at least ${requiredCustomWords} words for this profile and no more than 50,000 characters.` }, { status: 400 });
   }
 
   let assignmentId: string | null = null;
