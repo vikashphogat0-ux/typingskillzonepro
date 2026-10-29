@@ -196,6 +196,12 @@ export default function SimulatorPage() {
                   <th>Duration</th>
                   <td>{Math.round(sim.duration_sec / 60)} minutes ({sim.duration_sec} seconds)</td>
                 </tr>
+                {scoring.netMethod === "rrb" && (
+                  <tr>
+                    <th>Session phases</th>
+                    <td>1-minute warm-up (not scored), 1-minute break, then the scored 10-minute typing test. This timing matches the RRB NTPC Graduate CEN 05/2024 corrigendum; check your own recruitment notice if you are taking a different cycle.</td>
+                  </tr>
+                )}
                 <tr>
                   <th>Language</th>
                   <td>{sim.language === "hi" ? "हिंदी (Hindi / Devanagari)" : "English"}</td>
