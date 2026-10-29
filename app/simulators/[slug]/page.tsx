@@ -27,7 +27,7 @@ const examMark = (slug: string) => {
   if (slug.includes("ssc-chsl")) return { mark: "SSC", tone: "violet", family: "Staff Selection Commission" };
   if (slug.includes("ssc-cgl")) return { mark: "CGL", tone: "blue", family: "Combined Graduate Level" };
   if (slug.includes("rrb") || slug.includes("railway")) return { mark: "RRB", tone: "orange", family: "Railway Recruitment" };
-  if (slug.includes("delhi-police")) return { mark: "DP", tone: "red", family: "Delhi Police" };
+  if (slug.includes("delhi-police") || slug.includes("dp-hcm")) return { mark: "DP", tone: "red", family: "Delhi Police · Head Constable Ministerial" };
   if (slug.includes("court")) return { mark: "HC", tone: "teal", family: "Court Typing" };
   if (slug.includes("bsf")) return { mark: "BSF", tone: "green", family: "Border Security Force" };
   return { mark: "TSZ", tone: "blue", family: "Typing practice" };
@@ -54,6 +54,7 @@ export default function SimulatorPage() {
   const [startErr, setStartErr] = useState("");
   const [passageOptions, setPassageOptions] = useState<{ id: string; title: string; word_count: number }[]>([]);
   const [selectedPassageId, setSelectedPassageId] = useState("");
+  const [passageSearch, setPassageSearch] = useState("");
 
   useEffect(() => {
     if (!slug) return;
@@ -125,12 +126,16 @@ export default function SimulatorPage() {
           mode={testData.mode}
           backspace={testData.backspace}
           profile={testData.profile}
+          fontSizePt={testData.fontSizePt ?? 12}
+          passageLayout={testData.passageLayout ?? "continuous"}
+          examName={testData.name ?? sim.name}
           onFinish={onFinish}
         />
       </div>
     );
   }
 
+  const visiblePassages = passageOptions.filter(p => !passageSearch.trim() || p.id.toLowerCase().includes(passageSearch.trim().toLowerCase()) || p.title.toLowerCase().includes(passageSearch.trim().toLowerCase()));
   const scoring = sim.scoring ?? {};
   const isQualifying = scoring.qualifyingWpm !== undefined;
 
@@ -141,7 +146,7 @@ export default function SimulatorPage() {
       </nav>
 
       <section className="sim-detail-hero">
-        <div className={`exam-emblem ${examMark(sim.slug).tone}`}><span>{examMark(sim.slug).mark}</span><small>EXAM PREP</small></div>
+        <div className={`exam-emblem ${examMark(sim.slug).tone}`} aria-label={`${examMark(sim.slug).family} category mark`}><span>{examMark(sim.slug).mark}</span><small>{sim.slug.includes("dp-hcm") || sim.slug.includes("delhi-police") ? "DELHI POLICE" : sim.slug.includes("bsf") ? "BSF HCM" : "EXAM PREP"}</small></div>
         <div>
           <div className="eyebrow">{examMark(sim.slug).family}</div>
           <h1>{sim.name}</h1>
@@ -266,14 +271,16 @@ export default function SimulatorPage() {
               </p>
             )}
 
-            <label className="practice-field" style={{ marginTop: 18, maxWidth: 620 }}>
-              Passage for this attempt
-              <select value={selectedPassageId} onChange={(e) => setSelectedPassageId(e.target.value)}>
+            <div className="practice-field simulator-passage-picker" style={{ marginTop: 18, maxWidth: 720 }}>
+              <label htmlFor="passage-id-search">Find passage by title or unique ID</label>
+              <input id="passage-id-search" value={passageSearch} onChange={e => setPassageSearch(e.target.value)} placeholder="Paste a passage ID or type a title…" autoComplete="off" />
+              <label htmlFor="passage-select">Passage for this attempt</label>
+              <select id="passage-select" value={selectedPassageId} onChange={(e) => setSelectedPassageId(e.target.value)}>
                 <option value="">Random passage for this exam language</option>
-                {passageOptions.map((p) => <option key={p.id} value={p.id}>{p.title} · {p.word_count} words</option>)}
+                {visiblePassages.map((p) => <option key={p.id} value={p.id}>{p.title} · {p.word_count} words · ID {p.id}</option>)}
               </select>
-              <small>Every passage in the selected language can be practised with this simulator&apos;s configured duration, scoring and backspace rules.</small>
-            </label>
+              <small>{visiblePassages.length} matching passage(s). Every passage in this language can be practised with this simulator&apos;s configured duration, scoring and backspace rules. Passage content stays the same; only this exam&apos;s typing pattern changes.</small>
+            </div>
 
             <div style={{ marginTop: 20, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
               <button

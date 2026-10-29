@@ -27,7 +27,7 @@ export async function GET(req: Request) {
     const like = `%${q.replace(/[%_]/g, "")}%`;
     const list = await db`SELECT p.id, p.title, p.language, p.word_count, left(p.body, 140) AS preview, et.name AS exam
       FROM passages p LEFT JOIN exam_templates et ON et.id = p.template_id
-      WHERE (${lang}::text IS NULL OR p.language = ${lang}) AND (${q} = '' OR p.title ILIKE ${like}) AND (${tpl} = '' OR et.slug = ${tpl})
+      WHERE (${lang}::text IS NULL OR p.language = ${lang}) AND (${q} = '' OR p.title ILIKE ${like} OR p.id::text ILIKE ${like} OR p.body ILIKE ${like}) AND (${tpl} = '' OR et.slug = ${tpl})
       ORDER BY p.created_at DESC`;
     const monthly = await db`SELECT p.id, p.title, p.language, p.word_count, left(p.body, 180) AS preview, p.created_at::date::text AS date, et.name AS exam
       FROM passages p LEFT JOIN exam_templates et ON et.id = p.template_id

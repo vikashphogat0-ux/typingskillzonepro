@@ -21,6 +21,9 @@ interface Props {
   mode: DisplayMode;
   backspace: BackspaceMode;
   profile: ScoringProfile;
+  fontSizePt?: number;
+  passageLayout?: string;
+  examName?: string;
   onFinish: (r: SimResult) => void;
 }
 
@@ -41,7 +44,7 @@ const Word = memo(function Word({ text, typed, active }: { text: string; typed: 
   );
 });
 
-export default function TypingSimulator({ passage, lang, durationSec, mode, backspace, profile, onFinish }: Props) {
+export default function TypingSimulator({ passage, lang, durationSec, mode, backspace, profile, fontSizePt = 12, passageLayout = "continuous", examName = "Typing practice", onFinish }: Props) {
   const reference = useMemo(() => norm(passage), [passage]);
   const refChars = useMemo(() => Array.from(reference), [reference]);
   const tokens = useMemo(() => {
@@ -128,8 +131,9 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
       return;
     }
     const escaped = reference.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const printSize = Math.max(8, Math.min(24, fontSizePt));
     target.document.open();
-    target.document.write(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Typing practice passage</title><style>body{font-family:Arial,"Noto Sans Devanagari",sans-serif;max-width:850px;margin:36px auto;padding:0 24px;color:#172033;line-height:1.9}h1{font-size:22px;margin-bottom:8px}p{white-space:pre-wrap;font-size:18px}@media print{body{margin:0;max-width:none}}</style></head><body><h1>Typing practice passage</h1><p>${escaped}</p></body></html>`);
+    target.document.write(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${examName.replace(/</g, "&lt;").replace(/>/g, "&gt;")} passage</title><style>body{font-family:Arial,"Noto Sans Devanagari",sans-serif;max-width:850px;margin:36px auto;padding:0 24px;color:#172033;line-height:1.65}h1{font-size:16pt;margin-bottom:8px}p{white-space:pre-wrap;font-size:${printSize}pt}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${examName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</h1><p>${escaped}</p></body></html>`);
     target.document.close();
     target.focus();
     target.print();
@@ -152,7 +156,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
       </div>
 
       {mode === "offscreen" && <div className="offscreen-print-tools"><p>The passage is hidden during this exam mode. Print it or choose “Save as PDF” before typing, then return here to start.</p><button type="button" className="go alt" onClick={printReference}>Print passage / Save as PDF</button></div>}
-      <div className={`sheet ${lang === "hi" ? "hi" : ""} ${mode}`} ref={boxRef} lang={lang} tabIndex={-1} onClick={() => taRef.current?.focus()}>
+      <div className={`sheet ${lang === "hi" ? "hi" : ""} ${mode} layout-${passageLayout}`} ref={boxRef} lang={lang} tabIndex={-1} onClick={() => taRef.current?.focus()} style={{ fontSize: `${Math.max(8, Math.min(24, fontSizePt))}pt`, whiteSpace: passageLayout === "continuous" ? "normal" : "pre-wrap" }}>
         {mode === "highlighted"
           ? tokens.map((tk, i) => {
               const slice = typedChars.slice(tk.start, tk.start + tk.len).join("");
