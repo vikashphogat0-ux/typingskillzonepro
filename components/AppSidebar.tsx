@@ -14,7 +14,6 @@ const groups = [
   { title: "ACCOUNT", links: [
     { href: "/dashboard", icon: "◷", label: "Results & Analytics" },
     { href: "/pricing", icon: "✧", label: "Plans & Billing" },
-    { href: "/login", icon: "◎", label: "Account / Sign in" },
   ]},
 ];
 
