@@ -61,8 +61,8 @@ export default function Library() {
       return () => { clearTimeout(t); window.removeEventListener("afterprint", done); };
     }
   }, [printing]);
-  const view = async (p: P) => {
-    if (open?.id === p.id) { setOpen(null); return; }
+  const view = async (p: P, toggle = true) => {
+    if (toggle && open?.id === p.id) { setOpen(null); return; }
     if (p.body) { setOpen(p); return; }
     const r = await api(`/api/library?id=${encodeURIComponent(p.id)}`);
     if (r.ok) setOpen(r.data);
@@ -110,7 +110,7 @@ export default function Library() {
         </div>
         {!monthLoading && monthly.length === 0 ? <div className="empty-state"><b>No passages found for this month.</b><p>Choose another month or use Search Library to find any available passage.</p><button className="go alt" onClick={() => setTab("all")}>Search all passages</button></div> :
           <div className="library-month-list">{monthly.map(p => <article key={p.id} className={`library-month-item ${selectedPassage === p.id ? "selected" : ""}`}>
-            <button className="library-month-select" onClick={() => { setSelectedPassage(p.id); void view(p); }} aria-pressed={selectedPassage === p.id}>
+            <button className="library-month-select" onClick={() => { setSelectedPassage(p.id); void view(p, false); }} aria-pressed={selectedPassage === p.id}>
               <span className={`library-language-mark ${p.language === "hi" ? "hindi" : "english"}`}>{p.language === "hi" ? "हि" : "EN"}</span>
               <span className="library-month-title"><strong>{p.title}</strong><small>{p.language === "hi" ? "Hindi folder" : "English folder"} · {p.word_count} words · ID: {p.id}{p.exam ? ` · ${p.exam}` : ""}</small></span>
               <span className="library-month-chevron">{selectedPassage === p.id ? "Selected" : "Select"} ↗</span>
