@@ -56,7 +56,7 @@ export function validateScoring(raw: unknown): { scoring?: ScoringProfile; error
   const s = raw as Partial<ScoringProfile> | null;
   if (!s || typeof s !== "object") return { error: "Scoring settings are missing." };
   if (s.unit !== "words" && s.unit !== "keystrokes") return { error: "Count by words or keystrokes." };
-  if (s.netMethod !== "penalty" && s.netMethod !== "accuracy") return { error: "Choose a net speed method." };
+  if (s.netMethod !== "penalty" && s.netMethod !== "accuracy" && s.netMethod !== "per-error") return { error: "Choose a net speed method." };
   if (!num(s.charsPerWord, 1, 10)) return { error: "Characters per word must be between 1 and 10." };
   if (!num(s.fullErrorWeight, 0, 5) || !num(s.halfErrorWeight, 0, 5)) return { error: "Mistake weights must be between 0 and 5." };
   if (s.qualifyingWpm !== undefined && !num(s.qualifyingWpm, 0, 200)) return { error: "Qualifying WPM must be between 0 and 200." };
