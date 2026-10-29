@@ -1,4 +1,4 @@
-import type { Lang, ScoringProfile } from "./wpmCalculator";
+import { PROFILES, type Lang, type ScoringProfile } from "./wpmCalculator";
 import type { BackspaceMode } from "./backspacePolicy";
 
 export type DisplayMode = "highlighted" | "unhighlighted" | "offscreen";
@@ -23,16 +23,16 @@ const profile = (id: string, qualifyingWpm?: number, unit: "words" | "keystrokes
 });
 
 export const PRESETS: ExamPreset[] = [
-  { slug: "ssc-chsl-en", name: "SSC CHSL — English Typing", lang: "en", durationSec: 600, profileId: "ssc-chsl-en", mode: "highlighted", backspace: "full", profile: profile("ssc-chsl-en", 35) },
-  { slug: "ssc-chsl-hi", name: "SSC CHSL — Hindi Typing", lang: "hi", durationSec: 600, profileId: "ssc-chsl-hi", mode: "highlighted", backspace: "full", profile: profile("ssc-chsl-hi", 30) },
-  { slug: "ssc-cgl-deo", name: "SSC CGL — DEO (Key Depressions)", lang: "en", durationSec: 900, profileId: "ssc-cgl-deo", mode: "unhighlighted", backspace: "full", profile: profile("ssc-cgl-deo", 26.67, "keystrokes") },
-  { slug: "ssc-cgl-ldc-en", name: "SSC CGL — LDC / Tax Assistant (English)", lang: "en", durationSec: 600, profileId: "ssc-cgl-ldc-en", mode: "highlighted", backspace: "full", profile: profile("ssc-cgl-ldc-en", 35) },
-  { slug: "rrb-ntpc-en", name: "RRB NTPC — English Typing", lang: "en", durationSec: 600, profileId: "rrb-ntpc-en", mode: "highlighted", backspace: "full", profile: profile("rrb-ntpc-en", 30) },
-  { slug: "rrb-ntpc-hi", name: "RRB NTPC — Hindi Typing", lang: "hi", durationSec: 600, profileId: "rrb-ntpc-hi", mode: "highlighted", backspace: "full", profile: profile("rrb-ntpc-hi", 25) },
-  { slug: "dp-hcm-en", name: "Delhi Police HCM — English Typing", lang: "en", durationSec: 600, profileId: "dp-hcm-en", mode: "offscreen", backspace: "full", profile: profile("dp-hcm-en", 35) },
-  { slug: "dp-hcm-hi", name: "Delhi Police HCM — Hindi Typing", lang: "hi", durationSec: 600, profileId: "dp-hcm-hi", mode: "offscreen", backspace: "full", profile: profile("dp-hcm-hi", 30) },
-  { slug: "bsf-hcm-en", name: "BSF Head Constable Min. — English Typing", lang: "en", durationSec: 600, profileId: "bsf-hcm-en", mode: "offscreen", backspace: "disabled", profile: profile("bsf-hcm-en", 35) },
-  { slug: "bsf-hcm-hi", name: "BSF Head Constable Min. — Hindi Typing", lang: "hi", durationSec: 600, profileId: "bsf-hcm-hi", mode: "offscreen", backspace: "disabled", profile: profile("bsf-hcm-hi", 30) },
+  { slug: "ssc-chsl-en", name: "SSC CHSL — English Typing", lang: "en", durationSec: 600, profileId: "ssc-chsl-en", mode: "highlighted", backspace: "full", profile: PROFILES["ssc-chsl-en"] },
+  { slug: "ssc-chsl-hi", name: "SSC CHSL — Hindi Typing", lang: "hi", durationSec: 600, profileId: "ssc-chsl-hi", mode: "highlighted", backspace: "full", profile: PROFILES["ssc-chsl-hi"] },
+  { slug: "ssc-cgl-deo", name: "SSC CGL — DEO (Key Depressions)", lang: "en", durationSec: 900, profileId: "ssc-cgl-dest", mode: "unhighlighted", backspace: "full", profile: PROFILES["ssc-cgl-dest"] },
+  { slug: "ssc-cgl-ldc-en", name: "SSC CGL — LDC / Tax Assistant (English; verify post-specific rules)", lang: "en", durationSec: 600, profileId: "ssc-cgl-ldc-en", mode: "highlighted", backspace: "full", profile: PROFILES["ssc-cgl-ldc-en"] },
+  { slug: "rrb-ntpc-en", name: "RRB NTPC — English Typing", lang: "en", durationSec: 600, profileId: "rrb-ntpc-en", mode: "highlighted", backspace: "full", profile: PROFILES["rrb-ntpc-en"] },
+  { slug: "rrb-ntpc-hi", name: "RRB NTPC — Hindi Typing", lang: "hi", durationSec: 600, profileId: "rrb-ntpc-hi", mode: "highlighted", backspace: "full", profile: PROFILES["rrb-ntpc-hi"] },
+  { slug: "dp-hcm-en", name: "Delhi Police HCM — English Typing", lang: "en", durationSec: 600, profileId: "delhi-police-hcm-en", mode: "offscreen", backspace: "full", profile: PROFILES["delhi-police-hcm-en"] },
+  { slug: "dp-hcm-hi", name: "Delhi Police HCM — Hindi Typing", lang: "hi", durationSec: 600, profileId: "delhi-police-hcm-hi", mode: "offscreen", backspace: "full", profile: PROFILES["delhi-police-hcm-hi"] },
+  { slug: "bsf-hcm-en", name: "BSF Head Constable Min. — English Typing (provisional rules)", lang: "en", durationSec: 600, profileId: "bsf-typing-en", mode: "offscreen", backspace: "disabled", profile: PROFILES["bsf-typing-en"] },
+  { slug: "bsf-hcm-hi", name: "BSF Head Constable Min. — Hindi Typing (provisional rules)", lang: "hi", durationSec: 600, profileId: "bsf-typing-hi", mode: "offscreen", backspace: "disabled", profile: PROFILES["bsf-typing-hi"] },
   { slug: "crpf-hcm-en", name: "CRPF Head Constable Min. — English Typing", lang: "en", durationSec: 600, profileId: "crpf-hcm-en", mode: "offscreen", backspace: "word", profile: profile("crpf-hcm-en", 35) },
   { slug: "cisf-hcm-en", name: "CISF Head Constable Min. — English Typing", lang: "en", durationSec: 600, profileId: "cisf-hcm-en", mode: "offscreen", backspace: "word", profile: profile("cisf-hcm-en", 35) },
   { slug: "dsssb-ldc-en", name: "DSSSB — LDC English Typing", lang: "en", durationSec: 600, profileId: "dsssb-ldc-en", mode: "highlighted", backspace: "full", profile: profile("dsssb-ldc-en", 35) },
@@ -46,7 +46,7 @@ export const PRESETS: ExamPreset[] = [
   { slug: "rsmssb-ldc-hi", name: "RSMSSB — Rajasthan LDC Hindi Typing", lang: "hi", durationSec: 600, profileId: "rsmssb-ldc-hi", mode: "highlighted", backspace: "full", profile: profile("rsmssb-ldc-hi", 35) },
   { slug: "rsmssb-ldc-en", name: "RSMSSB — Rajasthan LDC English Typing", lang: "en", durationSec: 600, profileId: "rsmssb-ldc-en", mode: "highlighted", backspace: "full", profile: profile("rsmssb-ldc-en", 35) },
   { slug: "ibps-dest", name: "IBPS DEST — Data Entry Speed Test", lang: "en", durationSec: 300, profileId: "ibps-dest", mode: "unhighlighted", backspace: "full", profile: profile("ibps-dest", 26.67, "keystrokes") },
-  { slug: "practice-1min", name: "Free Practice — 1 Minute", lang: "en", durationSec: 60, profileId: "practice", mode: "highlighted", backspace: "full", profile: profile("practice") },
+  { slug: "practice-1min", name: "Free Practice — 1 Minute", lang: "en", durationSec: 60, profileId: "practice", mode: "highlighted", backspace: "full", profile: PROFILES.practice },
   { slug: "practice-5min-hi", name: "Free Practice — 5 Minutes (Hindi)", lang: "hi", durationSec: 300, profileId: "practice", mode: "highlighted", backspace: "full", profile: profile("practice") },
 ];
 
