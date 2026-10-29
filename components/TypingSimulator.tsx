@@ -133,7 +133,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
         const input = e.currentTarget;
         const start = input.selectionStart ?? input.value.length;
         const end = input.selectionEnd ?? input.value.length;
-        input.setRangeText("\\t", start, end, "end");
+        input.setRangeText("\t", start, end, "end");
         input.dispatchEvent(new Event("input", { bubbles: true }));
       }
     }
