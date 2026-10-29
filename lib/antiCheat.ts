@@ -1,5 +1,21 @@
 import type { KeyEvent } from "./wpmCalculator.ts";
 
+/** Runtime validation is required because key events arrive from untrusted JSON. */
+export function isValidKeyEvent(value: unknown): value is KeyEvent {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const e = value as Record<string, unknown>;
+  if (typeof e.t !== "number" || !Number.isFinite(e.t) || e.t < 0) return false;
+  if (e.type === "ins") {
+    return typeof e.ch === "string" && Array.from(e.ch).length === 1 &&
+      (e.n === undefined);
+  }
+  if (e.type === "del") {
+    return e.ch === undefined &&
+      (e.n === undefined || (Number.isInteger(e.n) && Number(e.n) > 0 && Number(e.n) <= 30000));
+  }
+  return false;
+}
+
 /** Rebuild the typed text from the key log. */
 export function replayEvents(events: KeyEvent[]): string {
   const st: string[] = [];
@@ -20,9 +36,15 @@ export interface AttemptCheck { tampered: boolean; flagged: boolean; reasons: st
 export function validateAttempt(a: { typed: string; events: KeyEvent[]; elapsedSec: number; durationSec: number }): AttemptCheck {
   const reasons: string[] = [];
   let tampered = false, flagged = false;
-  const ev = a.events;
+  const ev = Array.isArray(a.events) ? a.events : [];
+  if (!Array.isArray(a.events)) { tampered = true; reasons.push("Invalid key log."); }
   if (ev.length > 40000) { tampered = true; reasons.push("Too many key events."); }
-  if (replayEvents(ev) !== a.typed) { tampered = true; reasons.push("Typed text does not match the key log."); }
+  if (ev.some((e) => !isValidKeyEvent(e))) {
+    tampered = true;
+    reasons.push("Malformed key event.");
+    return { tampered, flagged, reasons, elapsedSec: 0 };
+  }
+  if (typeof a.typed !== "string" || replayEvents(ev) !== a.typed) { tampered = true; reasons.push("Typed text does not match the key log."); }
   let prev = 0;
   for (const e of ev) { if (!(e.t >= prev)) { tampered = true; reasons.push("Key times are out of order."); break; } prev = e.t; }
   const lastSec = ev.length ? ev[ev.length - 1].t / 1000 : 0;
