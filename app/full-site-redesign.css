@@ -753,3 +753,97 @@ main.tsz-content{
     padding:14px!important;
   }
 }
+
+
+/* Final theme override for Practice and Passage Library: remove legacy blue surfaces. */
+.tsz-content .setup,
+.tsz-content .setup *,
+.tsz-content .library-page,
+.tsz-content .library-page *{
+  --legacy-blue:#20262e;
+}
+.tsz-content .setup,
+.tsz-content .setup>section,
+.tsz-content .setup .form,
+.tsz-content .setup .source-choice,
+.tsz-content .setup .mode-choice,
+.tsz-content .setup .preset-summary,
+.tsz-content .setup .selected-preset,
+.tsz-content .setup .step-card,
+.tsz-content .setup .option-card,
+.tsz-content .setup .setup-section,
+.tsz-content .setup .practice-section{
+  background-color:#20262e!important;
+  background-image:none!important;
+  color:#d6dde5!important;
+  border-color:#37414d!important;
+  box-shadow:none!important;
+}
+.tsz-content .setup :is(.source-choice,.mode-choice,.option-card,.choice-card,.select-card,.setup-option){
+  background-color:#242c35!important;
+  background-image:none!important;
+  border:1px solid #3b4652!important;
+  color:#d6dde5!important;
+}
+.tsz-content .setup :is(.source-choice.active,.mode-choice.active,.option-card.active,.choice-card.active,.select-card.active,.setup-option.active,[aria-pressed=true]){
+  background-color:#2b414a!important;
+  background-image:none!important;
+  border-color:#648a96!important;
+  color:#edf5f7!important;
+}
+.tsz-content .setup :is(h1,h2,h3,h4,strong,b,legend){color:#edf1f5!important}
+.tsz-content .setup :is(p,small,.hint,.muted,.description){color:#aeb9c5!important}
+.tsz-content .setup :is(.go,.primary,.primary-button,.start-button,.submit-button,button[type=submit]){
+  background-color:#426d7c!important;background-image:none!important;
+  border-color:#527e8d!important;color:#fff!important;box-shadow:none!important;
+}
+.tsz-content .setup :is(.go.alt,.secondary,.secondary-button){
+  background-color:#252d36!important;background-image:none!important;
+  border-color:#46525f!important;color:#e1e7ed!important;
+}
+.tsz-content .setup :is(select,input,textarea){
+  background-color:#171d24!important;background-image:none!important;
+  color:#edf1f5!important;border-color:#46525f!important;
+}
+.tsz-content .setup :is(.source-grid,.mode-grid,.options-grid){
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important;
+}
+.tsz-content .library-page .library-hero{
+  background:linear-gradient(135deg,#222b35,#202b34 60%,#23363b)!important;
+  border:1px solid #3c4b57!important;color:#e1e7ed!important;
+}
+.tsz-content .library-page .tabs{
+  display:flex!important;flex-wrap:wrap!important;gap:8px!important;padding:8px!important;
+  border-radius:13px!important;background:#20262e!important;border:1px solid #37414d!important;
+}
+.tsz-content .library-page .tabs button{
+  min-height:40px!important;padding:9px 14px!important;border-radius:9px!important;
+  background:#252d36!important;background-image:none!important;border:1px solid #3b4652!important;color:#cbd4dd!important;
+}
+.tsz-content .library-page .tabs button[aria-selected=true]{
+  background:#2b414a!important;border-color:#648a96!important;color:#f0f5f7!important;
+}
+.tsz-content .library-page :is(.library-day-card,.library-month-item,.library-month-list,.library-search-panel,.library-intro,.library-month-toolbar){
+  background:#20262e!important;background-image:none!important;border:1px solid #37414d!important;
+  color:#d6dde5!important;box-shadow:none!important;
+}
+.tsz-content .library-page .library-day-head{background:#252d36!important;border-color:#37414d!important;color:#edf1f5!important}
+.tsz-content .library-page :is(.library-day-head h3,.passage-title-row h4){color:#edf1f5!important}
+.tsz-content .library-page :is(.library-day-head span,.passage-id-badge){
+  background:#293d45!important;border-color:#405a64!important;color:#bde7e5!important;
+}
+.tsz-content .library-page .passage-box{
+  background:#191f26!important;background-image:none!important;border:1px solid #3a4652!important;
+  color:#e0e6ec!important;line-height:1.85!important;
+}
+.tsz-content .library-page .library-day-actions{display:flex!important;flex-wrap:wrap!important;gap:8px!important}
+.tsz-content .library-page .library-day-actions .go{
+  background:#426d7c!important;background-image:none!important;border:1px solid #527e8d!important;color:#fff!important;
+}
+.tsz-content .library-page .library-day-actions .go.alt{
+  background:#252d36!important;border-color:#46525f!important;color:#e1e7ed!important;
+}
+@media(max-width:760px){
+  .tsz-content .setup :is(.source-grid,.mode-grid,.options-grid){grid-template-columns:minmax(0,1fr)!important}
+  .tsz-content .library-page .library-day-actions>*{flex:1 1 140px!important;justify-content:center!important}
+}
