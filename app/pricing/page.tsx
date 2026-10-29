@@ -79,40 +79,39 @@ function loadCheckout(): Promise<boolean> {
       return;
     }
 
-    const existing = document.querySelector<HTMLScriptElement>(
+    let settled = false;
+    const finish = (loaded: boolean) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      resolve(loaded && Boolean(window.Cashfree));
+    };
+    const timeout = window.setTimeout(() => finish(false), 12000);
+    let script = document.querySelector<HTMLScriptElement>(
       'script[data-cashfree-sdk="true"]'
     );
 
-    if (existing) {
-      if (existing.dataset.loaded === "true" && window.Cashfree) {
-        resolve(true);
-        return;
-      }
+    if (!script) {
+      script = document.createElement("script");
+      script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+      script.async = true;
+      script.dataset.cashfreeSdk = "true";
+      document.head.appendChild(script);
+    }
 
-      existing.addEventListener(
-        "load",
-        () => resolve(Boolean(window.Cashfree)),
-        { once: true }
-      );
-      existing.addEventListener("error", () => resolve(false), {
-        once: true,
-      });
+    // A cached/already-loaded script may have fired its load event before
+    // this function attached listeners. Check the global again and fail fast
+    // rather than leaving every plan button disabled indefinitely.
+    if (window.Cashfree) {
+      finish(true);
       return;
     }
 
-    const script = document.createElement("script");
-    script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
-    script.async = true;
-    script.dataset.cashfreeSdk = "true";
-
-    script.onload = () => {
+    script.addEventListener("load", () => {
       script.dataset.loaded = "true";
-      resolve(Boolean(window.Cashfree));
-    };
-
-    script.onerror = () => resolve(false);
-
-    document.head.appendChild(script);
+      finish(true);
+    }, { once: true });
+    script.addEventListener("error", () => finish(false), { once: true });
   });
 }
 
@@ -270,10 +269,18 @@ export default function Pricing() {
         mode: data.mode === "production" ? "production" : "sandbox",
       });
 
-      await cashfree.checkout({
+      // Cashfree may navigate the current tab. If it instead returns an
+      // explicit SDK error, surface it so the button doesn't appear stuck.
+      const checkoutResult = await cashfree.checkout({
         paymentSessionId: data.paymentSessionId,
         redirectTarget: "_self",
       });
+      if (checkoutResult && typeof checkoutResult === "object" && "error" in checkoutResult) {
+        const checkoutError = (checkoutResult as { error?: { message?: string } }).error;
+        if (checkoutError) {
+          throw new Error(checkoutError.message || "Cashfree could not open checkout. Please retry.");
+        }
+      }
     } catch (error) {
       setMsg(
         error instanceof Error
