@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 import AuthLink from "@/components/AuthLink";
 import AppSidebar from "@/components/AppSidebar";
+import GlobalSearch from "@/components/GlobalSearch";
 import "./site-polish.css";
 import "./desktop-header-fix.css";
 import "./design-system.css";
+import "./dashboard-home.css";
 
 export const metadata: Metadata = {
   title: "Typing Skill Zone | Exam-focused typing practice",
@@ -20,13 +22,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="tsz-main-column">
             <header className="tsz-topbar">
               <div className="topbar-context"><span className="topbar-eyebrow">YOUR LEARNING WORKSPACE</span><strong>Build speed. Build confidence.</strong></div>
-              <form className="global-search" action="/library" role="search">
-                <span aria-hidden="true">⌕</span>
-                <input name="q" type="search" placeholder="Search exams, passages..." aria-label="Search exams and passages" />
-                <kbd>Enter</kbd>
-              </form>
+              <GlobalSearch />
               <div className="topbar-actions">
                 <a href="/dashboard" className="topbar-icon" aria-label="Notifications and recent results" title="Notifications and recent results">♧<i /></a>
+                <a href="/pricing" className="topbar-icon topbar-pro" aria-label="Upgrade to Pro" title="Upgrade to Pro">♛</a>
+                <a href="/login" className="topbar-icon" aria-label="Settings and account" title="Settings and account">⚙</a>
                 <a href="/dashboard" className="topbar-avatar" aria-label="Open profile and results">TS</a>
                 <div className="topbar-auth"><AuthLink /></div>
               </div>
