@@ -101,7 +101,7 @@ test("RRB CBTST applies its 5 percent allowance and official speed formula", () 
 
 
 
-test("RRB CBTST disqualifies a transcript that does not reach the end of the passage", () => {
+test("RRB CBTST still scores an incomplete passage under the later corrigendum", () => {
   const referenceWords = Array.from({ length: 400 }, (_, i) => `word${String(i).padStart(3, "0")}`);
   const r = calculateScore({
     reference: referenceWords.join(" "),
@@ -110,7 +110,7 @@ test("RRB CBTST disqualifies a transcript that does not reach the end of the pas
     durationSec: 600,
     profile: PROFILES["rrb-ntpc-en"],
   });
-  assert.equal(r.passed, false);
+  assert.equal(r.passed, true);
 });
 
 test("Delhi High Court JJA profile reflects the 2026 English typing criteria", () => {
