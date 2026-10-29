@@ -308,7 +308,8 @@ export const PROFILES: Record<string, ScoringProfile> = {
     halfRules: { caseOnly: false, punctuationOnly: false },
   },
   "court-typing-hi": { ...base, id: "court-typing-hi", label: "Court Typing (Hindi; court-specific rules required)", language: "hi" },
-  "bsf-typing-en": { ...base, id: "bsf-typing-en", label: "BSF HCM (English; verify recruitment notification)", language: "en" },
+  "bsf-typing-en": { ...base, id: "bsf-typing-en", label: "BSF HCM (English; official skill-test rules need verification)", language: "en" },
+  "bsf-typing-hi": { ...base, id: "bsf-typing-hi", label: "BSF HCM (Hindi; official skill-test rules need verification)", language: "hi" },
   "high-court": { ...base, id: "high-court", label: "High Court clerical (editable)" },
   practice: { ...base, id: "practice", label: "Free practice" },
 };
