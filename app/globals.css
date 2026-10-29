@@ -440,3 +440,12 @@ input::placeholder,textarea::placeholder{color:#7188a8}
   .home-hero,.library-hero,.sim-v2-hero{border-radius:18px!important}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+
+/* Custom passage practice: keep styles scoped to the practice setup. */
+.practice-field-label{display:block;font-weight:700}
+.custom-passage-source{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.custom-passage-source .practice-mode-card{min-width:0}
+.custom-passage-input{display:block;width:100%;max-width:100%;min-height:190px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--sheet);color:var(--ink);font:inherit;line-height:1.7;resize:vertical}
+.custom-passage-input:focus-visible{outline:3px solid #38bdf8;outline-offset:2px}
+@media(max-width:560px){.custom-passage-source{grid-template-columns:1fr}.custom-passage-input{min-height:160px}}

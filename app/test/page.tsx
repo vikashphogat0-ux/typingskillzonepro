@@ -28,6 +28,9 @@ export default function TestPage() {
   const [localResult, setLocalResult] = useState<SimResult | null>(null);
   const [passageOptions, setPassageOptions] = useState<{ id: string; title: string; word_count: number }[]>([]);
   const [selectedPassageId, setSelectedPassageId] = useState("");
+  const [passageSource, setPassageSource] = useState<"library" | "custom">("library");
+  const [customPassage, setCustomPassage] = useState("");
+  const [customPassageError, setCustomPassageError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -75,16 +78,27 @@ export default function TestPage() {
   };
 
   const start = async () => {
-    setLoading(true); setLimitMsg(""); setLocalResult(null);
+    setLoading(true); setLimitMsg(""); setLocalResult(null); setCustomPassageError("");
+    const pastedText = customPassage.trim();
+    if (passageSource === "custom") {
+      const wordCount = pastedText ? pastedText.split(/\s+/u).filter(Boolean).length : 0;
+      if (wordCount < 10) { setCustomPassageError("Paste at least 10 words to start practice."); setLoading(false); return; }
+      if (Array.from(pastedText).length > 50000) { setCustomPassageError("Keep your passage under 50,000 characters."); setLoading(false); return; }
+    }
     let text: string | null = null;
     try {
-      const r = await fetch(`/api/passages?lang=${preset.lang}&template=${encodeURIComponent(preset.slug)}${selectedPassageId ? `&id=${encodeURIComponent(selectedPassageId)}` : ""}`);
+      // Keep the existing server-side test-access/usage gate for custom and library passages.
+      const url = "/api/passages?lang=" + preset.lang + "&template=" + encodeURIComponent(preset.slug) +
+        (passageSource === "library" && selectedPassageId ? "&id=" + encodeURIComponent(selectedPassageId) : "");
+      const r = await fetch(url);
       const data = await r.json().catch(() => ({}));
       if (r.status === 402) { setLimitMsg(data.error ?? "Your daily free-test limit has been reached."); setLoading(false); return; }
-      if (r.ok && typeof data.body === "string" && data.body.trim()) text = data.body;
+      if (passageSource === "custom") text = pastedText;
+      else if (r.ok && typeof data.body === "string" && data.body.trim()) text = data.body;
       else if (r.status === 503) setNotice(data.error ?? "Passage service is temporarily unavailable; using a built-in practice passage.");
     } catch {
-      setNotice("Could not reach the passage service; using a built-in practice passage.");
+      if (passageSource === "custom") text = pastedText;
+      else setNotice("Could not reach the passage service; using a built-in practice passage.");
     }
     if (!text) {
       const samples = SAMPLE_PASSAGES[preset.lang];
@@ -141,13 +155,32 @@ export default function TestPage() {
               {presets.map((p) => <option key={p.slug} value={p.slug}>{p.name} · {Math.max(1, Math.round(p.durationSec / 60))} min</option>)}
             </select>
           </label>
-          <label className="practice-field">Passage
-            <select value={selectedPassageId} onChange={(e) => setSelectedPassageId(e.target.value)}>
-              <option value="">Random passage for this language</option>
-              {passageOptions.map((p) => <option key={p.id} value={p.id}>{p.title} · {p.word_count} words</option>)}
-            </select>
-            <small>Choose any available library passage in the selected language. Exam timing, scoring profile and backspace policy remain applied.</small>
-          </label>
+          <div className="practice-field">
+            <span className="practice-field-label">Passage source</span>
+            <div className="practice-mode-grid custom-passage-source" role="group" aria-label="Choose passage source">
+              <button type="button" className={passageSource === "library" ? "practice-mode-card selected" : "practice-mode-card"} aria-pressed={passageSource === "library"} onClick={() => { setPassageSource("library"); setCustomPassageError(""); }}>
+                <strong>Library passage</strong><span>Choose a saved passage or get a random one.</span>
+              </button>
+              <button type="button" className={passageSource === "custom" ? "practice-mode-card selected" : "practice-mode-card"} aria-pressed={passageSource === "custom"} onClick={() => { setPassageSource("custom"); setCustomPassageError(""); }}>
+                <strong>✎ My custom passage</strong><span>Paste your own text and practise with this exam's rules.</span>
+              </button>
+            </div>
+          </div>
+          {passageSource === "library" ? (
+            <label className="practice-field">Select library passage
+              <select value={selectedPassageId} onChange={(e) => setSelectedPassageId(e.target.value)}>
+                <option value="">Random passage for this language</option>
+                {passageOptions.map((p) => <option key={p.id} value={p.id}>{p.title} · {p.word_count} words</option>)}
+              </select>
+              <small>Exam duration, scoring profile, display pattern and backspace policy remain applied.</small>
+            </label>
+          ) : (
+            <label className="practice-field">Paste your own {preset.lang === "hi" ? "Hindi" : "English"} passage
+              <textarea className="custom-passage-input" value={customPassage} onChange={(e) => { setCustomPassage(e.target.value); setCustomPassageError(""); }} placeholder={preset.lang === "hi" ? "यहाँ अपना हिंदी अनुच्छेद पेस्ट करें…" : "Paste or type your own passage here…"} rows={8} maxLength={50000} spellCheck={false} />
+              <small>{customPassage.trim() ? customPassage.trim().split(/\s+/u).filter(Boolean).length : 0} words · Maximum 50,000 characters. Your passage is not published to the library.</small>
+              {customPassageError && <span className="err" role="alert">{customPassageError}</span>}
+            </label>
+          )}
           <div className="practice-summary">
             <div className="practice-summary-mark">{preset.lang === "hi" ? "हि" : "EN"}</div>
             <div className="practice-summary-copy"><strong>{preset.name}</strong><span>{preset.lang === "hi" ? "Hindi · Devanagari typing" : "English typing"} · {Math.max(1, Math.round(preset.durationSec / 60))} minute{preset.durationSec >= 120 ? "s" : ""}</span></div>
