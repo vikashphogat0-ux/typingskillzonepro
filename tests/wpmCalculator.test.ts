@@ -94,8 +94,18 @@ test("RRB CBTST applies its 5 percent allowance and official speed formula", () 
   });
   assert.equal(r.typedWords, 400);
   assert.equal(r.fullErrors, 30);
+  assert.equal(r.grossWpm, 40);
   assert.equal(r.netWpm, 30);
   assert.equal(r.passed, true);
+});
+
+
+test("Delhi High Court JJA profile reflects the 2026 English typing criteria", () => {
+  const p = PROFILES["delhi-high-court-jja-en"];
+  assert.equal(p.durationSec, 600);
+  assert.equal(p.qualifyingWpm, 35);
+  assert.equal(p.maxErrorPercent, 3);
+  assert.equal(p.qualificationBasis, "gross");
 });
 
 test("backspace policies", () => {
