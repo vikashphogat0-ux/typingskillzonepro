@@ -7,8 +7,8 @@ type LibraryData = { today?: string; daily: Record<string, P | undefined>; archi
 const passageLabel = (p: P) => String(p.passage_number ?? 1).padStart(2, "0");
 const currentISTMonth = () => {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit" }).formatToParts(new Date());
-  const year = parts.find((part) => part.type === "year")?.value ?? "2026";
-  const month = parts.find((part) => part.type === "month")?.value ?? "01";
+  const year = parts.find((part) => part.type === "year")?.value ?? String(new Date().getFullYear());
+  const month = parts.find((part) => part.type === "month")?.value ?? String(new Date().getMonth() + 1).padStart(2, "0");
   return `${year}-${month}`;
 };
 
