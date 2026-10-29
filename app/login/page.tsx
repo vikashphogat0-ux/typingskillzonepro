@@ -21,6 +21,13 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const clear = () => { setErr(""); setNotice(""); };
 
+  const finishSignIn = useCallback(() => {
+    const next = new URLSearchParams(window.location.search).get("next");
+    window.location.href = next && next.startsWith("/") && !next.startsWith("//")
+      ? next
+      : "/dashboard";
+  }, []);
+
   // Keep /login consistent with the shared header/sidebar session state.
   // A transient API error must not be mistaken for a signed-out session.
   useEffect(() => {
@@ -35,14 +42,7 @@ export default function Login() {
     };
     void checkSession();
     return () => { active = false; };
-  }, []);
-
-  const finishSignIn = useCallback(() => {
-    const next = new URLSearchParams(window.location.search).get("next");
-    window.location.href = next && next.startsWith("/") && !next.startsWith("//")
-      ? next
-      : "/dashboard";
-  }, []);
+  }, [finishSignIn]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
