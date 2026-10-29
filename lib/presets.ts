@@ -1,5 +1,5 @@
-import { PROFILES, type Lang, type ScoringProfile } from "./wpmCalculator";
-import type { BackspaceMode } from "./backspacePolicy";
+import { PROFILES, type Lang, type ScoringProfile } from "./wpmCalculator.ts";
+import type { BackspaceMode } from "./backspacePolicy.ts";
 
 export type DisplayMode = "highlighted" | "unhighlighted" | "offscreen";
 
