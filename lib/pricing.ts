@@ -206,7 +206,7 @@ export const STUDENT_PLANS: Record<StudentPlanId, StudentPlanDef> = {
     displayOrder: 2,
     currency: "INR",
     amountPaise: 9900,
-    billingInterval: "recurring",
+    billingInterval: "one_time",
     durationDays: 30,
     seatLimit: 0,
     featureEntitlements: { ...PRO_FEATURES },
@@ -219,7 +219,7 @@ export const STUDENT_PLANS: Record<StudentPlanId, StudentPlanDef> = {
     displayOrder: 3,
     currency: "INR",
     amountPaise: 24900,
-    billingInterval: "recurring",
+    billingInterval: "one_time",
     durationDays: 90,
     seatLimit: 0,
     featureEntitlements: { ...PRO_FEATURES },
@@ -232,7 +232,7 @@ export const STUDENT_PLANS: Record<StudentPlanId, StudentPlanDef> = {
     displayOrder: 4,
     currency: "INR",
     amountPaise: 44900,
-    billingInterval: "recurring",
+    billingInterval: "one_time",
     durationDays: 180,
     seatLimit: 0,
     featureEntitlements: { ...PRO_FEATURES },
@@ -245,7 +245,7 @@ export const STUDENT_PLANS: Record<StudentPlanId, StudentPlanDef> = {
     displayOrder: 5,
     currency: "INR",
     amountPaise: 79900,
-    billingInterval: "recurring",
+    billingInterval: "one_time",
     durationDays: 365,
     seatLimit: 0,
     featureEntitlements: { ...PRO_FEATURES },
@@ -433,8 +433,7 @@ export const ADD_ONS: Record<AddOnId, AddOnDef> = {
 export const PROMOTIONS: PromotionDef[] = [];
 
 export const LIMITS = {
-  // These are application-level defaults. Confirm them against the
-  // existing student-access and test-enforcement implementation.
+  // Single source of truth for application access enforcement.
   free: {
     testsPerDay: 3,
     historyRows: 10,
