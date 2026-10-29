@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import AuthLink from "@/components/AuthLink";
+import AppSidebar from "@/components/AppSidebar";
 import "./site-polish.css";
 import "./desktop-header-fix.css";
 import "./design-system.css";
@@ -10,48 +11,12 @@ export const metadata: Metadata = {
   description: "Prepare for competitive typing exams with focused English and Hindi practice, exam-configured simulators, a passage library, and individual exam leaderboards.",
 };
 
-const primaryNav = [
-  { href: "/", icon: "⌂", label: "Dashboard" },
-  { href: "/simulators", icon: "▦", label: "Explore Exams" },
-  { href: "/test", icon: "⌨", label: "Practice" },
-  { href: "/library", icon: "▤", label: "Passage Library" },
-  { href: "/learn", icon: "✦", label: "Learn Typing" },
-];
-const instituteNav = [{ href: "/institution", icon: "▥", label: "Institute Panel" }];
-const accountNav = [
-  { href: "/dashboard", icon: "◷", label: "Results & Analytics" },
-  { href: "/pricing", icon: "✧", label: "Plans & Billing" },
-  { href: "/login", icon: "◎", label: "Account / Sign in" },
-];
-
-function NavLinks({ items }: { items: { href: string; icon: string; label: string }[] }) {
-  return <>{items.map(item => <a href={item.href} className="sidebar-link" key={item.href}><span className="sidebar-icon" aria-hidden="true">{item.icon}</span><span>{item.label}</span></a>)}</>;
-}
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
         <div className="tsz-app-shell">
-          <aside className="tsz-sidebar">
-            <a href="/" className="tsz-brand" aria-label="Typing Skill Zone dashboard">
-              <span className="tsz-brand-mark">T</span>
-              <span className="tsz-brand-copy"><strong>TypingSkillZone</strong><small>MASTER YOUR NEXT EXAM</small></span>
-            </a>
-            <div className="sidebar-group-label">WORKSPACE</div>
-            <nav className="sidebar-nav" aria-label="Main navigation"><NavLinks items={primaryNav} /></nav>
-            <div className="sidebar-group-label">INSTITUTE</div>
-            <nav className="sidebar-nav" aria-label="Institute navigation"><NavLinks items={instituteNav} /></nav>
-            <div className="sidebar-group-label">ACCOUNT</div>
-            <nav className="sidebar-nav" aria-label="Account navigation"><NavLinks items={accountNav} /></nav>
-            <a className="sidebar-upgrade" href="/pricing">
-              <span className="upgrade-icon">✦</span>
-              <strong>Unlock Student Pro</strong>
-              <span>More practice. Deeper insights. Better preparation.</span>
-              <b>Explore plans <span aria-hidden="true">↗</span></b>
-            </a>
-            <div className="sidebar-foot"><span className="status-dot" /> All systems ready <span>v2.0</span></div>
-          </aside>
+          <AppSidebar />
           <div className="tsz-main-column">
             <header className="tsz-topbar">
               <div className="topbar-context"><span className="topbar-eyebrow">YOUR LEARNING WORKSPACE</span><strong>Build speed. Build confidence.</strong></div>
