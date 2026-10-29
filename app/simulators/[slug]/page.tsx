@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import TypingSimulator, { type SimResult } from "@/components/TypingSimulator";
 import Leaderboard from "@/components/Leaderboard";
 import { api } from "@/lib/clientApi";
+import ExamEmblem from "@/components/ExamEmblem";
 
 interface SimInfo {
   slug: string;
@@ -146,7 +147,7 @@ export default function SimulatorPage() {
       </nav>
 
       <section className="sim-detail-hero">
-        <div className={`exam-emblem ${examMark(sim.slug).tone}`} aria-label={`${examMark(sim.slug).family} category mark`}><span>{examMark(sim.slug).mark}</span><small>{sim.slug.includes("dp-hcm") || sim.slug.includes("delhi-police") ? "DELHI POLICE" : sim.slug.includes("bsf") ? "BSF HCM" : "EXAM PREP"}</small></div>
+        <ExamEmblem slug={sim.slug} mark={examMark(sim.slug).mark} short={sim.slug.includes("dp-hcm") || sim.slug.includes("delhi-police") ? "DELHI POLICE" : sim.slug.includes("bsf") ? "BSF HCM" : "EXAM PREP"} family={examMark(sim.slug).family} tone={examMark(sim.slug).tone} />
         <div>
           <div className="eyebrow">{examMark(sim.slug).family}</div>
           <h1>{sim.name}</h1>
