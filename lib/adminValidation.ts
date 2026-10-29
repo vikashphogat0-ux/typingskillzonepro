@@ -56,17 +56,25 @@ export function validateScoring(raw: unknown): { scoring?: ScoringProfile; error
   const s = raw as Partial<ScoringProfile> | null;
   if (!s || typeof s !== "object") return { error: "Scoring settings are missing." };
   if (s.unit !== "words" && s.unit !== "keystrokes") return { error: "Count by words or keystrokes." };
-  if (s.netMethod !== "penalty" && s.netMethod !== "accuracy" && s.netMethod !== "per-error") return { error: "Choose a net speed method." };
+  if (s.netMethod !== "penalty" && s.netMethod !== "accuracy" && s.netMethod !== "per-error" && s.netMethod !== "rrb") return { error: "Choose a net speed method." };
   if (!num(s.charsPerWord, 1, 10)) return { error: "Characters per word must be between 1 and 10." };
   if (!num(s.fullErrorWeight, 0, 5) || !num(s.halfErrorWeight, 0, 5)) return { error: "Mistake weights must be between 0 and 5." };
   if (s.qualifyingWpm !== undefined && !num(s.qualifyingWpm, 0, 200)) return { error: "Qualifying WPM must be between 0 and 200." };
   if (s.maxErrorPercent !== undefined && !num(s.maxErrorPercent, 0, 100)) return { error: "Maximum error % must be between 0 and 100." };
+  if (s.errorAllowancePercent !== undefined && !num(s.errorAllowancePercent, 0, 100)) return { error: "Error allowance % must be between 0 and 100." };
+  if (s.qualificationBasis !== undefined && s.qualificationBasis !== "gross" && s.qualificationBasis !== "net") return { error: "Choose gross or net speed for qualification." };
+  if (s.minWords !== undefined && !num(s.minWords, 1, 10000)) return { error: "Minimum words must be between 1 and 10000." };
+  if (s.targetKeystrokes !== undefined && !num(s.targetKeystrokes, 1, 100000)) return { error: "Target keystrokes must be between 1 and 100000." };
   return {
     scoring: {
       id: String(s.id ?? "custom").slice(0, 40), label: String(s.label ?? "Custom").slice(0, 80),
       unit: s.unit, netMethod: s.netMethod, charsPerWord: s.charsPerWord!, fullErrorWeight: s.fullErrorWeight!, halfErrorWeight: s.halfErrorWeight!,
       halfRules: { caseOnly: !!s.halfRules?.caseOnly, punctuationOnly: !!s.halfRules?.punctuationOnly },
       ...(s.errorPercentBasis ? { errorPercentBasis: s.errorPercentBasis } : {}),
+      ...(s.errorAllowancePercent !== undefined ? { errorAllowancePercent: s.errorAllowancePercent } : {}),
+      ...(s.qualificationBasis ? { qualificationBasis: s.qualificationBasis } : {}),
+      ...(s.minWords !== undefined ? { minWords: s.minWords } : {}),
+      ...(s.targetKeystrokes !== undefined ? { targetKeystrokes: s.targetKeystrokes } : {}),
       ...(s.durationSec !== undefined ? { durationSec: s.durationSec } : {}),
       ...(s.qualifyingWpm !== undefined ? { qualifyingWpm: s.qualifyingWpm } : {}),
       ...(s.maxErrorPercent !== undefined ? { maxErrorPercent: s.maxErrorPercent } : {}),
