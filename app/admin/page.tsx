@@ -66,7 +66,7 @@ export default function Admin() {
     const r = await post("/api/admin/templates", { slug: t.slug.trim(), name: t.name, language: t.language, durationSec: Math.round(t.minutes * 60), displayMode: t.displayMode, backspace: t.backspace, scoring });
     setMsg(r.ok ? "Template saved." : r.data.error ?? "Could not save."); if (r.ok) { setT(emptyTpl); load(); }
   };
-  const editTpl = (x: Tpl) => setT({ slug: x.slug, name: x.name, language: x.language, minutes: x.duration_sec / 60, displayMode: x.display_mode, backspace: x.backspace, base: "practice", unit: x.scoring.unit, netMethod: x.scoring.netMethod, qualifying: x.scoring.qualifyingWpm?.toString() ?? "", maxErr: x.scoring.maxErrorPercent?.toString() ?? "", caseOnly: !!x.scoring.halfRules?.caseOnly, punctOnly: !!x.scoring.halfRules?.punctuationOnly });
+  const editTpl = (x: Tpl) => setT({ slug: x.slug, name: x.name, language: x.language, minutes: x.duration_sec / 60, displayMode: x.display_mode, backspace: x.backspace, base: (PROFILES[x.scoring.id] ? x.scoring.id : "practice"), unit: x.scoring.unit, netMethod: x.scoring.netMethod, qualifying: x.scoring.qualifyingWpm?.toString() ?? "", maxErr: x.scoring.maxErrorPercent?.toString() ?? "", caseOnly: !!x.scoring.halfRules?.caseOnly, punctOnly: !!x.scoring.halfRules?.punctuationOnly });
   const delTpl = async (slug: string) => { if (confirm(`Delete template ${slug}? Passages stay but lose the link.`)) { await api(`/api/admin/templates?slug=${slug}`, { method: "DELETE" }); load(); } };
 
   if (denied) return <div className="page"><h1>Admin</h1><p>Admin access is required. Sign in with an admin account (users.role = &apos;admin&apos;).</p></div>;
