@@ -1,8 +1,8 @@
 import { sql } from "@/lib/db";
 import { getUserId } from "@/lib/auth";
 import { getStudentAccess } from "@/lib/subscription";
+import { LIMITS } from "@/lib/pricing";
 import { buildReference, minCharsFor } from "@/lib/library";
-import { SAMPLE_PASSAGES } from "@/lib/presets";
 
 /** Starts a simulator attempt. The server picks the text and keeps it, so the browser cannot choose its own reference. */
 export async function POST(req: Request) {
@@ -37,12 +37,33 @@ export async function POST(req: Request) {
   } else {
     // Passage content is shared across compatible simulators. Only the selected template controls presentation and typing rules.
     const rows = await db`SELECT body FROM passages WHERE language = ${t.language} ORDER BY random() LIMIT 30`;
-    bodies = rows.length ? rows.map((r: any) => r.body as string) : SAMPLE_PASSAGES[t.language as "en" | "hi"];
+    bodies = rows.map((r: any) => r.body as string);
+    if (!bodies.length && !requestedCustom) {
+      return Response.json({ error: "No passages are available for this exam yet. Please try again later." }, { status: 503 });
+    }
   }
   const reference = requestedCustom ? requestedCustom : buildReference(bodies, minCharsFor(t.duration_sec));
   const backspace = t.slug.startsWith("bsf-") ? "disabled" : t.slug.startsWith("dp-hcm-") ? "full" : t.backspace;
 
-  const [row] = await db`INSERT INTO tests (user_id, template_id, language, display_mode, backspace, duration_sec, reference_text, assignment_id)
-    VALUES (${uid}, ${t.id}, ${t.language}, ${t.display_mode}, ${backspace}, ${t.duration_sec}, ${reference}, ${assignmentId}) RETURNING id`;
+  // Serialize starts per user, then re-count and insert inside the same transaction.
+  // This prevents concurrent requests from bypassing the free daily allowance.
+  const tx = await db.transaction([
+    db`SELECT pg_advisory_xact_lock(hashtextextended(${uid}::text, 0))`,
+    db`
+      WITH usage AS MATERIALIZED (
+        SELECT count(*)::int AS tests_today
+        FROM tests
+        WHERE user_id = ${uid}
+          AND started_at >= (date_trunc('day', now() AT TIME ZONE 'Asia/Kolkata') AT TIME ZONE 'Asia/Kolkata')
+      )
+      INSERT INTO tests (user_id, template_id, language, display_mode, backspace, duration_sec, reference_text, assignment_id)
+      SELECT ${uid}, ${t.id}, ${t.language}, ${t.display_mode}, ${backspace}, ${t.duration_sec}, ${reference}, ${assignmentId}
+      FROM usage
+      WHERE ${access.testsLeft === null}::boolean OR usage.tests_today < ${LIMITS.free.testsPerDay}
+      RETURNING id
+    `,
+  ]);
+  const [row] = tx[1] as Array<{ id: string }>;
+  if (!row) return Response.json({ error: "You have used your free tests for today.", upgrade: true }, { status: 402 });
   return Response.json({ testId: row.id, reference, lang: t.language, durationSec: t.duration_sec, mode: t.display_mode, backspace, profile: t.scoring, name: t.name, slug: t.slug, fontSizePt: t.font_size_pt ?? 12, passageLayout: t.passage_layout ?? "continuous", enterKeyPolicy: t.enter_key_policy ?? "newline", tabKeyPolicy: t.tab_key_policy ?? "blocked" });
 }
