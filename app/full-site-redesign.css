@@ -181,3 +181,123 @@ button:disabled{opacity:.55;cursor:not-allowed}
  .tbl table{min-width:540px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+
+/* Eye-comfort dark theme — cohesive contrast, restrained accents, and responsive exam navigation. */
+:root{
+  color-scheme:dark;
+  --tsz-bg:#171b21;--tsz-surface:#20262e;--tsz-surface-soft:#252d36;
+  --tsz-ink:#edf1f5;--tsz-text:#d6dde5;--tsz-muted:#a5b0bd;
+  --tsz-blue:#77b8d5;--tsz-blue-deep:#a2d8ed;--tsz-blue-soft:#263b48;
+  --tsz-teal:#80c8bd;--tsz-amber:#e6c58a;--tsz-green:#8ac9a7;
+  --tsz-border:#37414d;--tsz-border-strong:#4a5968;
+  --tsz-shadow:0 8px 24px rgba(0,0,0,.16);--tsz-radius:14px;
+}
+html,body{background:#171b21!important;color:#d6dde5!important}
+body{line-height:1.65}
+a{color:#a2d8ed}
+a:hover{color:#d3f0fb}
+::selection{background:#365766;color:#fff}
+:focus-visible{outline:3px solid #80c8bd;outline-offset:3px}
+.tsz-app-shell,.tsz-main-column,.tsz-content{background:#171b21!important;color:#d6dde5}
+.tsz-sidebar{background:#1d232b!important;border-color:#343e49!important;color:#d6dde5!important;box-shadow:none!important}
+.tsz-brand,.tsz-brand-copy strong,.topbar-context strong{color:#edf1f5!important}
+.tsz-brand-mark{background:#315365!important;box-shadow:none!important}
+.tsz-brand-copy small,.sidebar-group-label,.sidebar-foot,.topbar-eyebrow{color:#a5b0bd!important}
+.sidebar-link{color:#c0cad4!important}
+.sidebar-link:hover,.sidebar-link.is-active{background:#2a3943!important;color:#d8f2fb!important}
+.sidebar-link.is-active .sidebar-icon{color:#9bd5e7!important}
+.sidebar-upgrade{background:#242e37!important;border-color:#3b4b58!important;color:#e1e8ee!important}
+.sidebar-upgrade span,.sidebar-upgrade b{color:#b9e1ed!important}
+.tsz-topbar{background:rgba(29,35,43,.96)!important;border-color:#343e49!important;box-shadow:0 4px 18px rgba(0,0,0,.08)!important}
+.topbar-icon,.topbar-avatar{background:#252d36!important;border-color:#3c4753!important;color:#e1e8ee!important}
+.topbar-avatar{background:#2d454c!important;color:#b7e6e0!important}
+.page h1,.home h1,.library-page h1,.page h2,.home h2,.library-page h2,.page h3,.home h3,.library-page h3{color:#edf1f5!important}
+.page p,.home p,.library-page p{color:#c3ccd6}
+.page :is(.hint,.note,.meta,.rules),.home :is(.hint,.note,.meta),.library-page :is(.hint,.note,.meta){color:#a5b0bd!important}
+.eyebrow,.dash-eyebrow{color:#9bd5c9!important}
+.eyebrow-dot,.dash-eyebrow i{background:#80c8bd!important}
+.hero,.simulators-hero,.sim-v2-hero,.library-hero,.cta-section,.dash-welcome{
+  background:radial-gradient(ellipse at 95% 0%,rgba(128,200,189,.07),transparent 38%),linear-gradient(125deg,#222a33 0%,#202a34 68%,#202e31 100%)!important;
+  border-color:#3b4a55!important;box-shadow:0 8px 24px rgba(0,0,0,.13)!important;color:#d6dde5!important
+}
+.hero h1,.simulators-hero h1,.library-hero h1,.cta-section h2,.dash-welcome h1{color:#f0f3f6!important}
+.hero p,.simulators-hero p,.library-hero p,.cta-section p,.dash-welcome p{color:#c0cbd5!important}
+.go,.hero-primary,.dash-primary-btn{background:#426d7c!important;border-color:#527e8d!important;color:#fff!important;box-shadow:none!important}
+.go:hover,.hero-primary:hover,.dash-primary-btn:hover{background:#507f8f!important;box-shadow:0 4px 14px rgba(0,0,0,.2)!important}
+.go.alt,.hero-secondary,.dash-secondary-btn{background:#252d36!important;border-color:#4a5968!important;color:#e2e8ee!important}
+.go.alt:hover,.hero-secondary:hover,.dash-secondary-btn:hover{background:#303b45!important;border-color:#7194a1!important;color:#fff!important}
+:where(.card,.panel,.summary,.tiles,.chart,.lesson,.sim-page-card,.sim-card,.library-card,.passage-card,.result-card,.metric-card,.stat-card,.exam-card,.pricing-card,.feature-card,.profile-card,.settings-card,.card-p,.rankline,.pitem,.library-day-card,.dash-panel,.dash-metric,.dash-quick-card,.dash-exam-card){
+  background:#20262e!important;color:#d6dde5!important;border-color:#37414d!important;box-shadow:0 6px 18px rgba(0,0,0,.13)!important
+}
+:where(.feature-card,.sim-page-card,.sim-card,.library-card,.passage-card,.result-card,.metric-card,.stat-card,.exam-card,.pricing-card,.profile-card,.settings-card,.dash-quick-card,.dash-exam-card):hover{border-color:#63818d!important;box-shadow:0 10px 24px rgba(0,0,0,.2)!important}
+.tiles{background:#20262e!important}
+.tiles div{border-color:#37414d!important}
+.tiles b,.feature-card h3,.sim-card h2,.card-p h3{color:#edf1f5!important}
+.tiles span,.feature-card p,.sim-card p{color:#aeb9c5!important}
+.sim-filter-bar,.sim-filter-v2,.tabs,.library-month-toolbar,.library-intro{background:#20262e!important;border-color:#37414d!important;color:#d6dde5!important;box-shadow:none!important}
+.sim-filter-bar label,.sim-filter-v2 label,.library-month-toolbar label{color:#cbd4dd!important}
+input,textarea,select{background:#1a2027!important;border-color:#46525f!important;color:#e4eaf0!important}
+input::placeholder,textarea::placeholder{color:#8996a4!important;opacity:1}
+option{background:#20262e;color:#e4eaf0}
+.home-style-exam-card,.sim-page-card-v2{background:#20262e!important;border-color:#37414d!important;color:#d6dde5!important;box-shadow:0 6px 18px rgba(0,0,0,.15)!important}
+.home-style-exam-card:hover,.sim-page-card-v2:hover{background:#242d36!important;border-color:#668796!important}
+.home-style-exam-card h2,.home-style-exam-card h3,.sim-page-card-v2 h2{color:#edf1f5!important}
+.exam-card-emblem{background:#2b3b45!important;border-color:#40515d!important;color:#b7e1ed!important}
+.exam-family,.home-style-exam-meta,.sim-count{color:#aeb9c5!important}
+.exam-arrow{color:#9bd5e7!important}
+.sim-notice-pill,.passage-id-badge,.tag{background:#293d45!important;border-color:#405a64!important;color:#bde7e5!important}
+.exam-target{border-color:#37414d!important;background:#1c2229!important}
+.exam-target span,.exam-target small{color:#a5b0bd!important}
+.home-style-exam-footer{border-color:#37414d!important;color:#b7dce7!important}
+.data-source-notice,.empty-state,.sim-official-note,.home-disclaimer{background:#252d36!important;border-color:#414d59!important;color:#d6dde5!important}
+.data-source-notice p,.empty-state p,.sim-official-note p{color:#b9c4ce!important}
+.tabs button{background:#252d36!important;border-color:#3c4854!important;color:#c8d2dc!important}
+.tabs button[aria-selected=true],.tabs button.active{background:#31434c!important;border-color:#668895!important;color:#f0f5f7!important}
+.library-day-card,.library-month-item,.library-month-list,.library-search-panel,.passage-box,.library-preview,.passage-preview{background:#20262e!important;border-color:#37414d!important;color:#d6dde5!important}
+.passage-box{color:#e0e5eb!important;line-height:1.85}
+.library-day-head,.passage-title-row,.library-month-item{border-color:#37414d!important}
+.library-month-item.selected{background:#29363f!important;border-color:#63818d!important}
+.footer{background:#1d232b!important;border-color:#343e49!important;color:#c0cad4!important}
+.footer h4{color:#edf1f5!important}
+.footer a{color:#b5dce8!important}
+.footer-bottom{border-color:#343e49!important}
+.dash-metric-label,.dash-metric small,.dash-metric-foot,.dash-quote-label,.dash-quote-footer{color:#aeb9c5!important}
+.dash-metric strong,.dash-section-heading h2,.dash-panel h2{color:#edf1f5!important}
+.dash-quote-panel,.dash-metric,.dash-panel,.dash-quick-card,.dash-exam-card{background:#20262e!important;border-color:#37414d!important}
+table{color:#d6dde5!important;border-color:#37414d!important}
+th{background:#29323b!important;color:#edf1f5!important}
+td{border-color:#37414d!important}
+hr{border-color:#37414d!important}
+.sim-page-grid,.sim-page-grid-v2,.sim-grid,.simulator-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.sim-page-card,.sim-page-card-v2,.home-style-exam-card{min-width:0;overflow-wrap:anywhere}
+.home-style-exam-content{min-width:0}
+.home-style-exam-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.home-style-exam-footer small{margin-left:auto}
+.library-day-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.library-day-card,.library-month-item{min-width:0;overflow-wrap:anywhere}
+.library-day-actions{display:flex;flex-wrap:wrap;gap:8px}
+.library-day-actions>*{min-width:0}
+.tsz-content{padding:clamp(14px,2vw,28px)!important}
+@media(max-width:1050px){
+  .tsz-app-shell{grid-template-columns:76px minmax(0,1fr)!important}
+  .sim-page-grid,.sim-page-grid-v2,.sim-grid,.simulator-grid,.library-day-grid{grid-template-columns:minmax(0,1fr)}
+  .home-style-exam-card{gap:12px}
+}
+@media(max-width:680px){
+  .tsz-app-shell{display:block!important}
+  .tsz-content{padding:14px!important}
+  .tsz-topbar{position:sticky;padding:10px 12px;min-height:60px}
+  .topbar-context{display:none}
+  .simulators-hero,.sim-v2-hero,.library-hero,.dash-welcome{padding:22px 18px!important;border-radius:16px!important}
+  .home-style-exam-card{padding:14px!important;gap:11px}
+  .exam-card-emblem{width:48px!important;min-width:48px!important}
+  .home-style-exam-footer small{margin-left:0}
+  .sim-filter-bar,.sim-filter-v2{align-items:stretch}
+  .sim-filter-bar label,.sim-filter-v2 label{width:100%}
+  .sim-filter-bar select,.sim-filter-v2 select{width:100%}
+  .library-day-actions>*{flex:1 1 100%}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
