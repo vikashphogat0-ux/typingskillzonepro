@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import AuthLink from "@/components/AuthLink";
+import SiteHeader from "@/components/SiteHeader";
 import "./site-polish.css";
 
 export const metadata: Metadata = {
@@ -12,20 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <header className="top">
-          <a href="/" className="brand">TypingSkillZone</a>
-          <nav>
-            <a href="/" className="nav-home-link" aria-label="Return to TypingSkillZone home"><span aria-hidden="true">⌂</span> Home</a>
-            <a href="/simulators">Explore Exams</a>
-            <a href="/test">Practice</a>
-            <a href="/library">Library</a>
-            <a href="/learn">Learn</a>
-            <a href="/institution">Institute</a>
-            <a href="/dashboard">Results</a>
-            <a href="/pricing">Pro</a>
-            <AuthLink />
-          </nav>
-        </header>
+        <SiteHeader />
         <main>{children}</main>
         <footer className="footer">
           <div className="footer-content">
