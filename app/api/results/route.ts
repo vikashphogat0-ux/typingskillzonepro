@@ -33,13 +33,24 @@ async function submitSimulator(uid: string, b: any) {
   const events: KeyEvent[] = Array.isArray(b.events) ? b.events.slice(0, 40001) : [];
   const check = validateAttempt({ typed, events, elapsedSec: Number(b.elapsedSec) || 0, durationSec: t.duration_sec });
   if (check.tampered) return Response.json({ error: "This result could not be verified." }, { status: 400 });
-  const claim = await db`UPDATE tests SET submitted = true WHERE id = ${t.id} AND NOT submitted RETURNING id`;
-  if (!claim.length) return Response.json({ error: "This test was already submitted." }, { status: 409 });
   const profile = t.scoring ?? PROFILES.practice;
   const s = calculateScore({ reference: t.reference_text, typed, elapsedSec: check.elapsedSec, durationSec: t.duration_sec, profile, keyEvents: events });
-  const [r] = await db`INSERT INTO results (test_id, user_id, template_id, assignment_id, gross_wpm, net_wpm, accuracy, full_errors, half_errors, fixed_errors, ignored_errors, penalty_wpm, passed, breakdown, keystrokes, typed_text, reference_text, elapsed_sec, flagged)
-    VALUES (${t.id}, ${uid}, ${t.template_id}, ${t.assignment_id}, ${s.grossWpm}, ${s.netWpm}, ${s.accuracy}, ${s.fullErrors}, ${s.halfErrors}, ${s.fixedErrors}, ${s.ignoredErrors}, ${s.penaltyWpm}, ${s.passed},
-      ${JSON.stringify({ ...s, wordOps: undefined, profile })}::jsonb, ${JSON.stringify(events)}::jsonb, ${typed}, ${t.reference_text}, ${check.elapsedSec}, ${check.flagged}) RETURNING id`;
+  // Claim the attempt and save its result atomically. If result insertion fails,
+  // PostgreSQL rolls back the claim, so a legitimate retry is not locked out.
+  const [r] = await db`
+    WITH claimed AS (
+      UPDATE tests SET submitted = true
+      WHERE id = ${t.id} AND user_id = ${uid} AND NOT submitted
+      RETURNING id
+    ), saved AS (
+      INSERT INTO results (test_id, user_id, template_id, assignment_id, gross_wpm, net_wpm, accuracy, full_errors, half_errors, fixed_errors, ignored_errors, penalty_wpm, passed, breakdown, keystrokes, typed_text, reference_text, elapsed_sec, flagged)
+      SELECT claimed.id, ${uid}, ${t.template_id}, ${t.assignment_id}, ${s.grossWpm}, ${s.netWpm}, ${s.accuracy}, ${s.fullErrors}, ${s.halfErrors}, ${s.fixedErrors}, ${s.ignoredErrors}, ${s.penaltyWpm}, ${s.passed},
+        ${JSON.stringify({ ...s, wordOps: undefined, profile })}::jsonb, ${JSON.stringify(events)}::jsonb, ${typed}, ${t.reference_text}, ${check.elapsedSec}, ${check.flagged}
+      FROM claimed
+      RETURNING id
+    ) SELECT id FROM saved
+  `;
+  if (!r) return Response.json({ error: "This test was already submitted." }, { status: 409 });
   return Response.json({ ok: true, id: r.id, score: s, flagged: check.flagged });
 }
 
