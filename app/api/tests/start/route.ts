@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   const access = await getStudentAccess(uid);
   if (access.testsLeft !== null && access.testsLeft <= 0) return Response.json({ error: "You have used your free tests for today.", upgrade: true }, { status: 402 });
   const db = sql();
-  const [t] = await db`SELECT id, slug, name, language, duration_sec, display_mode, backspace, scoring, font_size_pt, passage_layout, enter_key_policy, tab_key_policy FROM exam_templates WHERE slug = ${String(b.slug)} AND is_active`;
+  // Select only columns guaranteed by db/schema.sql. Optional presentation columns are not part of every deployed schema.\n  const [t] = await db`SELECT id, slug, name, language, duration_sec, display_mode, backspace, scoring FROM exam_templates WHERE slug = ${String(b.slug)} AND is_active`;
   if (!t) return Response.json({ error: "Simulator not found." }, { status: 404 });
 
   const requestedCustom = typeof b.customPassage === "string" ? b.customPassage.trim() : "";
@@ -44,5 +44,5 @@ export async function POST(req: Request) {
 
   const [row] = await db`INSERT INTO tests (user_id, template_id, language, display_mode, backspace, duration_sec, reference_text, assignment_id)
     VALUES (${uid}, ${t.id}, ${t.language}, ${t.display_mode}, ${backspace}, ${t.duration_sec}, ${reference}, ${assignmentId}) RETURNING id`;
-  return Response.json({ testId: row.id, reference, lang: t.language, durationSec: t.duration_sec, mode: t.display_mode, backspace, profile: t.scoring, name: t.name, slug: t.slug, fontSizePt: t.font_size_pt ?? 12, passageLayout: t.passage_layout ?? "continuous", enterKeyPolicy: t.enter_key_policy ?? "newline", tabKeyPolicy: t.tab_key_policy ?? "blocked" });
+  return Response.json({ testId: row.id, reference, lang: t.language, durationSec: t.duration_sec, mode: t.display_mode, backspace, profile: t.scoring, name: t.name, slug: t.slug, fontSizePt: 12, passageLayout: "continuous", enterKeyPolicy: "newline", tabKeyPolicy: "blocked" });
 }
