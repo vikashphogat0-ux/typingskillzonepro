@@ -27,6 +27,18 @@ export async function DELETE(req: Request) {
   if (!(await requireAdmin(req))) return deny();
   const slug = new URL(req.url).searchParams.get("slug");
   if (!slug) return Response.json({ error: "Missing slug." }, { status: 400 });
-  await sql()`DELETE FROM exam_templates WHERE slug = ${slug}`;
-  return Response.json({ ok: true });
+  try {
+    const db = sql();
+    const [template] = await db`SELECT id FROM exam_templates WHERE slug = ${slug} LIMIT 1`;
+    if (!template) return Response.json({ error: "Exam template not found." }, { status: 404 });
+    const [used] = await db`SELECT 1 AS used FROM tests WHERE template_id = ${template.id} LIMIT 1`;
+    if (used) {
+      return Response.json({ error: "This exam template is attached to test history and cannot be deleted safely. Deactivate it instead." }, { status: 409 });
+    }
+    await db`DELETE FROM exam_templates WHERE id = ${template.id}`;
+    return Response.json({ ok: true });
+  } catch (error) {
+    console.error("DELETE /api/admin/templates failed:", error);
+    return Response.json({ error: "Exam template could not be deleted. Deactivate it if it is already in use." }, { status: 409 });
+  }
 }
