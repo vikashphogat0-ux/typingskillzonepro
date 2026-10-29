@@ -1,0 +1,119 @@
+/* Desktop header repair: two deliberate rows prevent the brand and navigation from clipping. */
+@media (min-width: 1001px) {
+  .top {
+    position: relative !important;
+    inset: auto !important;
+    z-index: 50 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 16px clamp(20px, 3vw, 48px) 14px !important;
+    overflow: visible !important;
+  }
+  .top > .brand {
+    display: inline-flex !important;
+    align-self: flex-start !important;
+    max-width: 100% !important;
+    white-space: nowrap !important;
+    line-height: 1.3 !important;
+  }
+  .top > nav {
+    position: static !important;
+    inset: auto !important;
+    display: flex !important;
+    flex: 0 0 auto !important;
+    flex-flow: row wrap !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 8px 10px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  .top > nav > a,
+  .top > nav > button,
+  .top > nav > span,
+  .top > nav > div {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    min-height: 38px !important;
+    max-width: 100% !important;
+    padding: 8px 12px !important;
+    border: 1px solid rgba(112, 178, 235, .24) !important;
+    border-radius: 9px !important;
+    background: rgba(12, 40, 75, .7) !important;
+    color: #e8f5ff !important;
+    text-decoration: none !important;
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+    white-space: nowrap !important;
+  }
+  .top > nav > .nav-home-link {
+    border-color: rgba(22, 217, 243, .55) !important;
+    background: linear-gradient(110deg, #064c70, #0a3670) !important;
+  }
+  .top > nav > a:hover,
+  .top > nav > button:hover {
+    border-color: #25d5f4 !important;
+    background: linear-gradient(110deg, #07527c, #104e9a) !important;
+    color: #fff !important;
+  }
+  .top > nav > span {
+    gap: 8px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+  .top > nav > span > a,
+  .top > nav > span > button,
+  .top > nav .navbtn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 38px !important;
+    padding: 8px 13px !important;
+    border: 1px solid rgba(22, 217, 243, .55) !important;
+    border-radius: 9px !important;
+    background: linear-gradient(110deg, #064c70, #0a3670) !important;
+    color: #e8faff !important;
+    text-decoration: none !important;
+    font: inherit !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    cursor: pointer !important;
+  }
+  .footer { margin-left: 0 !important; width: 100% !important; }
+}
+@media (min-width: 681px) and (max-width: 1000px) {
+  .top {
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+  .top > nav {
+    position: static !important;
+    display: flex !important;
+    flex-flow: row wrap !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .top > nav > a,
+  .top > nav > button { min-height: 38px !important; }
+  .footer { margin-left: 0 !important; width: 100% !important; }
+}
