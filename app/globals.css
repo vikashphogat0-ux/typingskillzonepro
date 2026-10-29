@@ -527,3 +527,79 @@ hr{border:0;border-top:1px solid #1a3a64}
  .page,.home{padding:12px 2px 28px}
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+
+/* Site-wide reference theme: extend the same visual language to every route and feature */
+:root{--ink:#f1f6ff;--mute:#a7bad9;--board:#030b20;--sheet:#071a38;--line:#1c4777;--red:#ff537d;--redbg:#401b36;--green:#21e6b4;--greenbg:#073b3d;--gold:#ffc247}
+::selection{background:#0bbad8;color:#021226}
+main>*{min-width:0}
+.page,.home,.practice-page,.library-page,.plans,.admin,.dash,.sim-page-grid,.sim-page-grid-v2{color:var(--tsz-text)}
+.page h1,.home h1,.page h2,.home h2,.page h3,.home h3{color:#f6f9ff}
+.page a:not(.go),.home a:not(.go),main a:not(.go){color:#76dfff}
+.page a:not(.go):hover,.home a:not(.go):hover,main a:not(.go):hover{color:#fff}
+.home-hero,.hero,.simulators-hero,.library-hero,.sim-detail-hero,.practice-hero,.sim-v2-hero{
+ color:#f5f8ff!important;background:radial-gradient(ellipse at 90% 20%,rgba(0,175,255,.25),transparent 42%),linear-gradient(125deg,#071b3e,#08285a 58%,#101447)!important;
+ border:1px solid #1d5aa0!important;box-shadow:0 14px 40px #00102f99,inset 0 1px #ffffff0b!important;border-radius:18px!important
+}
+.home-hero p,.hero p,.simulators-hero p,.library-hero p,.sim-detail-hero p,.practice-hero p,.sim-v2-hero p{color:#b9cce8!important}
+.home-benefits,.features-grid,.home-exam-grid,.home-library-cta,.quick-actions,.home-bottom-cta,.home-exams,.exam-section,.cta-section,.sim-grid,.sim-page-grid,.sim-page-grid-v2,.practice-layout,.practice-mode-grid,.plans-grid,.plan-grid,.library-day-grid,.library-archive,.library-month-list,.tiles,.two,.cmp-grid,.features-grid{color:#f3f7ff}
+.home-exam-card,.sim-page-card,.sim-page-card-v2,.sim-card-v2,.sim-card,.qa-card,.feature-card,.benefit-icon,.home-library-cta,.home-bottom-cta,.library-day-card,.library-month-item,.library-month-detail,.practice-config,.practice-side-card,.practice-summary,.practice-mode-card,.plan,.plan-card,.pricing-card,.dashboard-card,.result-card,.institute-card,.card,.panel,.stat-card,.passage-card,.library-card,.simulator-card,.exam-card{
+ color:#eff6ff!important;background:linear-gradient(145deg,rgba(9,34,72,.97),rgba(4,19,43,.99))!important;border:1px solid #1a477b!important;border-radius:15px!important;box-shadow:0 9px 25px #0003,inset 0 1px #ffffff08!important
+}
+.home-exam-card:hover,.sim-page-card:hover,.sim-page-card-v2:hover,.sim-card-v2:hover,.qa-card:hover,.feature-card:hover,.library-day-card:hover,.library-month-item:hover,.practice-mode-card:hover,.plan-card:hover{
+ border-color:#12c9ed!important;box-shadow:0 10px 32px #007dff24!important;transform:translateY(-2px)
+}
+.home-exam-card p,.sim-page-card p,.sim-page-card-v2 p,.sim-card-v2 p,.qa-card p,.feature-card p,.library-day-card p,.library-month-item p,.practice-mode-card p,.plan-card p,.card p,.panel p,.dashboard-card p{color:#a9bfde}
+.home-exam-card h2,.home-exam-card h3,.sim-page-card h2,.sim-page-card h3,.sim-page-card-v2 h2,.sim-page-card-v2 h3,.sim-card-v2 h2,.sim-card-v2 h3,.qa-card h2,.qa-card h3,.feature-card h2,.feature-card h3,.plan-card h2,.plan-card h3{color:#f6f9ff}
+.exam-emblem,.library-symbol,.stat-icon,.benefit-icon,.practice-summary-mark,.practice-side-icon{filter:drop-shadow(0 0 12px #13baff38)}
+.go,.hero-primary,.hero-secondary,.hero .go,.cta-group a,.plan-action,.practice-start,.sim-page-bottom a,.sim-card-bottom a,.home-exam-card .go,.qa-card .go,.buy,.alt,.navbtn,.tab,.tabs button,.chips button,.library-tools button,.library-day-actions a,.library-month-toolbar button,.library-month-select,.practice-mode-card,.practice-start button,.quick-actions a{
+ border-radius:11px!important;font-weight:700!important
+}
+button:disabled,.go:disabled,input:disabled,select:disabled{opacity:.48;cursor:not-allowed;filter:saturate(.55)}
+.tabs,.chips,.sim-filter-bar,.sim-filter-v2,.library-tools,.library-month-toolbar,.library-month-language,.practice-hero-pills,.hero-proof,.home-hero .stat-row{color:#d6e7ff}
+.tabs button,.chips button,.sim-filter-bar button,.sim-filter-v2 button,.library-tools button,.library-month-toolbar button,.library-month-select,.tab,.navbtn,.alt{
+ background:#092344!important;color:#c7ddfb!important;border:1px solid #204a78!important
+}
+.tabs button[aria-selected=true],.tabs button[aria-pressed=true],.chips button[aria-pressed=true],.selected,.sim-filter-bar .active,.sim-filter-v2 .active,.library-month-select[aria-pressed=true]{
+ background:linear-gradient(110deg,#00bfe9,#176eff)!important;color:white!important;border-color:#19d7f2!important;box-shadow:0 0 20px #078dff2b!important
+}
+input,textarea,select{accent-color:#0ccbe8}
+input[type=checkbox],input[type=radio]{accent-color:#12d9f2}
+label{color:#dce9fb}
+.sheet,.passage-box,.print-area,.practice-summary,.summary,.rules-list,.mode-explainer,.mode-note,.sim-rules-box,.rules-table,.simulator-passage-picker,.custom-passage-input,.entry,.tbl,.tbl table,.tbl th,.tbl td,.rules-table td,.rules-table th{
+ border-color:#1b426e!important
+}
+.passage-box,.print-area,.practice-summary,.summary,.rules-list,.mode-explainer,.mode-note,.sim-rules-box,.simulator-passage-picker,.passage-card,.pitem,.plist{
+ background:#061832!important;color:#edf5ff!important;border-radius:12px
+}
+.entry,.custom-passage-input,textarea{background:#04152c!important;color:#f4f8ff!important}
+.clock.low,.bad,.err,.d-miss{color:#ff6d8e!important}
+.ok,.passed,.green{color:#27e8b4!important}
+.warn,.note{color:#ffd166!important}
+.progress,.meter,.bar{background:#15365d!important;border-radius:999px;overflow:hidden}
+.progress>*,.meter i,.bar>*{background:linear-gradient(90deg,#08d6e9,#2387ff,#9a5cff)!important;border-radius:999px}
+.tbl,table,.tbl table{width:100%;border-collapse:separate;border-spacing:0;overflow:auto;background:#061832!important;color:#e8f2ff!important;border:1px solid #1a426e!important;border-radius:12px}
+.tbl th,table th,.tbl table th{background:#0b2a52!important;color:#bcecff!important}
+.tbl td,table td,.tbl table td{background:transparent!important;color:#e0ecff!important;border-bottom:1px solid #18375d!important}
+tr:hover td{background:#0b2444!important}
+code,pre{background:#041329!important;color:#a9eaff!important;border:1px solid #1c416a;border-radius:8px}
+hr{border-color:#1b3d66!important}
+.footer{margin-left:228px}
+.footer-content{max-width:none}
+.footer-section h4{color:#f0f6ff}
+.footer-section p,.footer-bottom{color:#9fb6d7}
+a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid #17dff3!important;outline-offset:3px}
+@media(max-width:760px){
+ .top{position:fixed!important;align-items:center!important}
+ .top nav{position:fixed!important;top:58px!important;bottom:auto!important;left:0!important;right:0!important;width:100%!important;height:48px!important;flex-direction:row!important;align-items:center!important;overflow-x:auto!important;overflow-y:hidden!important;gap:4px!important}
+ body{padding-top:112px!important}
+ main{margin-left:0!important;padding:8px 10px 24px!important}
+ .footer{margin-left:0!important}
+ .top nav a{white-space:nowrap!important;flex:0 0 auto}
+ .home-exam-grid,.sim-page-grid,.sim-page-grid-v2,.sim-grid,.features-grid,.plans-grid,.plan-grid,.library-day-grid,.tiles{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+ .home-hero,.hero,.simulators-hero,.library-hero,.sim-detail-hero,.practice-hero,.sim-v2-hero{padding:18px!important}
+}
+@media(max-width:420px){
+ .home-exam-grid,.sim-page-grid,.sim-page-grid-v2,.sim-grid,.features-grid,.plans-grid,.plan-grid,.library-day-grid,.tiles{grid-template-columns:minmax(0,1fr)!important}
+ .go,button,.button,[role=button],input[type=submit]{max-width:100%;overflow-wrap:anywhere}
+}
