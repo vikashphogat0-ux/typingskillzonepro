@@ -73,16 +73,19 @@ async function submitPractice(uid: string, b: any) {
   // This closes the race where parallel requests could exceed the daily cap,
   // and prevents orphan test rows if result persistence fails.
   const [saved] = await db`
-    WITH eligibility AS MATERIALIZED (
+    WITH user_lock AS MATERIALIZED (
+      SELECT pg_advisory_xact_lock(hashtextextended(${uid}::text, 0))
+    ), eligibility AS MATERIALIZED (
       SELECT
         ${!enforceDailyLimit}::boolean AS unlimited,
         (SELECT count(*)::int FROM tests
           WHERE user_id = ${uid}
             AND started_at >= (date_trunc('day', now() AT TIME ZONE 'Asia/Kolkata') AT TIME ZONE 'Asia/Kolkata')
         ) AS tests_today
+      FROM user_lock
     ), created_test AS (
       INSERT INTO tests (user_id, language, display_mode, backspace, duration_sec, reference_text, submitted)
-      SELECT ${uid}, ${/[\\u0900-\\u097F]/.test(reference) ? "hi" : "en"}, ${String(b.mode)}, ${String(b.backspace)}, ${duration}, ${reference}, true
+      SELECT ${uid}, ${/[\u0900-\u097F]/.test(reference) ? "hi" : "en"}, ${String(b.mode)}, ${String(b.backspace)}, ${duration}, ${reference}, true
       FROM eligibility
       WHERE unlimited OR tests_today < ${LIMITS.free.testsPerDay}
       RETURNING id
