@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type Mode = "in" | "up" | "verify" | "forgot" | "forgot-sent";
 
@@ -37,12 +37,12 @@ export default function Login() {
     return () => { active = false; };
   }, []);
 
-  const finishSignIn = () => {
+  const finishSignIn = useCallback(() => {
     const next = new URLSearchParams(window.location.search).get("next");
     window.location.href = next && next.startsWith("/") && !next.startsWith("//")
       ? next
       : "/dashboard";
-  };
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
