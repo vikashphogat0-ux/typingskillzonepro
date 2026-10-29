@@ -1,30 +1,43 @@
-/* Shared layout polish: scoped to the site shell and exam cards. */
+/* Shared layout and responsive fixes for the global header and simulator catalogue. */
+html,body{max-width:100%;overflow-x:clip}
+.top{width:100%;min-width:0;gap:16px;flex-wrap:wrap}
+.top .brand{flex:0 0 auto;min-width:0}
+.top nav{display:flex;flex:1 1 520px;min-width:0;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px 14px}
+.top nav>a,.top nav>div{min-width:0;max-width:100%}
+.top nav a{white-space:nowrap}
 .top .nav-home-link{display:flex;align-items:center;justify-content:center;gap:7px;flex:0 0 auto;padding:9px 13px!important;border:1px solid rgba(22,217,243,.55)!important;border-radius:10px;background:linear-gradient(110deg,#064c70,#0a3670)!important;color:#dffaff!important;font-weight:800!important;box-shadow:0 0 16px rgba(0,201,232,.12)}
 .top .nav-home-link span{font-size:19px;line-height:1}
 .top .nav-home-link:hover{background:linear-gradient(110deg,#00bfe9,#177aff)!important;color:#fff!important}
+.sim-page-grid-v2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;width:100%;min-width:0}
+.sim-page-card-v2{display:flex;flex-direction:column;min-width:0;max-width:100%;overflow:hidden}
+.sim-card-brand-row,.sim-card-content,.sim-card-brand-copy{min-width:0}
+.sim-page-card-v2 h2,.sim-page-card-v2 p,.sim-page-card-v2 span{overflow-wrap:anywhere}
 .exam-card-emblem{width:96px;height:112px;flex:0 0 96px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:14px;background:linear-gradient(145deg,#0c2b56,#06172f);border:1px solid rgba(79,165,255,.25);padding:8px}
 .exam-card-emblem img{display:block;width:100%;height:100%;object-fit:contain}
 .exam-card-emblem .exam-card-fallback{font-size:18px;font-weight:900;letter-spacing:.03em;text-align:center;color:#eaf8ff}
-.sim-page-card-v2{display:flex;flex-direction:column;min-width:0;overflow:hidden}
-.sim-card-brand-row{align-items:flex-start}
-.sim-card-brand-copy{display:flex;flex-direction:column;gap:8px;min-width:0}
-.sim-card-content{display:flex;flex:1;flex-direction:column;gap:12px}
-.sim-card-content h2{margin:0;line-height:1.2}
-.sim-card-description{min-height:2.8em}
 .sim-rule-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .sim-rule-metrics>span{min-width:0;padding:10px;border-radius:11px;background:rgba(4,18,40,.75);border:1px solid rgba(67,145,220,.18)}
 .sim-rule-metrics small{display:block;font-size:10px;letter-spacing:.07em;color:#8faed1;margin-bottom:5px}
 .sim-rule-metrics strong{display:block;font-size:13px;line-height:1.35;overflow-wrap:anywhere}
 .sim-card-bottom{margin-top:auto;padding-top:12px}
+.custom-passage-source{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.custom-passage-source button{min-width:0;white-space:normal}
+.custom-passage-input{display:block;width:100%;margin-top:8px;padding:12px;border:1px solid rgba(100,160,220,.5);border-radius:12px;background:#071b38;color:#f2f8ff;font:inherit;resize:vertical}
 @media(max-width:760px){
+ .top{display:flex;align-items:flex-start;padding:12px 16px}
+ .top nav{flex:1 1 100%;justify-content:flex-start;gap:8px 12px;font-size:13px}
  .top .nav-home-link{padding:7px 10px!important}
+ .sim-page-grid-v2{grid-template-columns:minmax(0,1fr)}
  .exam-card-emblem{width:76px;height:88px;flex-basis:76px}
  .sim-rule-metrics{gap:6px}
  .sim-rule-metrics>span{padding:8px}
  .sim-rule-metrics strong{font-size:12px}
 }
 @media(max-width:420px){
- .sim-rule-metrics{grid-template-columns:1fr}
+ .sim-rule-metrics{grid-template-columns:minmax(0,1fr)}
  .sim-rule-metrics>span{display:flex;align-items:center;justify-content:space-between;gap:12px}
  .sim-rule-metrics small{margin:0}
+ .custom-passage-source{grid-template-columns:minmax(0,1fr)}
+ .sim-card-brand-row{padding:14px}
+ .sim-card-content{padding:0 14px 14px}
 }
