@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { cleanBody, countWords, defaultScoring, parseBulk, validatePassage } from "@/lib/adminValidation";
 import { PROFILES, type Lang } from "@/lib/wpmCalculator";
+import { PRESETS } from "@/lib/presets";
 
 type Tpl = { slug: string; name: string; language: Lang; duration_sec: number; display_mode: string; backspace: string; scoring: any; is_active: boolean };
 type Row = { id: string; title: string; language: Lang; word_count: number; preview: string; template: string | null };
@@ -143,7 +144,7 @@ export default function Admin() {
           </div>
           <h2>Saved templates</h2>
           <div className="tbl"><table><thead><tr><th>Name</th><th>Language</th><th>Time</th><th>Display</th><th>Backspace</th><th></th></tr></thead><tbody>
-            {tpls.map((x) => <tr key={x.slug}><td>{x.name}</td><td>{x.language === "hi" ? "Hindi" : "English"}</td><td>{x.duration_sec / 60} min</td><td>{x.display_mode}</td><td>{x.backspace}</td><td><button className="link" onClick={() => editTpl(x)}>Edit</button> <button className="link" onClick={() => delTpl(x.slug)}>Delete</button></td></tr>)}
+            {tpls.map((x) => <tr key={x.slug}><td>{x.name}</td><td>{x.language === "hi" ? "Hindi" : "English"}</td><td>{x.duration_sec / 60} min</td><td>{x.display_mode}</td><td>{x.backspace}</td><td>{PRESETS.some((p) => p.slug === x.slug) ? <span className="hint">Code-managed</span> : <><button className="link" onClick={() => editTpl(x)}>Edit</button> <button className="link" onClick={() => delTpl(x.slug)}>Delete</button></>}</td></tr>)}
             {!tpls.length && <tr><td colSpan={6}>No templates yet. Students see the built-in presets.</td></tr>}
           </tbody></table></div>
         </>
