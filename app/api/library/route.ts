@@ -1,11 +1,12 @@
 import { sql } from "@/lib/db";
 import { dailyPick, istDate, recentDates } from "@/lib/library";
-import { SAMPLE_PASSAGES } from "@/lib/presets";
 
 /** Public passage library: daily picks, monthly browsing, and a searchable passage collection. */
 export async function GET(req: Request) {
   const u = new URL(req.url);
-  const lang = u.searchParams.get("lang"), q = (u.searchParams.get("q") ?? "").trim().slice(0, 60), tpl = u.searchParams.get("template") ?? "";
+  const requestedLang = u.searchParams.get("lang");
+  const lang = requestedLang === "en" || requestedLang === "hi" ? requestedLang : null;
+  const q = (u.searchParams.get("q") ?? "").trim().slice(0, 60), tpl = u.searchParams.get("template") ?? "";
   try {
     const db = sql();
     const one = u.searchParams.get("id");
@@ -42,24 +43,10 @@ export async function GET(req: Request) {
     if (!months.includes(safeMonth)) months.unshift(safeMonth);
     return Response.json({ today, daily, archive, list, monthly, months });
   } catch (error) {
-    console.error("GET /api/library failed; serving built-in sample passages as a temporary fallback:", error);
-    {
-      const today = istDate();
-      const samples = (["en", "hi"] as const).flatMap((language) => SAMPLE_PASSAGES[language].map((body, index) => ({
-        id: `local-${language}-${index}`, passage_number: language === "en" ? index + 1 : SAMPLE_PASSAGES.en.length + index + 1, title: language === "hi" ? `स्थानीय अभ्यास अनुच्छेद ${index + 1}` : `Local practice passage ${index + 1}`,
-        language, word_count: body.trim().split(/\s+/u).filter(Boolean).length, body, preview: body.slice(0, 140), exam: null
-      })));
-      const id = u.searchParams.get("id");
-      if (id?.startsWith("local-")) {
-        const p = samples.find((x) => x.id === id);
-        return p ? Response.json(p) : Response.json({ error: "Not found." }, { status: 404 });
-      }
-      const qLower = q.toLocaleLowerCase();
-      const filtered = samples.filter((p) => (!lang || p.language === lang) && (!qLower || p.title.toLocaleLowerCase().includes(qLower) || String(p.passage_number).padStart(2, "0").includes(qLower) || p.body.toLocaleLowerCase().includes(qLower)));
-      const daily = Object.fromEntries((["en", "hi"] as const).map((l) => [l, { ...samples.find((p) => p.language === l)!, date: today }]));
-      return Response.json({ today, daily, archive: { en: [], hi: [] }, list: filtered, localFallback: true, notice: "Database-backed passages are temporarily unavailable. Built-in sample passages are shown while the database connection or schema is repaired." });
-    }
     console.error("GET /api/library failed:", error);
-    return Response.json({ error: "Passage library is temporarily unavailable. Check the database connection and passage table." }, { status: 503 });
+    return Response.json(
+      { error: "Passage library is temporarily unavailable. Please try again shortly." },
+      { status: 503 }
+    );
   }
 }
