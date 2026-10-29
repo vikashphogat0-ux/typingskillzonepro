@@ -55,7 +55,9 @@ export default function SimulatorPage() {
   const [startErr, setStartErr] = useState("");
   const [passageOptions, setPassageOptions] = useState<{ id: string; title: string; word_count: number }[]>([]);
   const [selectedPassageId, setSelectedPassageId] = useState("");
-  const [passageSearch, setPassageSearch] = useState("");\n  const [passageSource, setPassageSource] = useState<"library" | "custom">("library");\n  const [customPassage, setCustomPassage] = useState("");
+  const [passageSearch, setPassageSearch] = useState("");
+  const [passageSource, setPassageSource] = useState<"library" | "custom">("library");
+  const [customPassage, setCustomPassage] = useState("");
 
   useEffect(() => {
     if (!slug) return;
@@ -273,14 +275,24 @@ export default function SimulatorPage() {
             )}
 
             <div className="practice-field simulator-passage-picker" style={{ marginTop: 18, maxWidth: 720 }}>
-              <label htmlFor="passage-id-search">Find passage by title or unique ID</label>
-              <input id="passage-id-search" value={passageSearch} onChange={e => setPassageSearch(e.target.value)} placeholder="Paste a passage ID or type a title…" autoComplete="off" />
-              <label htmlFor="passage-select">Passage for this attempt</label>
-              <select id="passage-select" value={selectedPassageId} onChange={(e) => setSelectedPassageId(e.target.value)}>
-                <option value="">Random passage for this exam language</option>
-                {visiblePassages.map((p) => <option key={p.id} value={p.id}>{p.title} · {p.word_count} words · ID {p.id}</option>)}
-              </select>
-              <small>{visiblePassages.length} matching passage(s). Every passage in this language can be practised with this simulator&apos;s configured duration, scoring and backspace rules. Passage content stays the same; only this exam&apos;s typing pattern changes.</small>
+              <div className="practice-mode-grid custom-passage-source" role="group" aria-label="Choose passage source">
+                <button type="button" className={passageSource === "library" ? "practice-mode-card selected" : "practice-mode-card"} aria-pressed={passageSource === "library"} onClick={() => setPassageSource("library")}>Library passage</button>
+                <button type="button" className={passageSource === "custom" ? "practice-mode-card selected" : "practice-mode-card"} aria-pressed={passageSource === "custom"} onClick={() => setPassageSource("custom")}>My custom passage</button>
+              </div>
+              {passageSource === "custom" ? (
+                <label htmlFor="custom-exam-passage">Paste your own passage (minimum 10 words)
+                  <textarea id="custom-exam-passage" className="custom-passage-input" rows={7} maxLength={50000} value={customPassage} onChange={e => setCustomPassage(e.target.value)} placeholder="Paste your own passage here…" spellCheck={false} />
+                </label>
+              ) : <>
+                <label htmlFor="passage-id-search">Find passage by title or unique ID</label>
+                <input id="passage-id-search" value={passageSearch} onChange={e => setPassageSearch(e.target.value)} placeholder="Paste a passage ID or type a title…" autoComplete="off" />
+                <label htmlFor="passage-select">Passage for this attempt</label>
+                <select id="passage-select" value={selectedPassageId} onChange={(e) => setSelectedPassageId(e.target.value)}>
+                  <option value="">Random passage for this exam language</option>
+                  {visiblePassages.map((p) => <option key={p.id} value={p.id}>{p.title} · {p.word_count} words · ID {p.id}</option>)}
+                </select>
+                <small>{visiblePassages.length} matching passage(s). Every passage in this language can be practised with this simulator&apos;s configured duration, scoring and backspace rules.</small>
+              </>}
             </div>
 
             <div style={{ marginTop: 20, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
