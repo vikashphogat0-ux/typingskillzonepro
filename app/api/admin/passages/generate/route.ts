@@ -26,8 +26,9 @@ async function generateOne(language: Lang, slot: Slot, index: number, apiKey: st
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model, temperature: 0.75, max_completion_tokens: 4096,
-      response_format: { type: "json_object" },
+      model, temperature: 0.75, max_completion_tokens: 8192,
+      // Avoid provider-side JSON-mode validation failures on reasoning models.
+      // The prompt still requests a JSON object; we validate/parse it locally.
       messages: [
         { role: "system", content: "You write original, high-quality typing passages. Follow exact language and word-count requirements. Output valid JSON only." },
         { role: "user", content: prompt },
@@ -53,7 +54,26 @@ async function generateOne(language: Lang, slot: Slot, index: number, apiKey: st
   const raw = payload?.choices?.[0]?.message?.content;
   if (typeof raw !== "string") throw new Error("Passage provider returned an empty response.");
   let parsed: any;
-  try { parsed = JSON.parse(raw); } catch { throw new Error("Passage provider returned invalid JSON."); }
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    // Some model responses include surrounding whitespace or a fenced JSON block.
+    // Extract the outermost object and still validate it strictly below.
+    const unfenced = raw.replace(/^\s*```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+    const start = unfenced.indexOf("{");
+    const end = unfenced.lastIndexOf("}");
+    if (start < 0 || end <= start) {
+      throw new Error("Passage provider returned invalid JSON (no JSON object found).");
+    }
+    try {
+      parsed = JSON.parse(unfenced.slice(start, end + 1));
+    } catch {
+      throw new Error("Passage provider returned malformed JSON.");
+    }
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Passage provider JSON must be an object.");
+  }
   const { validatePassage } = await import("@/lib/adminValidation");
   const checked = validatePassage({ title: String(parsed.title ?? ""), language, body: String(parsed.body ?? "") });
   const words = wordCount(checked.clean.body);
