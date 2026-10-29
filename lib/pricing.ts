@@ -306,7 +306,8 @@ export const INSTITUTE_PLANS: Partial<
     displayOrder: 0,
     currency: "INR",
     monthlyAmountPaise: 149900,
-    annualAmountPaise: 149999,
+    // Annual is 12 monthly payments; no annual discount is configured.
+    annualAmountPaise: 1798800,
     billingInterval: "monthly",
     durationDays: null,
     maxStudentSeats: 30,
@@ -325,7 +326,8 @@ export const INSTITUTE_PLANS: Partial<
     displayOrder: 1,
     currency: "INR",
     monthlyAmountPaise: 299900,
-    annualAmountPaise: 299999,
+    // Annual is 12 monthly payments; no annual discount is configured.
+    annualAmountPaise: 3598800,
     billingInterval: "monthly",
     durationDays: null,
     maxStudentSeats: 100,
