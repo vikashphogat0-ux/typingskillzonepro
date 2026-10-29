@@ -22,7 +22,7 @@ Before applying any schema or migration:
 
 ## Local Wrangler development secrets
 
-For local Cloudflare/OpenNext development, copy `.dev.vars.example` to `.dev.vars` and fill in the real sandbox values. The real `.dev.vars` file is intentionally git-ignored and must never be committed.
+For local Cloudflare/OpenNext development, copy `.dev.vars.example` to `.dev.vars` and fill in the real sandbox values. For scheduled English/Hindi passage generation, also configure `GROQ_API_KEY`, `GROQ_MODEL=openai/gpt-oss-120b`, and a strong `PASSAGE_CRON_SECRET`. The real `.dev.vars` file is intentionally git-ignored and must never be committed. `dev.vars` is local-only; it does not update Cloudflare Production secrets automatically.
 
 Use `CF_SECRET_KEY` as the Cashfree PG client secret for both order creation and webhook signature verification. This project does **not** read a separate `CF_WEBHOOK_SECRET` variable. If you already have a `CF_WEBHOOK_SECRET` entry in your local `.dev.vars`, remove it and make sure `CF_SECRET_KEY` contains the matching environment's Cashfree secret. Never paste secret values into chat or GitHub.
 
