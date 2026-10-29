@@ -32,6 +32,8 @@ export default function ResultAnalysis({ reference, events, score: s }: { refere
         <div><b>{s.fullErrors} + {s.halfErrors}/2</b><span>Full + half mistakes</span></div>
         <div><b>{s.fixedErrors} / {s.ignoredErrors}</b><span>Fixed / ignored characters</span></div>
         <div><b>−{s.penaltyWpm}</b><span>Penalty WPM</span></div>
+        {s.marks !== null && <div><b>{s.marks}/25</b><span>Delhi Police HCM marks</span></div>}
+        {s.passed !== null && <div><b>{s.passed ? "PASS" : "NOT QUALIFIED"}</b><span>Configured qualification rule</span></div>}
       </div>
 
       <h2>Your text against the reference</h2>
