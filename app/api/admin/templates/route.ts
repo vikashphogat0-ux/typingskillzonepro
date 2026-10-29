@@ -1,6 +1,7 @@
 import { sql } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { validateTemplate, type TemplateInput } from "@/lib/adminValidation";
+import { getBuiltInPreset } from "@/lib/presets";
 
 const deny = () => Response.json({ error: "Admin access required." }, { status: 403 });
 
@@ -14,6 +15,7 @@ export async function POST(req: Request) {
   if (!(await requireAdmin(req))) return deny();
   const t = (await req.json().catch(() => null)) as TemplateInput | null;
   if (!t) return Response.json({ error: "Invalid request." }, { status: 400 });
+  if (getBuiltInPreset(String(t.slug))) return Response.json({ error: "Built-in exam presets are code-managed to keep published rules consistent. Create a new custom slug to configure different rules." }, { status: 409 });
   const { errors, scoring } = validateTemplate(t);
   if (errors.length || !scoring) return Response.json({ error: errors.join(" ") }, { status: 422 });
   await sql()`INSERT INTO exam_templates (slug, name, language, duration_sec, display_mode, backspace, scoring, is_active)
@@ -27,6 +29,7 @@ export async function DELETE(req: Request) {
   if (!(await requireAdmin(req))) return deny();
   const slug = new URL(req.url).searchParams.get("slug");
   if (!slug) return Response.json({ error: "Missing slug." }, { status: 400 });
+  if (getBuiltInPreset(slug)) return Response.json({ error: "Built-in exam presets cannot be deleted. Deactivate or delete only custom templates." }, { status: 409 });
   try {
     const db = sql();
     const [template] = await db`SELECT id FROM exam_templates WHERE slug = ${slug} LIMIT 1`;
