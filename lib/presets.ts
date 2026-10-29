@@ -44,6 +44,18 @@ export const PRESETS: ExamPreset[] = [
   { slug: "practice-5min-hi", name: "Free Practice — 5 Minutes (Hindi)", lang: "hi", durationSec: 300, profileId: "practice", mode: "highlighted", backspace: "full", profile: PROFILES.practice },
 ];
 
+/** Profiles whose core rules have been checked against the linked official notifications. */
+const VERIFIED_EXAM_SLUGS = new Set([
+  "ssc-chsl-en", "ssc-chsl-hi", "ssc-cgl-deo",
+  "rrb-ntpc-en", "rrb-ntpc-hi", "dp-hcm-en", "dp-hcm-hi",
+  "delhi-high-court-jja-en",
+]);
+
+export function getVerifiedPreset(slug: string): ExamPreset | undefined {
+  if (!VERIFIED_EXAM_SLUGS.has(slug)) return undefined;
+  return PRESETS.find((p) => p.slug === slug);
+}
+
 export const SAMPLE_PASSAGES: Record<Lang, string[]> = {
   en: [
     "Digital India has changed the way citizens interact with the government. Online services now save time, reduce paperwork and bring transparency to many public offices across the country. A good typist keeps a steady rhythm and does not rush, because small mistakes cost marks in the final result.",
