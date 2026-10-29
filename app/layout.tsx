@@ -5,6 +5,7 @@ import AppSidebar from "@/components/AppSidebar";
 import "./site-polish.css";
 import "./desktop-header-fix.css";
 import "./design-system.css";
+import "./dashboard-home.css";
 
 export const metadata: Metadata = {
   title: "Typing Skill Zone | Exam-focused typing practice",
