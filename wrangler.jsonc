@@ -27,6 +27,7 @@
     "NODE_ENV": "production",
     "NEXT_PUBLIC_URL": "https://typingskillzone.in",
     "CF_ENVIRONMENT": "sandbox",
+    "GROQ_MODEL": "openai/gpt-oss-120b",
     "EMAIL_FROM": "TypingSkillZone <support@typingskillzone.in>",
     "AUTH_EMAIL_FROM": "TypingSkillZone <support@typingskillzone.in>"
   }
