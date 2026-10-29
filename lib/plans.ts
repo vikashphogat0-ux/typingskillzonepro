@@ -1,22 +1,34 @@
-/** Plan rules. Pure functions so they can be tested and reused on client and server. */
+/** Legacy plan helpers kept for compatibility; pricing and entitlements come from lib/pricing.ts. */
+import { LIMITS as CATALOG_LIMITS, STUDENT_PLANS } from "./pricing";
 export type PlanId = "free" | "pro";
 export type Period = "monthly" | "yearly";
 
 export interface Limits { testsPerDay: number | null; historyRows: number; aiFeedback: boolean }
 
 export const LIMITS: Record<PlanId, Limits> = {
-  free: { testsPerDay: 5, historyRows: 5, aiFeedback: false },
-  pro: { testsPerDay: null, historyRows: 100, aiFeedback: true },
+  free: {
+    testsPerDay: CATALOG_LIMITS.free.testsPerDay,
+    historyRows: CATALOG_LIMITS.free.historyRows,
+    aiFeedback: STUDENT_PLANS.free.featureEntitlements.aiFeedback,
+  },
+  pro: {
+    testsPerDay: CATALOG_LIMITS.pro.testsPerDay,
+    historyRows: CATALOG_LIMITS.pro.historyRows,
+    aiFeedback: STUDENT_PLANS.student_pro_monthly.featureEntitlements.aiFeedback,
+  },
 };
 
 export const PERIOD_DAYS: Record<Period, number> = { monthly: 30, yearly: 365 };
 
-/** Placeholder prices in paise. Set your own with PRO_MONTHLY_PAISE / PRO_YEARLY_PAISE. */
-export const DEFAULT_PRICES_PAISE: Record<Period, number> = { monthly: 14900, yearly: 99900 };
+/** Compatibility values sourced from the server-authoritative checkout catalog. */
+export const DEFAULT_PRICES_PAISE: Record<Period, number> = {
+  monthly: STUDENT_PLANS.student_pro_monthly.amountPaise,
+  yearly: STUDENT_PLANS.student_pro_annual.amountPaise,
+};
 
-export function priceFor(period: Period, env: Record<string, string | undefined> = {}): number {
-  const raw = Number(period === "monthly" ? env.PRO_MONTHLY_PAISE : env.PRO_YEARLY_PAISE);
-  return Number.isInteger(raw) && raw >= 100 ? raw : DEFAULT_PRICES_PAISE[period];
+/** Environment overrides are intentionally ignored so display prices cannot diverge from checkout. */
+export function priceFor(period: Period, _env: Record<string, string | undefined> = {}): number {
+  return DEFAULT_PRICES_PAISE[period];
 }
 
 export const rupees = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
