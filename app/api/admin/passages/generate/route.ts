@@ -26,7 +26,7 @@ async function generateOne(language: Lang, slot: Slot, index: number, apiKey: st
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model, temperature: 0.75, max_completion_tokens: 8192,
+      model, temperature: 0.75, max_completion_tokens: 4096,
       // Avoid provider-side JSON-mode validation failures on reasoning models.
       // The prompt still requests a JSON object; we validate/parse it locally.
       messages: [
@@ -110,12 +110,9 @@ export async function POST(req: Request) {
     stage = "checking AI provider configuration";
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) return Response.json({ error: "GROQ_API_KEY is not configured in the Cloudflare Worker secrets." }, { status: 503 });
-    // Groq retired llama-3.3-70b-versatile for free/developer accounts on 2026-08-16.
-    // Map the old configured value too, because production secrets may still contain it.
-    const configuredModel = process.env.GROQ_MODEL?.trim();
-    const model = !configuredModel || configuredModel === "llama-3.3-70b-versatile"
-      ? "openai/gpt-oss-120b"
-      : configuredModel;
+    // Pin passage generation to Groq's strongest suitable free-tier text model.
+    // This avoids stale GROQ_MODEL secrets selecting a retired or unsuitable model.
+    const model = "openai/gpt-oss-120b";
     const date = typeof body?.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date : istDate();
     const count = slotCount[slot];
 
