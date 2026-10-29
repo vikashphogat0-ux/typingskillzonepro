@@ -3,7 +3,7 @@ import { getUserId } from "@/lib/auth";
 import { getStudentAccess } from "@/lib/subscription";
 import { LIMITS } from "@/lib/pricing";
 import { buildReference, minCharsFor } from "@/lib/library";
-import { getVerifiedPreset } from "@/lib/presets";
+import { getBuiltInPreset } from "@/lib/presets";
 
 /** Starts a simulator attempt. The server picks the text and keeps it, so the browser cannot choose its own reference. */
 export async function POST(req: Request) {
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const [t] = await db`SELECT id, slug, name, language, duration_sec, display_mode, backspace, scoring, font_size_pt, passage_layout, enter_key_policy, tab_key_policy FROM exam_templates WHERE slug = ${String(b.slug)} AND is_active`;
   if (!t) return Response.json({ error: "Simulator not found." }, { status: 404 });
 
-  const verified = getVerifiedPreset(String(t.slug));
+  const verified = getBuiltInPreset(String(t.slug));
   const durationSec = verified?.durationSec ?? Number(t.duration_sec);
   const displayMode = verified?.mode ?? String(t.display_mode);
   const scoring = verified?.profile ?? t.scoring;
