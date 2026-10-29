@@ -66,6 +66,38 @@ test("pass rule uses net WPM and error percent", () => {
   assert.equal(r.passed, true);
 });
 
+
+test("SSC CHSL profile uses a 10-minute timer and gross-speed qualification", () => {
+  assert.equal(PROFILES["ssc-chsl-en"].durationSec, 600);
+  assert.equal(PROFILES["ssc-chsl-en"].qualifyingWpm, 35);
+  assert.equal(PROFILES["ssc-chsl-hi"].qualifyingWpm, 30);
+  assert.equal(PROFILES["ssc-chsl-en"].qualificationBasis, "gross");
+});
+
+test("SSC CGL DEST is a 15-minute practice target, not an invented WPM pass rule", () => {
+  const p = PROFILES["ssc-cgl-dest"];
+  assert.equal(p.durationSec, 900);
+  assert.equal(p.targetKeystrokes, 2000);
+  assert.equal(p.qualifyingWpm, undefined);
+});
+
+test("RRB CBTST applies its 5 percent allowance and official speed formula", () => {
+  const referenceWords = Array.from({ length: 400 }, (_, i) => `word${String(i).padStart(3, "0")}`);
+  const typedWords = [...referenceWords];
+  for (let i = 0; i < 30; i++) typedWords[i] = `wrong${String(i).padStart(3, "0")}`;
+  const r = calculateScore({
+    reference: referenceWords.join(" "),
+    typed: typedWords.join(" "),
+    elapsedSec: 600,
+    durationSec: 600,
+    profile: PROFILES["rrb-ntpc-en"],
+  });
+  assert.equal(r.typedWords, 400);
+  assert.equal(r.fullErrors, 30);
+  assert.equal(r.netWpm, 30);
+  assert.equal(r.passed, true);
+});
+
 test("backspace policies", () => {
   assert.equal(checkEdit("ab", "a", "full").ok, true);
   assert.equal(checkEdit("ab", "a", "disabled").ok, false);
