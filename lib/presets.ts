@@ -51,9 +51,13 @@ const VERIFIED_EXAM_SLUGS = new Set([
   "delhi-high-court-jja-en",
 ]);
 
+export function getBuiltInPreset(slug: string): ExamPreset | undefined {
+  return PRESETS.find((p) => p.slug === slug);
+}
+
 export function getVerifiedPreset(slug: string): ExamPreset | undefined {
   if (!VERIFIED_EXAM_SLUGS.has(slug)) return undefined;
-  return PRESETS.find((p) => p.slug === slug);
+  return getBuiltInPreset(slug);
 }
 
 export const SAMPLE_PASSAGES: Record<Lang, string[]> = {
