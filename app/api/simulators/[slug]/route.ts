@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { PRESETS } from "@/lib/presets";
+import { PRESETS, getVerifiedPreset } from "@/lib/presets";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const slug = (await params).slug;
@@ -9,14 +9,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       FROM exam_templates WHERE slug = ${slug} AND is_active = true`;
     if (!t) return Response.json({ error: "Simulator not found." }, { status: 404 });
 
+    const verified = getVerifiedPreset(t.slug);
     return Response.json({
       slug: t.slug,
       name: t.name,
       language: t.language,
-      duration_sec: t.duration_sec,
-      display_mode: t.display_mode,
-      backspace: String(t.slug).startsWith("bsf-") ? "disabled" : String(t.slug).startsWith("dp-hcm-") ? "full" : t.backspace,
-      scoring: t.scoring,
+      duration_sec: verified?.durationSec ?? t.duration_sec,
+      display_mode: verified?.mode ?? t.display_mode,
+      backspace: verified?.backspace ?? (String(t.slug).startsWith("bsf-") ? "disabled" : String(t.slug).startsWith("dp-hcm-") ? "full" : t.backspace),
+      scoring: verified?.profile ?? t.scoring,
       description: t.description,
       participants: 0,
       my_best: null
