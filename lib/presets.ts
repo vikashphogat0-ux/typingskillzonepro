@@ -16,12 +16,6 @@ export interface ExamPreset {
 
 // Starter catalog mirrors the active rows in db/seed-simulators.sql.
 // These are local fallbacks; the database remains the source of truth when configured.
-const profile = (id: string, qualifyingWpm?: number, unit: "words" | "keystrokes" = "words"): ScoringProfile => ({
-  id, label: id, unit, charsPerWord: 5, fullErrorWeight: 1, halfErrorWeight: 0.5,
-  halfRules: { caseOnly: true, punctuationOnly: true }, netMethod: "penalty",
-  ...(qualifyingWpm === undefined ? {} : { qualifyingWpm }),
-});
-
 export const PRESETS: ExamPreset[] = [
   { slug: "ssc-chsl-en", name: "SSC CHSL — English Typing", lang: "en", durationSec: 600, profileId: "ssc-chsl-en", mode: "highlighted", backspace: "full", profile: PROFILES["ssc-chsl-en"] },
   { slug: "ssc-chsl-hi", name: "SSC CHSL — Hindi Typing", lang: "hi", durationSec: 600, profileId: "ssc-chsl-hi", mode: "highlighted", backspace: "full", profile: PROFILES["ssc-chsl-hi"] },
