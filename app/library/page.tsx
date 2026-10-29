@@ -7,7 +7,7 @@ type LibraryData = { today?: string; daily: Record<string, P | undefined>; archi
 export default function Library() {
   const [d, setD] = useState<LibraryData | null>(null);
   const [loadError, setLoadError] = useState("");
-  const [tab, setTab] = useState<"today" | "archive" | "all">("today");
+  const [tab, setTab] = useState<"today" | "archive" | "all">("all");
   const [q, setQ] = useState("");
   const [lang, setLang] = useState("");
   const [list, setList] = useState<P[]>([]);
@@ -88,11 +88,11 @@ export default function Library() {
       <section className="library-hero">
         <div className="eyebrow"><span className="eyebrow-dot" /> YOUR PRACTICE RESOURCE</div>
         <h1>Passage Library</h1>
-        <p>Daily passages, month-wise archives, separate English and Hindi folders, and exact passage-ID search. Each passage keeps one permanent ID across compatible exam simulators.</p>
-        <div className="cta-group"><a className="go hero-primary" href="/test">Start a practice test <span>→</span></a><a className="go hero-secondary" href="/simulators">Explore exam options</a></div>
+        <p>Find every available passage in one place. Search by title, passage ID or text, filter English and Hindi, browse month-wise archives, then read, download or practise without losing your place.</p>
+        <div className="cta-group"><button className="go hero-primary" onClick={() => { setTab("all"); document.getElementById("library-content")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>Browse all passages <span>↓</span></button><a className="go hero-secondary" href="/test">Start free practice</a><a className="go alt" href="/simulators">Exam simulators</a></div>
       </section>
-      <div className="tabs" role="tablist" aria-label="Passage library sections">
-        {(["today", "archive", "all"] as const).map(t => <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{t === "today" ? "Today’s passages" : t === "archive" ? "Browse by month" : "Search library"}</button>)}
+      <div id="library-content" className="tabs" role="tablist" aria-label="Passage library sections">
+        {(["today", "archive", "all"] as const).map(t => <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{t === "today" ? "Daily passages" : t === "archive" ? "Browse by month" : "All passages"}</button>)}
       </div>
       {d?.localFallback && <div className="data-source-notice" role="status"><strong>Temporary sample mode</strong><p>{d.notice ?? "The database-backed passage library is unavailable. Built-in samples are shown temporarily."} Real library records will return when the database connection and schema are repaired.</p></div>}
       {loadError && <div className="empty-state"><b>We couldn’t load today’s passages.</b><p>{loadError}</p><button className="go alt" onClick={retry}>Try again</button></div>}
@@ -122,13 +122,13 @@ export default function Library() {
           </article>)}</div>}
       </section>}
       {tab === "all" && <section className="library-archive">
-        <div className="library-intro"><div><h2>Search all passages</h2><p>Filter by title and language, then read, download text, or use Save as PDF / Print. In the print dialog choose “Save as PDF”.</p></div></div>
-        <div className="library-tools"><label>Search by title, text or passage ID<input value={q} onChange={e => setQ(e.target.value)} placeholder="Paste full passage ID or search title/text…" /></label><label>Language<select value={lang} onChange={e => setLang(e.target.value)}><option value="">Both languages</option><option value="en">English</option><option value="hi">Hindi</option></select></label></div>
+        <div className="library-intro"><div><h2>Search all passages</h2><p>All matching passages appear here. Search by passage ID for an exact match, or filter by language. Open a passage to read its full text.</p></div></div>
+        <div className="library-tools"><label>Search passages<input value={q} onChange={e => setQ(e.target.value)} placeholder="Enter passage ID, title or words from the passage…" /></label><label>Language folder<select value={lang} onChange={e => setLang(e.target.value)}><option value="">All languages</option><option value="en">English only</option><option value="hi">Hindi only</option></select></label><button className="go alt" onClick={() => { setQ(""); setLang(""); }}>Clear filters</button></div>
         {searching && <p className="hint">Searching passages…</p>}
-        <div className="plist">{list.map(p => <article key={p.id} className="pitem">
+        <p className="hint" aria-live="polite">{searching ? "Searching…" : `${list.length} passage${list.length === 1 ? "" : "s"} found`}</p><div className="plist">{list.map(p => <article key={p.id} className="pitem">
           <div><b>{p.title}</b> <span className="tag">{p.language === "hi" ? "Hindi folder" : "English folder"}</span> <span className="tag">ID: {p.id}</span>{p.exam && <span className="tag">{p.exam}</span>} <span className="hint">{p.word_count} words</span></div>
           {open?.id === p.id ? <div className={`passage-box${p.language === "hi" ? " hi" : ""}`} lang={p.language}>{open.body}</div> : <p className="hint">{p.preview || "Open to read this passage."}{p.preview ? "…" : ""}</p>}
-          <p><button className="link" onClick={() => view(p)}>{open?.id === p.id ? "Hide passage" : "Read passage"}</button> · <a href={`/api/library/download?id=${encodeURIComponent(p.id)}`}>Download</a> · <button className="link" onClick={() => print(p)}>Save as PDF / Print</button></p>
+          <p><button className="link" onClick={() => view(p)}>{open?.id === p.id ? "Hide passage" : "Read full passage"}</button> · <a href={`/api/library/download?id=${encodeURIComponent(p.id)}`}>Download text</a> · <button className="link" onClick={() => print(open?.id === p.id ? open : p)}>Save as PDF / Print</button> · <a href={`/test?passage=${encodeURIComponent(p.id)}`}>Practise this passage ↗</a></p>
         </article>)}{!searching && !list.length && <div className="empty-state"><b>No passages found.</b><p>Try a different title or language filter.</p></div>}</div>
       </section>}
       {printing && <div className="print-area"><h1>{printing.title}</h1><p className={printing.language === "hi" || /[\u0900-\u097F]/.test(printing.body ?? "") ? "hi" : ""}>{printing.body}</p></div>}

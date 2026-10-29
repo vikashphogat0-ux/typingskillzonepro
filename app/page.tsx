@@ -1,19 +1,23 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/clientApi";
+import ExamEmblem from "@/components/ExamEmblem";
 
 interface ExamCard {
   slug: string; name: string; language: "en" | "hi"; duration_sec: number;
   display_mode: string; backspace: string; scoring: any; description?: string; participants?: number;
 }
 const examMark = (slug: string) => {
-  if (slug.includes("ssc-chsl")) return { mark: "SSC", tone: "violet", family: "Staff Selection Commission" };
-  if (slug.includes("ssc-cgl")) return { mark: "CGL", tone: "blue", family: "Combined Graduate Level" };
-  if (slug.includes("rrb") || slug.includes("railway")) return { mark: "RRB", tone: "orange", family: "Railway Recruitment" };
-  if (slug.includes("delhi-police")) return { mark: "DP", tone: "red", family: "Delhi Police" };
-  if (slug.includes("court")) return { mark: "HC", tone: "teal", family: "Court Typing" };
-  if (slug.includes("bsf")) return { mark: "BSF", tone: "green", family: "Border Security Force" };
-  return { mark: "TSZ", tone: "blue", family: "Exam practice" };
+  if (slug.includes("ssc-chsl")) return { mark: "SSC", tone: "violet", family: "Staff Selection Commission", short: "CHSL" };
+  if (slug.includes("ssc-cgl")) return { mark: "SSC", tone: "blue", family: "Staff Selection Commission", short: "CGL" };
+  if (slug.includes("rrb") || slug.includes("railway")) return { mark: "RRB", tone: "orange", family: "Railway Recruitment Board", short: "RRB" };
+  if (slug.includes("delhi-police") || slug.includes("dp-hcm")) return { mark: "DP", tone: "red", family: "Delhi Police", short: "HCM" };
+  if (slug.includes("court")) return { mark: "HC", tone: "teal", family: "Court Recruitment", short: "COURT" };
+  if (slug.includes("bsf")) return { mark: "BSF", tone: "green", family: "Border Security Force", short: "HCM" };
+  if (slug.includes("cisf")) return { mark: "CISF", tone: "blue", family: "Central Industrial Security Force", short: "HCM" };
+  if (slug.includes("crpf")) return { mark: "CRPF", tone: "red", family: "Central Reserve Police Force", short: "HCM" };
+  if (slug.includes("dsssb")) return { mark: "DSSSB", tone: "violet", family: "Delhi Subordinate Services Selection Board", short: "LDC" };
+  return { mark: "TSZ", tone: "blue", family: "TypingSkillZone practice", short: "PRACTICE" };
 };
 export default function Home() {
   const [exams, setExams] = useState<ExamCard[]>([]);
@@ -29,7 +33,11 @@ export default function Home() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
-  const featured = exams.slice(0, 6);
+  const featuredPriority = ["dp-hcm-en", "dp-hcm-hi", "bsf-hcm-en", "bsf-hcm-hi", "ssc-chsl-en", "ssc-chsl-hi", "ssc-cgl-en", "ssc-cgl-hi"];
+  const featured = [...exams].sort((a, b) => {
+    const ai = featuredPriority.indexOf(a.slug), bi = featuredPriority.indexOf(b.slug);
+    return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi) || a.name.localeCompare(b.name);
+  }).slice(0, 8);
   return (
     <div className="home home-v2">
       <section className="home-hero">
@@ -80,7 +88,7 @@ export default function Home() {
           <div className="home-exam-grid">{featured.map(exam => {
             const mark = examMark(exam.slug);
             return <a key={exam.slug} className="home-exam-card" href={`/simulators/${exam.slug}`}>
-              <div className={`exam-emblem ${mark.tone}`}><span>{mark.mark}</span><small>EXAM PREP</small></div>
+              <ExamEmblem slug={exam.slug} mark={mark.mark} short={mark.short ?? "EXAM"} family={mark.family} tone={mark.tone} />
               <div className="exam-card-content"><div className="exam-card-top"><span className="exam-family">{mark.family}</span><span className="exam-arrow">↗</span></div>
                 <h3>{exam.name}</h3><div className="exam-card-meta"><span>{exam.language === "hi" ? "हिंदी" : "English"}</span><i /> <span>{Math.max(1, Math.round(exam.duration_sec / 60))} min</span></div>
                 {exam.scoring?.qualifyingWpm ? <div className="exam-target"><span>Configured target</span><b>{exam.scoring.qualifyingWpm} <small>WPM</small></b></div> : <div className="exam-target"><span>Practice mode</span><b>Build skills</b></div>}
