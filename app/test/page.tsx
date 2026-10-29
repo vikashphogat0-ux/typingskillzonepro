@@ -94,11 +94,19 @@ export default function TestPage() {
       const data = await r.json().catch(() => ({}));
       if (r.status === 402) { setLimitMsg(data.error ?? "Your daily free-test limit has been reached."); setLoading(false); return; }
       if (passageSource === "custom") text = pastedText;
-      else if (r.ok && typeof data.body === "string" && data.body.trim()) text = data.body;
+      else if (selectedPassageId && (!r.ok || typeof data.body !== "string" || !data.body.trim())) {
+        setNotice(data.error ?? "The selected passage could not be loaded. Choose it again or select a different passage.");
+        setLoading(false);
+        return;
+      } else if (r.ok && typeof data.body === "string" && data.body.trim()) text = data.body;
       else if (r.status === 503) setNotice(data.error ?? "Passage service is temporarily unavailable; using a built-in practice passage.");
     } catch {
       if (passageSource === "custom") text = pastedText;
-      else setNotice("Could not reach the passage service; using a built-in practice passage.");
+      else if (selectedPassageId) {
+        setNotice("Could not load the selected passage because the passage service is unreachable. Check your connection and try again.");
+        setLoading(false);
+        return;
+      } else setNotice("Could not reach the passage service; using a built-in practice passage.");
     }
     if (!text) {
       const samples = SAMPLE_PASSAGES[preset.lang];

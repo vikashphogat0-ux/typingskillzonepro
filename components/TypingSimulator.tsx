@@ -122,9 +122,21 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
     const t = e.currentTarget, n = t.value.length;
     if (t.selectionStart !== n || t.selectionEnd !== n) t.setSelectionRange(n, n);
   };
-  const onKeyDown = (e: React.KeyboardEvent) => {
+  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(e.key)) e.preventDefault();
-    if (e.key === "Tab" && tabKeyPolicy === "blocked") e.preventDefault();
+    if (e.key === "Tab") {
+      if (tabKeyPolicy === "blocked") {
+        e.preventDefault();
+      } else {
+        // Treat Tab as passage input when the template explicitly permits it; never move focus away.
+        e.preventDefault();
+        const input = e.currentTarget;
+        const start = input.selectionStart ?? input.value.length;
+        const end = input.selectionEnd ?? input.value.length;
+        input.setRangeText("\t", start, end, "end");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    }
     if (e.key === "Enter" && enterKeyPolicy === "blocked") e.preventDefault();
     if ((e.ctrlKey || e.metaKey) && ["a", "v", "x", "z", "y"].includes(e.key.toLowerCase())) e.preventDefault();
   };
@@ -152,7 +164,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
     <section className="sim" aria-label="Typing test">
       <div className="sim-bar">
         <div className={left < 30 ? "clock low" : "clock"} role="timer" aria-live="off">{fmt(left)}</div>
-        <div className="meter" aria-hidden><i style={{ width: `${Math.min(100, (typedChars.length / refChars.length) * 100)}%` }} /></div>
+        <div className="meter" aria-hidden><i style={{ width: `${refChars.length ? Math.min(100, (typedChars.length / refChars.length) * 100) : 0}%` }} /></div>
         <div className="rules">
           {mode === "highlighted" ? "Highlighted" : mode === "unhighlighted" ? "Unhighlighted" : "Paper to screen"} ·{" "}
           {backspace === "full" ? "Backspace on" : backspace === "word" ? "Backspace in current word" : "Backspace off"}
