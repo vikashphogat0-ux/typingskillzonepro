@@ -52,7 +52,7 @@ export async function POST(req: Request) {
   let stage = "checking authorization";
   try {
     const secret = process.env.PASSAGE_CRON_SECRET;
-    const supplied = req.headers.get("x-passage-cron-secret") ?? req.headers.get("authorization")?.replace(/^Bearer\\s+/i, "");
+    const supplied = req.headers.get("x-passage-cron-secret") ?? req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const cronAuthorized = Boolean(secret && supplied && supplied === secret);
 
     // Keep authentication out of the route's module-load path. Scheduled calls
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) return Response.json({ error: "GROQ_API_KEY is not configured in the Cloudflare Worker secrets." }, { status: 503 });
     const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
-    const date = typeof body?.date === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(body.date) ? body.date : istDate();
+    const date = typeof body?.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date : istDate();
     const count = slotCount[slot];
 
     stage = "loading database client";
