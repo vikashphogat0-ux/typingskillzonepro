@@ -77,24 +77,31 @@ export default function SimulatorPage() {
   const startTest = async () => {
     setStartErr("");
     setTestState("starting");
-    const r = await api("/api/tests/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug, ...(selectedPassageId ? { passageId: selectedPassageId } : {}) }),
-    });
-    if (!r.ok) {
-      setTestState("idle");
-      if (r.status === 401) {
-        setStartErr("Sign in to use exam simulators.");
-      } else if (r.status === 402) {
-        setStartErr(r.data.error ?? "Daily limit reached. Upgrade to Pro for unlimited tests.");
-      } else {
-        setStartErr(r.data.error ?? "Could not start the test. Try again.");
+    try {
+      const customText = customPassage.trim();
+      if (passageSource === "custom" && customText.split(/\s+/u).filter(Boolean).length < 10) {
+        setStartErr("Paste at least 10 words in your custom passage.");
+        setTestState("idle");
+        return;
       }
-      return;
+      const r = await api("/api/tests/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, ...(passageSource === "custom" ? { customPassage: customText } : selectedPassageId ? { passageId: selectedPassageId } : {}) }),
+      });
+      if (!r.ok) {
+        setTestState("idle");
+        if (r.status === 401) setStartErr("Sign in to use exam simulators.");
+        else if (r.status === 402) setStartErr(r.data.error ?? "Daily limit reached. Upgrade to Pro for unlimited tests.");
+        else setStartErr(r.data.error ?? `Could not start the test (HTTP ${r.status}).`);
+        return;
+      }
+      setTestData(r.data);
+      setTestState("running");
+    } catch (e) {
+      setTestState("idle");
+      setStartErr(e instanceof Error ? `Could not start the test: ${e.message}` : "Network error while starting the test. Check your connection and try again.");
     }
-    setTestData(r.data);
-    setTestState("running");
   };
 
   const onFinish = useCallback(async (result: SimResult) => {
