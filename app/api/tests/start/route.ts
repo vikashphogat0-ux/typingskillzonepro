@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   if (!t) return Response.json({ error: "Simulator not found." }, { status: 404 });
 
   const requestedCustom = typeof b.customPassage === "string" ? b.customPassage.trim() : "";
-  if (requestedCustom && (requestedCustom.split(/\\s+/u).filter(Boolean).length < 10 || Array.from(requestedCustom).length > 50000)) {
+  if (requestedCustom && (requestedCustom.split(/\s+/u).filter(Boolean).length < 10 || Array.from(requestedCustom).length > 50000)) {
     return Response.json({ error: "Custom passages must contain at least 10 words and no more than 50,000 characters." }, { status: 400 });
   }
 
@@ -39,7 +39,8 @@ export async function POST(req: Request) {
     const rows = await db`SELECT body FROM passages WHERE language = ${t.language} ORDER BY random() LIMIT 30`;
     bodies = rows.length ? rows.map((r: any) => r.body as string) : SAMPLE_PASSAGES[t.language as "en" | "hi"];
   }
-  const reference = requestedCustom ? requestedCustom : buildReference(bodies, minCharsFor(t.duration_sec));\n  const backspace = t.slug.startsWith("bsf-") ? "disabled" : t.slug.startsWith("dp-hcm-") ? "full" : t.backspace;
+  const reference = requestedCustom ? requestedCustom : buildReference(bodies, minCharsFor(t.duration_sec));
+  const backspace = t.slug.startsWith("bsf-") ? "disabled" : t.slug.startsWith("dp-hcm-") ? "full" : t.backspace;
 
   const [row] = await db`INSERT INTO tests (user_id, template_id, language, display_mode, backspace, duration_sec, reference_text, assignment_id)
     VALUES (${uid}, ${t.id}, ${t.language}, ${t.display_mode}, ${backspace}, ${t.duration_sec}, ${reference}, ${assignmentId}) RETURNING id`;
