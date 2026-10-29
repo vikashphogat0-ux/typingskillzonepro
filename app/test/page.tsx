@@ -81,7 +81,7 @@ export default function TestPage() {
     setLoading(true); setLimitMsg(""); setLocalResult(null); setCustomPassageError("");
     const pastedText = customPassage.trim();
     if (passageSource === "custom") {
-      const wordCount = pastedText ? pastedText.split(/\\s+/u).filter(Boolean).length : 0;
+      const wordCount = pastedText ? pastedText.split(/\s+/u).filter(Boolean).length : 0;
       if (wordCount < 10) { setCustomPassageError("Paste at least 10 words to start practice."); setLoading(false); return; }
       if (Array.from(pastedText).length > 50000) { setCustomPassageError("Keep your passage under 50,000 characters."); setLoading(false); return; }
     }
@@ -177,7 +177,7 @@ export default function TestPage() {
           ) : (
             <label className="practice-field">Paste your own {preset.lang === "hi" ? "Hindi" : "English"} passage
               <textarea className="custom-passage-input" value={customPassage} onChange={(e) => { setCustomPassage(e.target.value); setCustomPassageError(""); }} placeholder={preset.lang === "hi" ? "यहाँ अपना हिंदी अनुच्छेद पेस्ट करें…" : "Paste or type your own passage here…"} rows={8} maxLength={50000} spellCheck={false} />
-              <small>{customPassage.trim() ? customPassage.trim().split(/\\s+/u).filter(Boolean).length : 0} words · Maximum 50,000 characters. Your passage is not published to the library.</small>
+              <small>{customPassage.trim() ? customPassage.trim().split(/\s+/u).filter(Boolean).length : 0} words · Maximum 50,000 characters. Your passage is not published to the library.</small>
               {customPassageError && <span className="err" role="alert">{customPassageError}</span>}
             </label>
           )}
