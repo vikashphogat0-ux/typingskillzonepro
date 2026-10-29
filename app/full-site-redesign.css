@@ -514,55 +514,57 @@ hr{border-color:#37414d!important}
 }
 
 
-/* Final shared shell + dark theme normalization for legacy routes and nested page styles. */
-:root{color-scheme:dark;--tsz-bg:#171b21;--tsz-surface:#20262e;--tsz-surface-soft:#252d36;--tsz-ink:#edf1f5;--tsz-text:#d6dde5;--tsz-muted:#a5b0bd;--tsz-border:#37414d;--tsz-border-strong:#4a5968}
-html,body{min-height:100%;width:100%;max-width:100%;margin:0!important;background:#171b21!important;color:#d6dde5!important;overflow-x:clip!important}
-body{line-height:1.65}
-.tsz-app-shell{display:grid!important;grid-template-columns:248px minmax(0,1fr)!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:0!important;gap:0!important;background:#171b21!important}
-.tsz-sidebar{width:auto!important;min-width:0!important;max-width:100%!important;margin:0!important;background:#1d232b!important;border-color:#343e49!important;color:#d6dde5!important;box-shadow:none!important}
-.tsz-main-column{display:flex!important;flex-direction:column!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:0!important;gap:0!important;background:#171b21!important}
-.tsz-topbar{width:100%!important;max-width:100%!important;margin:0!important;background:rgba(29,35,43,.96)!important;border-color:#343e49!important;color:#d6dde5!important}
-main.tsz-content{display:block!important;position:relative!important;flex:1 0 auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:auto!important;margin:0!important;margin-left:0!important;padding:clamp(16px,2.2vw,30px)!important;inset:auto!important;left:auto!important;right:auto!important;transform:none!important;overflow-x:clip!important;background:#171b21!important;color:#d6dde5!important}
-.tsz-content>.page,.tsz-content>.home,.tsz-content>.library-page,.tsz-content>.plans,.tsz-content>.practice-page,.tsz-content>main,.tsz-content>section{display:block!important;width:100%!important;max-width:1480px!important;min-width:0!important;margin-left:auto!important;margin-right:auto!important}
-.tsz-content>.library-page{max-width:1480px!important;padding:0 0 40px!important}
-.tsz-content .page,.tsz-content .home,.tsz-content .library-page,.tsz-content .plans,.tsz-content .practice-page{color:#d6dde5!important}
-.tsz-content :is(h1,h2,h3,h4){color:#edf1f5!important}
-.tsz-content :is(p,label,small,li){color:inherit}
-.tsz-content :is(.library-hero,.simulators-hero,.sim-v2-hero,.plans-header,.hero,.dash-welcome,.cta-section){background:linear-gradient(125deg,#222a33,#202e31)!important;border:1px solid #3b4a55!important;color:#d6dde5!important;box-shadow:0 8px 24px rgba(0,0,0,.13)!important}
-.tsz-content :is(.library-hero,.simulators-hero,.sim-v2-hero,.plans-header,.hero,.dash-welcome,.cta-section) p{color:#c0cbd5!important}
-.tsz-content :is(.library-tools,.library-month-toolbar,.library-intro,.library-search-panel,.library-month-list,.library-month-item,.library-day-card,.pitem,.passage-card,.passage-box,.empty-state,.data-source-notice){background:#20262e!important;border-color:#37414d!important;color:#d6dde5!important;box-shadow:none!important}
-.tsz-content :is(.library-tools,.library-month-toolbar) label{color:#cbd4dd!important}
-.tsz-content :is(.library-tools input,.library-tools select,.library-month-toolbar input,.library-month-toolbar select,.library-page input,.library-page select,.library-page textarea,.pricing-phone input,.form input,.form select,.form textarea){width:100%;max-width:100%;min-width:0;background:#1a2027!important;border:1px solid #46525f!important;color:#edf1f5!important;border-radius:10px!important}
-.tsz-content :is(input,textarea,select)::placeholder{color:#8996a4!important}
-.tsz-content .library-page .passage-box{background:#1a2027!important;border-color:#37414d!important;color:#e0e5eb!important;overflow-wrap:anywhere}
-.tsz-content .library-page .tabs{background:#20262e!important;border-color:#37414d!important}
-.tsz-content .library-page .tabs button{color:#c8d2dc!important}
-.tsz-content .library-page .tabs button[aria-selected=true]{background:#31434c!important;border-color:#668895!important;color:#f0f5f7!important}
-.tsz-content .library-page .library-month-select{background:#20262e!important;color:#d6dde5!important}
-.tsz-content .library-page .library-month-title small,.tsz-content .library-page .library-intro p{color:#a5b0bd!important}
-.tsz-content .plans-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:stretch!important;gap:18px!important;width:100%!important;max-width:100%!important;margin:18px 0 26px!important}
-.tsz-content .plans-grid>.plan-card{display:flex!important;flex-direction:column!important;align-items:stretch!important;width:100%!important;min-width:0!important;height:100%!important;margin:0!important;padding:clamp(17px,2vw,24px)!important;overflow:hidden!important;border:1px solid #3b4a55!important;border-radius:18px!important;background:linear-gradient(160deg,#232b35,#20262e 72%)!important;color:#d6dde5!important;box-shadow:0 7px 20px rgba(0,0,0,.14)!important}
-.tsz-content .plans-grid>.plan-card-featured{border-color:#5a8995!important;background:linear-gradient(160deg,#263b45,#202b34 70%)!important}
-.tsz-content .plan-card h2,.tsz-content .plan-price strong{color:#edf1f5!important}
-.tsz-content .plan-billing,.tsz-content .plan-duration,.tsz-content .plan-features li{color:#c3ccd6!important}
-.tsz-content .plan-action{display:flex!important;width:100%!important;min-width:0!important;min-height:46px!important;margin-top:auto!important;align-items:center!important;justify-content:center!important;white-space:normal!important;background:#426d7c!important;border:1px solid #527e8d!important;color:#fff!important}
-.tsz-content .current-subscription,.tsz-content .subscription-notice,.tsz-content .pricing-message,.tsz-content .pricing-phone,.tsz-content .pricing-notes{width:100%!important;min-width:0!important;background:#20262e!important;border:1px solid #37414d!important;border-radius:16px!important;color:#d6dde5!important}
-.tsz-content .pricing-phone{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(220px,360px)!important;align-items:center!important;gap:12px 18px!important}
-.tsz-content .pricing-phone p{grid-column:1/-1!important;color:#aeb9c5!important}
-.tsz-content .pricing-message[role=alert]{border-color:#805b48!important;background:#332a27!important}
-.tsz-content .pricing-message[role=alert] p{color:#f1d4c7!important}
-.tsz-content :is(.card,.panel,.summary,.tiles,.chart,.lesson,.sim-page-card,.sim-card,.library-card,.passage-card,.result-card,.metric-card,.stat-card,.exam-card,.pricing-card,.feature-card,.profile-card,.settings-card,.card-p,.rankline,.pitem,.library-day-card,.dash-panel,.dash-metric,.dash-quick-card,.dash-exam-card){min-width:0;max-width:100%;background:#20262e!important;color:#d6dde5!important;border-color:#37414d!important;box-shadow:0 6px 18px rgba(0,0,0,.13)!important}
-.tsz-content :is(.go,.hero-primary,.dash-primary-btn,.plan-action){background:#426d7c!important;border-color:#527e8d!important;color:#fff!important}
-.tsz-content :is(.go.alt,.hero-secondary,.dash-secondary-btn){background:#252d36!important;border-color:#4a5968!important;color:#e2e8ee!important}
-.tsz-content :is(.home-exam-grid,.sim-page-grid,.sim-page-grid-v2,.sim-grid,.simulator-grid,.library-day-grid,.plans-grid,.practice-layout,.tiles,.two,.cmp-grid){min-width:0!important;max-width:100%!important}
-.tsz-content :is(img,svg,video,canvas){max-width:100%}
-.footer{width:100%!important;max-width:100%!important;margin:0!important;margin-left:0!important;background:#1d232b!important;border-color:#343e49!important;color:#c0cad4!important}
-.footer-content{width:100%!important;max-width:1480px!important;margin:0 auto!important}
-.footer h4{color:#edf1f5!important}.footer a{color:#b5dce8!important}.footer-bottom{border-color:#343e49!important}
-.auth-sidebar-wrap,.auth-header-wrap{display:inline-flex;align-items:center;flex-wrap:wrap;gap:8px;max-width:100%;min-width:0}
-.auth-status-message,.auth-sidebar-wrap [role=alert],.auth-header-wrap [role=alert]{display:block;flex:1 0 100%;max-width:100%;overflow-wrap:anywhere;color:#f1b9a9;font-size:12px;line-height:1.45}
-.auth-sidebar-button,.topbar-auth button{max-width:100%;white-space:normal}
-@media(max-width:1120px){.tsz-content .plans-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-@media(max-width:1050px){.tsz-app-shell{grid-template-columns:76px minmax(0,1fr)!important}}
-@media(max-width:760px){.tsz-content .plans-grid{grid-template-columns:minmax(0,1fr)!important;gap:14px!important}.tsz-content .pricing-phone{grid-template-columns:minmax(0,1fr)!important}.tsz-content .pricing-phone p{grid-column:1!important}}
-@media(max-width:680px){.tsz-app-shell{display:block!important;width:100%!important}.tsz-sidebar{width:100%!important;max-width:100%!important}.tsz-content{padding:14px!important}main.tsz-content{width:100%!important;margin:0!important;padding:14px!important}.tsz-content>.page,.tsz-content>.home,.tsz-content>.library-page,.tsz-content>.plans,.tsz-content>.practice-page,.tsz-content>main,.tsz-content>section{width:100%!important;max-width:none!important;margin:0!important}.tsz-content .plans-grid>.plan-card{padding:18px!important}.auth-sidebar-wrap{width:100%}}
+/* Global shell alignment correction.
+   Legacy design-system rules applied a fixed left margin to every <main>, even inside
+   the new sidebar/content grid. Reset that legacy offset for the application shell. */
+html,body{width:100%;max-width:100%;overflow-x:clip}
+.tsz-app-shell{
+  display:grid!important;
+  grid-template-columns:248px minmax(0,1fr)!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  margin:0!important;padding:0!important;gap:0!important;
+}
+.tsz-main-column{
+  display:flex!important;flex-direction:column!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  margin:0!important;padding:0!important;gap:0!important;
+}
+main.tsz-content{
+  display:block!important;position:relative!important;
+  width:100%!important;max-width:none!important;min-width:0!important;
+  margin:0!important;margin-left:0!important;
+  padding:clamp(16px,2.2vw,30px)!important;
+  inset:auto!important;left:auto!important;right:auto!important;
+  transform:none!important;overflow-x:clip!important;
+}
+.tsz-content>.page,.tsz-content>.home,.tsz-content>.library-page,
+.tsz-content>.plans,.tsz-content>.practice-page,.tsz-content>.sim-page-grid,
+.tsz-content>main,.tsz-content>section{
+  width:100%!important;max-width:1480px!important;min-width:0!important;
+  margin-left:auto!important;margin-right:auto!important;
+}
+.tsz-content .library-page{max-width:1480px!important;padding:0 0 40px!important}
+.tsz-content .library-hero,.tsz-content .simulators-hero,.tsz-content .plans-header{width:100%!important;max-width:none!important}
+.tsz-content :where(.library-tools,.library-month-toolbar,.library-day-grid,.library-month-list,.plist,.sim-page-grid,.sim-page-grid-v2,.plans-grid,.practice-layout,.home-exam-grid,.tiles){
+  min-width:0!important;max-width:100%!important;
+}
+.tsz-content :where(input,select,textarea,button){max-width:100%}
+.tsz-content :where(img,svg,video,canvas){max-width:100%}
+.tsz-footer,.site-footer,footer.footer{
+  width:100%!important;max-width:100%!important;margin-left:0!important;
+}
+@media(max-width:1200px){
+  .tsz-app-shell{grid-template-columns:218px minmax(0,1fr)!important}
+}
+@media(max-width:1050px){
+  .tsz-app-shell{grid-template-columns:76px minmax(0,1fr)!important}
+}
+@media(max-width:680px){
+  .tsz-app-shell{display:block!important;width:100%!important}
+  .tsz-sidebar{width:100%!important;max-width:100%!important}
+  main.tsz-content{width:100%!important;margin:0!important;padding:14px!important}
+  .tsz-content>.page,.tsz-content>.home,.tsz-content>.library-page,.tsz-content>.plans,
+  .tsz-content>.practice-page,.tsz-content>.sim-page-grid,.tsz-content>main,.tsz-content>section{
+    width:100%!important;max-width:none!important;margin:0!important
+  }
+}
