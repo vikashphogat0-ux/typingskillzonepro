@@ -60,6 +60,7 @@ export default function Admin() {
   /* ---------- templates ---------- */
   const [t, setT] = useState(emptyTpl);
   const upd = (k: keyof typeof emptyTpl, v: any) => setT((x) => ({ ...x, [k]: v }));
+  const selectedProfile = PROFILES[t.base] ?? PROFILES.practice;
   const saveTpl = async () => {
     const scoring = { ...defaultScoring(t.base), id: t.slug, label: t.name, unit: t.unit, netMethod: t.netMethod, halfRules: { caseOnly: t.caseOnly, punctuationOnly: t.punctOnly }, qualifyingWpm: t.qualifying === "" ? undefined : Number(t.qualifying), maxErrorPercent: t.maxErr === "" ? undefined : Number(t.maxErr) };
     const r = await post("/api/admin/templates", { slug: t.slug.trim(), name: t.name, language: t.language, durationSec: Math.round(t.minutes * 60), displayMode: t.displayMode, backspace: t.backspace, scoring });
@@ -130,14 +131,14 @@ export default function Admin() {
             <label>Duration (minutes)<input type="number" min={0.5} max={60} step={0.5} value={t.minutes} onChange={(e) => upd("minutes", Number(e.target.value))} /></label>
             <label>Passage display<select value={t.displayMode} onChange={(e) => upd("displayMode", e.target.value)}><option value="highlighted">Highlighted</option><option value="unhighlighted">Unhighlighted</option><option value="offscreen">Paper to screen</option></select></label>
             <label>Backspace<select value={t.backspace} onChange={(e) => upd("backspace", e.target.value)}><option value="full">Full</option><option value="word">Current word only</option><option value="disabled">Disabled</option></select></label>
-            <label>Start scoring from<select value={t.base} onChange={(e) => { const p = PROFILES[e.target.value]; setT({ ...t, base: e.target.value, unit: p.unit, netMethod: p.netMethod, qualifying: p.qualifyingWpm?.toString() ?? "", maxErr: p.maxErrorPercent?.toString() ?? "" }); }}>{Object.values(PROFILES).map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select></label>
+            <label>Start scoring from<select value={t.base} onChange={(e) => { const p = PROFILES[e.target.value]; setT({ ...t, base: e.target.value, unit: p.unit, netMethod: p.netMethod, qualifying: p.qualifyingWpm?.toString() ?? "", maxErr: p.maxErrorPercent?.toString() ?? "", minutes: p.durationSec ? p.durationSec / 60 : t.minutes, language: p.language ?? t.language, displayMode: p.id.startsWith("delhi-police-hcm-") ? "offscreen" : t.displayMode }); }}>{Object.values(PROFILES).map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select></label>
             <label>Count speed by<select value={t.unit} onChange={(e) => upd("unit", e.target.value)}><option value="words">Words (5 characters = 1 word)</option><option value="keystrokes">Key depressions</option></select></label>
-            <label>Net speed<select value={t.netMethod} onChange={(e) => upd("netMethod", e.target.value)}><option value="penalty">Gross minus error penalty</option><option value="accuracy">Gross times accuracy</option></select></label>
-            <label>Qualifying net WPM (blank for none)<input inputMode="decimal" value={t.qualifying} onChange={(e) => upd("qualifying", e.target.value)} /></label>
+            <label>Net speed<select value={t.netMethod} onChange={(e) => upd("netMethod", e.target.value)}><option value="penalty">Gross minus error penalty</option><option value="accuracy">Gross times accuracy</option><option value="per-error">One WPM per error (DP HCM)</option><option value="rrb">RRB CBTST error-adjusted formula</option></select></label>
+            <label>Qualifying WPM (profile gross/net rule applies; blank for none)<input inputMode="decimal" value={t.qualifying} onChange={(e) => upd("qualifying", e.target.value)} /></label>
             <label>Maximum error % (blank for none)<input inputMode="decimal" value={t.maxErr} onChange={(e) => upd("maxErr", e.target.value)} /></label>
             <label className="chk"><input type="checkbox" checked={t.caseOnly} onChange={(e) => upd("caseOnly", e.target.checked)} /> Capital-letter slips are half mistakes</label>
             <label className="chk"><input type="checkbox" checked={t.punctOnly} onChange={(e) => upd("punctOnly", e.target.checked)} /> Punctuation slips are half mistakes</label>
-            <p className="hint">Check these values against the exam’s official notification before publishing.</p>
+            <p className="hint">{selectedProfile.durationSec ? `Profile default: ${selectedProfile.durationSec / 60} minutes. ` : ""}{selectedProfile.targetKeystrokes ? `Practice target: ${selectedProfile.targetKeystrokes.toLocaleString()} key depressions. ` : ""}{selectedProfile.minWords ? `Minimum words: ${selectedProfile.minWords}. ` : ""}{selectedProfile.errorAllowancePercent !== undefined ? `Ignored-error allowance: ${selectedProfile.errorAllowancePercent}%. ` : ""}Check all values against the exam’s current official notification before publishing.</p>
             <button className="go" disabled={!t.name.trim() || !t.slug.trim()} onClick={saveTpl}>Save template</button>
           </div>
           <h2>Saved templates</h2>
