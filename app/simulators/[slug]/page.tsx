@@ -210,9 +210,13 @@ export default function SimulatorPage() {
                 <tr>
                   <th>Net speed formula</th>
                   <td>
-                    {scoring.netMethod === "penalty"
-                      ? "Net WPM = Gross WPM − (full errors + 0.5 × half errors) ÷ minutes"
-                      : "Net WPM = Gross WPM × accuracy %"}
+                    {scoring.netMethod === "rrb"
+                      ? "RRB CBTST: (total words typed − final mistakes × 10) ÷ test minutes; up to 5% of weighted mistakes are ignored."
+                      : scoring.netMethod === "per-error"
+                        ? "Net WPM = Gross WPM − one WPM for each full word error."
+                        : scoring.netMethod === "penalty"
+                          ? "Net WPM = Gross WPM − (full errors + 0.5 × half errors) ÷ minutes."
+                          : "Net WPM = Gross WPM × accuracy %."}
                   </td>
                 </tr>
                 <tr>
@@ -235,13 +239,25 @@ export default function SimulatorPage() {
                   <tr>
                     <th>Qualifying speed</th>
                     <td>
-                      <strong>{scoring.qualifyingWpm} net WPM</strong>
+                      <strong>{scoring.qualifyingWpm} {scoring.qualificationBasis === "gross" ? "gross" : "net"} WPM</strong>
                       {scoring.unit === "keystrokes"
                         ? ` (= ${Math.round(scoring.qualifyingWpm * 5 * 60)} key depressions per hour)`
                         : ""}
                     </td>
                   </tr>
                 )}
+                {scoring.minWords !== undefined && (
+                  <tr><th>Minimum words typed</th><td>{scoring.minWords} words</td></tr>
+                )}
+                {scoring.errorAllowancePercent !== undefined && (
+                  <tr><th>Error allowance</th><td>{scoring.errorAllowancePercent}% of weighted errors may be ignored</td></tr>
+                )}
+                {scoring.targetKeystrokes !== undefined && (
+                  <tr><th>Practice key-depression target</th><td>{scoring.targetKeystrokes.toLocaleString()} keystrokes in {Math.round((scoring.durationSec ?? sim.duration_sec) / 60)} minutes; not an official universal pass threshold</td></tr>
+                )}
+                {scoring.id === "delhi-police-hcm-en" || scoring.id === "delhi-police-hcm-hi" ? (
+                  <tr><th>DP HCM marks</th><td>Up to 25 marks. Marks are estimated from the configured speed bands; verify the current recruitment notice.</td></tr>
+                ) : null}
                 {scoring.maxErrorPercent !== undefined && (
                   <tr>
                     <th>Maximum errors</th>
