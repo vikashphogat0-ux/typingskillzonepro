@@ -1,4 +1,3 @@
-import { sql } from "@/lib/db";
 import { getUserId } from "@/lib/auth";
 import { getStudentAccess } from "@/lib/subscription";
 import { getStudentPlan } from "@/lib/pricing";
@@ -7,6 +6,7 @@ import { getStudentPlan } from "@/lib/pricing";
 export async function GET(req: Request) {
   try {
     const uid = await getUserId(req);
+
     if (!uid) {
       return Response.json({
         signedIn: false,
@@ -19,7 +19,6 @@ export async function GET(req: Request) {
     }
 
     const access = await getStudentAccess(uid);
-
     const planId = access.plan;
     const planDef = getStudentPlan(planId);
 
@@ -29,10 +28,13 @@ export async function GET(req: Request) {
       endsAt: access.endsAt,
       viaInstitution: access.viaInstitution,
       testsLeft: access.testsLeft,
-      prices: planDef ? { [planId]: planDef.amountPaise, free: 0 } : { free: 0 },
+      prices: planDef
+        ? { [planId]: planDef.amountPaise, free: 0 }
+        : { free: 0 },
     });
   } catch (error) {
     console.error("/api/student-access error:", error);
+
     return Response.json(
       { error: "Unable to load student access." },
       { status: 500 }
