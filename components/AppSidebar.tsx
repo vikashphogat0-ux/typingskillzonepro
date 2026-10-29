@@ -22,7 +22,7 @@ export default function AppSidebar() {
   return <aside className="tsz-sidebar">
     <a href="/" className="tsz-brand" aria-label="Typing Skill Zone dashboard">
       <span className="tsz-brand-mark">T</span>
-      <span className="tsz-brand-copy"><strong>TypingSkillZone</strong><small>MASTER YOUR NEXT EXAM</small></span>
+      <span className="tsz-brand-copy"><strong>TypingSkillZone</strong><small>PRACTICE · PREPARE · EXCEL</small></span>
     </a>
     {groups.map(group => <section className="tsz-sidebar-group" key={group.title}>
       <div className="sidebar-group-label">{group.title}</div>
@@ -36,9 +36,9 @@ export default function AppSidebar() {
       </nav>
     </section>)}
     <a className="sidebar-upgrade" href="/pricing">
-      <span className="upgrade-icon">✦</span><strong>Unlock Student Pro</strong>
+      <span className="upgrade-icon">✦</span><strong>Student Pro</strong>
       <span>More practice. Deeper insights. Better preparation.</span>
-      <b>Explore plans <span aria-hidden="true">↗</span></b>
+      <b>View plans <span aria-hidden="true">↗</span></b>
     </a>
     <div className="sidebar-foot"><span className="status-dot" /> All systems ready <span>v2.0</span></div>
   </aside>;
