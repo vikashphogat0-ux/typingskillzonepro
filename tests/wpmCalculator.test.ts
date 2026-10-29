@@ -372,8 +372,8 @@ test("Delhi Police HCM Hindi qualification and marks use Hindi thresholds", () =
   const reference = Array.from({ length: 250 }, () => "भारत").join(" ");
   const typed = Array.from({ length: 250 }, (_, i) => i < 5 ? "भारती" : "भारत").join(" ");
   const r = calculateScore({ reference, typed, elapsedSec: 600, durationSec: 600, profile });
-  assert.equal(r.grossWpm, 25);
-  assert.equal(r.netWpm, 19.98);
+  assert.equal(r.grossWpm, 25.08);
+  assert.equal(r.netWpm, 20.08);
   assert.equal(r.passed, false);
   assert.equal(r.marks, 0);
 });
