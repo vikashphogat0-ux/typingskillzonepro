@@ -22,12 +22,26 @@ export async function POST(req: Request) {
   const bad = checked.filter((c: any) => !c.ok);
   if (bad.length) return Response.json({ error: "Some passages need fixing.", problems: bad.map((c: any) => ({ index: c.i, errors: c.errors })) }, { status: 422 });
   const db = sql();
-  const slug = b.templateSlug ? String(b.templateSlug) : null;
-  for (const c of checked as any[]) {
-    await db`INSERT INTO passages (template_id, language, title, body, word_count, created_by)
-      VALUES ((SELECT id FROM exam_templates WHERE slug = ${slug}), ${c.clean.language}, ${c.clean.title}, ${c.clean.body}, ${countWords(c.clean.body)}, ${uid})`;
+  const slug = b.templateSlug ? String(b.templateSlug).trim() : null;
+  if (slug) {
+    const [template] = await db`SELECT id FROM exam_templates WHERE slug = ${slug} LIMIT 1`;
+    if (!template) return Response.json({ error: "The selected exam template does not exist." }, { status: 422 });
   }
-  return Response.json({ ok: true, saved: checked.length });
+  const payload = checked.map((item: any) => ({
+    language: item.clean.language,
+    title: item.clean.title,
+    body: item.clean.body,
+    word_count: countWords(item.clean.body),
+  }));
+  // A single INSERT is atomic: the batch is either fully stored or not stored.
+  const inserted = await db`
+    INSERT INTO passages (template_id, language, title, body, word_count, created_by)
+    SELECT (SELECT id FROM exam_templates WHERE slug = ${slug}), item.language, item.title, item.body, item.word_count, ${uid}
+    FROM jsonb_to_recordset(${JSON.stringify(payload)}::jsonb)
+      AS item(language text, title text, body text, word_count integer)
+    RETURNING id
+  `;
+  return Response.json({ ok: true, saved: inserted.length });
 }
 
 export async function DELETE(req: Request) {
