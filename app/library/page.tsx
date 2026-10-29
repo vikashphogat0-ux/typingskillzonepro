@@ -2,8 +2,10 @@
 import { useEffect, useState } from "react";
 import { api, fmtDate } from "@/lib/clientApi";
 
-interface P { id: string; title: string; word_count: number; language?: string; body?: string; date?: string; preview?: string; exam?: string | null }
+interface P { id: string; passage_number?: number; title: string; word_count: number; language?: string; body?: string; date?: string; preview?: string; exam?: string | null }
 type LibraryData = { today?: string; daily: Record<string, P | undefined>; archive: Record<string, P[]>; list: P[]; months?: string[]; monthly?: P[]; localFallback?: boolean; notice?: string };
+const passageLabel = (p: P) => String(p.passage_number ?? 1).padStart(2, "0");
+
 export default function Library() {
   const [d, setD] = useState<LibraryData | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -76,7 +78,7 @@ export default function Library() {
     <article className="library-day-card">
       <div className="library-day-head"><h3>{lg === "hi" ? "हिन्दी अभ्यास" : "English practice"}</h3><span>{lg === "hi" ? "Hindi" : "English"}</span></div>
       <div className="library-day-body">
-        <h4>{p.title}</h4>
+        <div className="passage-title-row"><h4>{p.title}</h4><span className="passage-id-badge">Passage {passageLabel(p)}</span></div>
         <p className="hint">{p.word_count} words · {fmtDate(p.date)}</p>
         <div className={`passage-box${lg === "hi" ? " hi" : ""}`} lang={lg}>{p.body}</div>
         <div className="library-day-actions"><a className="go" href={`/api/library/download?date=${p.date}&lang=${lg}`}>Download text</a><button className="go alt" onClick={() => print(p)}>Save as PDF / Print</button><a className="go alt" href="/test">Practise now ↗</a></div>
@@ -112,7 +114,7 @@ export default function Library() {
           <div className="library-month-list">{monthly.map(p => <article key={p.id} className={`library-month-item ${selectedPassage === p.id ? "selected" : ""}`}>
             <button className="library-month-select" onClick={() => { setSelectedPassage(p.id); void view(p, false); }} aria-pressed={selectedPassage === p.id}>
               <span className={`library-language-mark ${p.language === "hi" ? "hindi" : "english"}`}>{p.language === "hi" ? "हि" : "EN"}</span>
-              <span className="library-month-title"><strong>{p.title}</strong><small>{p.language === "hi" ? "Hindi folder" : "English folder"} · {p.word_count} words · ID: {p.id}{p.exam ? ` · ${p.exam}` : ""}</small></span>
+              <span className="library-month-title"><strong>{p.title}</strong><small>{p.language === "hi" ? "Hindi folder" : "English folder"} · {p.word_count} words · Passage ID: {passageLabel(p)}{p.exam ? ` · ${p.exam}` : ""}</small></span>
               <span className="library-month-chevron">{selectedPassage === p.id ? "Selected" : "Select"} ↗</span>
             </button>
             {selectedPassage === p.id && <div className="library-month-detail">
@@ -126,7 +128,7 @@ export default function Library() {
         <div className="library-tools"><label>Search passages<input value={q} onChange={e => setQ(e.target.value)} placeholder="Enter passage ID, title or words from the passage…" /></label><label>Language folder<select value={lang} onChange={e => setLang(e.target.value)}><option value="">All languages</option><option value="en">English only</option><option value="hi">Hindi only</option></select></label><button className="go alt" onClick={() => { setQ(""); setLang(""); }}>Clear filters</button></div>
         {searching && <p className="hint">Searching passages…</p>}
         <p className="hint" aria-live="polite">{searching ? "Searching…" : `${list.length} passage${list.length === 1 ? "" : "s"} found`}</p><div className="plist">{list.map(p => <article key={p.id} className="pitem">
-          <div><b>{p.title}</b> <span className="tag">{p.language === "hi" ? "Hindi folder" : "English folder"}</span> <span className="tag">ID: {p.id}</span>{p.exam && <span className="tag">{p.exam}</span>} <span className="hint">{p.word_count} words</span></div>
+          <div><b>{p.title}</b> <span className="tag">{p.language === "hi" ? "Hindi folder" : "English folder"}</span> <span className="tag passage-id-tag">Passage ID: {passageLabel(p)}</span>{p.exam && <span className="tag">{p.exam}</span>} <span className="hint">{p.word_count} words</span></div>
           {open?.id === p.id ? <div className={`passage-box${p.language === "hi" ? " hi" : ""}`} lang={p.language}>{open.body}</div> : <p className="hint">{p.preview || "Open to read this passage."}{p.preview ? "…" : ""}</p>}
           <p><button className="link" onClick={() => view(p)}>{open?.id === p.id ? "Hide passage" : "Read full passage"}</button> · <a href={`/api/library/download?id=${encodeURIComponent(p.id)}`}>Download text</a> · <button className="link" onClick={() => print(open?.id === p.id ? open : p)}>Save as PDF / Print</button> · <a href={`/test?passage=${encodeURIComponent(p.id)}`}>Practise this passage ↗</a></p>
         </article>)}{!searching && !list.length && <div className="empty-state"><b>No passages found.</b><p>Try a different title or language filter.</p></div>}</div>

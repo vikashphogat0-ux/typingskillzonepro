@@ -1,0 +1,142 @@
+/* Desktop header repair: two deliberate rows prevent the brand and navigation from clipping. */
+@media (min-width: 1001px) {
+  .top {
+    position: relative !important;
+    inset: auto !important;
+    z-index: 50 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 16px clamp(20px, 3vw, 48px) 14px !important;
+    overflow: visible !important;
+  }
+  .top > .brand {
+    display: inline-flex !important;
+    align-self: flex-start !important;
+    max-width: 100% !important;
+    white-space: nowrap !important;
+    line-height: 1.3 !important;
+  }
+  .top > nav {
+    position: static !important;
+    inset: auto !important;
+    display: flex !important;
+    flex: 0 0 auto !important;
+    flex-flow: row wrap !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 8px 10px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  .top > nav > a,
+  .top > nav > button,
+  .top > nav > span,
+  .top > nav > div {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    min-height: 38px !important;
+    max-width: 100% !important;
+    padding: 8px 12px !important;
+    border: 1px solid rgba(112, 178, 235, .24) !important;
+    border-radius: 9px !important;
+    background: rgba(12, 40, 75, .7) !important;
+    color: #e8f5ff !important;
+    text-decoration: none !important;
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+    white-space: nowrap !important;
+  }
+  .top > nav > .nav-home-link {
+    border-color: rgba(22, 217, 243, .55) !important;
+    background: linear-gradient(110deg, #064c70, #0a3670) !important;
+  }
+  .top > nav > a:hover,
+  .top > nav > button:hover {
+    border-color: #25d5f4 !important;
+    background: linear-gradient(110deg, #07527c, #104e9a) !important;
+    color: #fff !important;
+  }
+  .top > nav > span {
+    gap: 8px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+  .top > nav > span > a,
+  .top > nav > span > button,
+  .top > nav .navbtn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 38px !important;
+    padding: 8px 13px !important;
+    border: 1px solid rgba(22, 217, 243, .55) !important;
+    border-radius: 9px !important;
+    background: linear-gradient(110deg, #064c70, #0a3670) !important;
+    color: #e8faff !important;
+    text-decoration: none !important;
+    font: inherit !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    cursor: pointer !important;
+  }
+  .footer { margin-left: 0 !important; width: 100% !important; }
+}
+@media (min-width: 681px) and (max-width: 1000px) {
+  .top {
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+  .top > nav {
+    position: static !important;
+    display: flex !important;
+    flex-flow: row wrap !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .top > nav > a,
+  .top > nav > button { min-height: 38px !important; }
+  .footer { margin-left: 0 !important; width: 100% !important; }
+}
+
+
+/* Explore Exams: match the homepage's cleaner horizontal exam cards and rhythm. */
+.sim-page-grid-v2{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;align-items:stretch;gap:18px!important;margin-top:18px}
+.home-style-exam-card{display:flex!important;flex-direction:row!important;align-items:flex-start!important;gap:18px!important;min-width:0;padding:20px!important;text-decoration:none!important;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.home-style-exam-card .exam-card-emblem{width:82px!important;height:96px!important;flex:0 0 82px!important;border-radius:14px!important;border:1px solid rgba(92,188,255,.25)!important;background:linear-gradient(145deg,#f7fbff,#dbe8f8)!important;padding:8px!important}
+.home-style-exam-content{display:flex;flex-direction:column;flex:1;min-width:0;gap:9px}
+.home-style-exam-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.home-style-exam-card .sim-notice-pill{align-self:flex-start;padding:4px 9px;border:1px solid rgba(91,184,255,.2);border-radius:999px;background:rgba(24,105,175,.18);color:#b9eaff;font-size:10px;font-weight:800}
+.home-style-exam-card h2{margin:2px 0 0!important;font-size:clamp(17px,1.4vw,21px)!important;line-height:1.3!important;letter-spacing:-.02em}
+.home-style-exam-card .sim-card-description{margin:0;min-height:0;font-size:12px;line-height:1.65;color:#a9bfde!important}
+.home-style-exam-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#a8bdd7;font-size:12px}
+.home-style-exam-meta i{width:4px;height:4px;border-radius:50%;background:#52759d}
+.home-style-exam-card .exam-target{margin-top:2px}
+.home-style-exam-footer{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:10px;border-top:1px solid rgba(107,160,218,.2);color:#d5e8fa;font-size:12px;font-weight:800}
+.home-style-exam-footer>span:nth-child(2){color:#63e6ff}
+.home-style-exam-footer small{margin-left:auto;color:#91aaca;font-size:10px;font-weight:600}
+.passage-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.passage-title-row h4{min-width:0}
+.passage-id-badge{display:inline-flex;align-items:center;flex:0 0 auto;padding:5px 10px;border:1px solid rgba(72,194,255,.28);border-radius:999px;background:rgba(15,116,178,.17);color:#83eaff;font-size:11px;font-weight:850;letter-spacing:.04em}
+.library-page .passage-id-tag{border:1px solid rgba(72,194,255,.28);background:rgba(15,116,178,.17)!important;color:#83eaff!important;font-weight:800}
+@media(max-width:900px){.sim-page-grid-v2{grid-template-columns:1fr!important;gap:14px!important}.home-style-exam-card{padding:16px!important;gap:13px!important}}
+@media(max-width:560px){.home-style-exam-card{flex-direction:column!important}.home-style-exam-card .exam-card-emblem{width:68px!important;height:78px!important;flex-basis:78px!important}.home-style-exam-footer small{margin-left:0}}

@@ -61,22 +61,16 @@ export default function SimulatorsPage() {
         <div className="sim-page-grid sim-page-grid-v2">{filtered.map(sim => {
           const mark = examMark(sim.slug);
           const target = sim.scoring?.qualifyingWpm;
-          return <a key={sim.slug} className={`sim-page-card sim-page-card-v2 ${mark.tone}`} href={`/simulators/${sim.slug}`}>
-            <div className="sim-card-brand-row">
-              <ExamEmblem slug={sim.slug} mark={mark.mark} short={mark.short} family={mark.family} tone={mark.tone} />
-              <div className="sim-card-brand-copy"><span className="exam-family">{mark.family}</span><span className="sim-notice-pill">Configured exam pattern</span></div>
-              <span className="exam-arrow" aria-hidden="true">↗</span>
-            </div>
-            <div className="sim-card-content">
+          return <a key={sim.slug} className={`sim-page-card sim-page-card-v2 home-style-exam-card ${mark.tone}`} href={`/simulators/${sim.slug}`}>
+            <ExamEmblem slug={sim.slug} mark={mark.mark} short={mark.short} family={mark.family} tone={mark.tone} />
+            <div className="home-style-exam-content">
+              <div className="home-style-exam-top"><span className="exam-family">{mark.family}</span><span className="exam-arrow" aria-hidden="true">↗</span></div>
+              <span className="sim-notice-pill">Configured exam pattern</span>
               <h2>{sim.name}</h2>
               <p className="sim-card-description">{sim.description || "A dedicated typing environment with configured timing, display and scoring settings."}</p>
-              <div className="sim-rule-metrics">
-                <span><small>LANGUAGE</small><strong>{sim.language === "hi" ? "हिंदी" : "English"}</strong></span>
-                <span><small>DURATION</small><strong>{Math.max(1, Math.round(sim.duration_sec / 60))} min</strong></span>
-                <span><small>QUALIFYING TARGET</small><strong>{target ? `${target} net WPM` : sim.scoring?.unit === "keystrokes" ? "Key depressions" : "Practice score"}</strong></span>
-              </div>
-              <div className="sim-card-rule-line"><span><i className="sim-rule-dot" />{bsLabel(sim.backspace)}</span><span>{modeLabel(sim.display_mode)}</span></div>
-              <div className="sim-card-bottom"><span>Open dedicated simulator <b>→</b></span><small>{sim.participants ?? 0} participants</small></div>
+              <div className="home-style-exam-meta"><span>{sim.language === "hi" ? "हिंदी" : "English"}</span><i /> <span>{Math.max(1, Math.round(sim.duration_sec / 60))} min</span><i /> <span>{bsLabel(sim.backspace)}</span></div>
+              <div className="exam-target"><span>{target ? "Configured qualifying target" : "Practice mode"}</span><b>{target ? <>{target} <small>net WPM</small></> : sim.scoring?.unit === "keystrokes" ? "Key depressions" : "Build skills"}</b></div>
+              <div className="home-style-exam-footer"><span>Open dedicated simulator</span><span>→</span><small>{sim.participants ?? 0} participants</small></div>
             </div>
           </a>;
         })}</div>}
