@@ -154,8 +154,11 @@ test("daily test limit and price overrides", () => {
   assert.equal(testsLeft("free", 0), LIMITS.free.testsPerDay);
   assert.equal(testsLeft("free", 99), 0);
   assert.equal(testsLeft("pro", 99), null);
-  assert.equal(priceFor("monthly", { PRO_MONTHLY_PAISE: "19900" }), 19900);
-  assert.equal(priceFor("monthly", { PRO_MONTHLY_PAISE: "abc" }), 14900);
+  assert.equal(priceFor("monthly", { PRO_MONTHLY_PAISE: "19900" }), 9900);
+  assert.equal(priceFor("monthly", { PRO_MONTHLY_PAISE: "abc" }), 9900);
+  assert.equal(priceFor("yearly", { PRO_YEARLY_PAISE: "99900" }), 79900);
+  assert.equal(LIMITS.free.historyRows, 10);
+  assert.equal(LIMITS.pro.aiFeedback, false);
 });
 import { decideLink } from "../lib/identity.ts";
 test("identity linking never lets an unverified email claim an existing account", () => {
