@@ -100,6 +100,19 @@ test("RRB CBTST applies its 5 percent allowance and official speed formula", () 
 });
 
 
+
+test("RRB CBTST disqualifies a transcript that does not reach the end of the passage", () => {
+  const referenceWords = Array.from({ length: 400 }, (_, i) => `word${String(i).padStart(3, "0")}`);
+  const r = calculateScore({
+    reference: referenceWords.join(" "),
+    typed: referenceWords.slice(0, 300).join(" "),
+    elapsedSec: 600,
+    durationSec: 600,
+    profile: PROFILES["rrb-ntpc-en"],
+  });
+  assert.equal(r.passed, false);
+});
+
 test("Delhi High Court JJA profile reflects the 2026 English typing criteria", () => {
   const p = PROFILES["delhi-high-court-jja-en"];
   assert.equal(p.durationSec, 600);
