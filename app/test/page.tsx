@@ -116,6 +116,7 @@ export default function TestPage() {
   };
 
   const profile = preset.profile ?? PROFILES[preset.profileId] ?? PROFILES.practice;
+  const isPracticePreset = profile.id === "practice";
   const onFinish = useCallback(async (r: SimResult) => {
     try { sessionStorage.setItem("tsz:last", JSON.stringify(r)); } catch {}
     const res = await fetch("/api/results", {
@@ -197,18 +198,18 @@ export default function TestPage() {
 
           <div className="practice-section-heading"><div><span className="practice-step">02</span><div><h2>Set your environment</h2><p>Use the same visual and correction rules you want to practise.</p></div></div></div>
           <div className="practice-mode-grid">
-            {modeOptions.map((option) => <button type="button" key={option.value} className={`practice-mode-card ${mode === option.value ? "selected" : ""}`} aria-pressed={mode === option.value} onClick={() => setMode(option.value)}>
+            {modeOptions.map((option) => <button type="button" key={option.value} className={`practice-mode-card ${mode === option.value ? "selected" : ""}`} aria-pressed={mode === option.value} disabled={!isPracticePreset} onClick={() => setMode(option.value)}>
               <span className="practice-mode-check">{mode === option.value ? "✓" : "○"}</span><strong>{option.title}</strong><span>{option.description}</span>
             </button>)}
           </div>
           <label className="practice-field">Backspace policy
-            <select value={bs} onChange={(e) => setBs(e.target.value as BackspaceMode)}>
+            <select value={bs} disabled={!isPracticePreset} onChange={(e) => setBs(e.target.value as BackspaceMode)}>
               <option value="full">Full correction — delete anywhere</option>
               <option value="word">Current word only — exam-style restriction</option>
               <option value="disabled">Disabled — no corrections</option>
             </select>
           </label>
-          <p className="practice-disclaimer">Practice settings may differ from the official exam. Confirm the current recruitment notification before relying on qualifying rules.</p>
+          <p className="practice-disclaimer">{isPracticePreset ? "Practice mode: you can change display and correction settings freely." : "Exam preset selected: display mode and backspace policy are fixed by this template so your practice does not silently diverge from its configured rules. Choose Free Practice to customize them."} Confirm the current recruitment notification before relying on qualifying rules.</p>
           {notice && <p className="practice-notice" role="status">{notice}</p>}
           {limitMsg && <p className="err" role="alert">{limitMsg} <a href="/pricing">View Pro plans</a></p>}
           <button className="practice-start" onClick={start} disabled={loading}>{loading ? <><span className="practice-spinner" /> Preparing your passage…</> : <>Start typing test <span>→</span></>}</button>
