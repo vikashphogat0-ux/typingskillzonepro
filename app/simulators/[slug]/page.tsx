@@ -34,6 +34,14 @@ const examMark = (slug: string) => {
   return { mark: "TSZ", tone: "blue", family: "Typing practice" };
 };
 
+const customMinimumWords = (slug: string, language: "en" | "hi") => {
+  if (slug === "dp-hcm-en") return 400;
+  if (slug === "dp-hcm-hi") return 350;
+  if (slug === "rrb-ntpc-en") return 300;
+  if (slug === "rrb-ntpc-hi") return 250;
+  return 10;
+};
+
 const BS_LABELS: Record<string, string> = {
   full: "Full backspace — delete anywhere in your typed text",
   word: "Current word only — backspace cannot cross a space",
@@ -79,8 +87,9 @@ export default function SimulatorPage() {
     setTestState("starting");
     try {
       const customText = customPassage.trim();
-      if (passageSource === "custom" && customText.split(/\s+/u).filter(Boolean).length < 10) {
-        setStartErr("Paste at least 10 words in your custom passage.");
+      const requiredWords = customMinimumWords(slug, sim?.language ?? "en");
+      if (passageSource === "custom" && customText.split(/\s+/u).filter(Boolean).length < requiredWords) {
+        setStartErr(`Paste at least ${requiredWords} words for this exam profile.`);
         setTestState("idle");
         return;
       }
@@ -305,7 +314,7 @@ export default function SimulatorPage() {
                 <button type="button" className={passageSource === "custom" ? "practice-mode-card selected" : "practice-mode-card"} aria-pressed={passageSource === "custom"} onClick={() => setPassageSource("custom")}>My custom passage</button>
               </div>
               {passageSource === "custom" ? (
-                <label htmlFor="custom-exam-passage">Paste your own passage (minimum 10 words)
+                <label htmlFor="custom-exam-passage">Paste your own passage (minimum {customMinimumWords(sim.slug, sim.language)} words)
                   <textarea id="custom-exam-passage" className="custom-passage-input" rows={7} maxLength={50000} value={customPassage} onChange={e => setCustomPassage(e.target.value)} placeholder="Paste your own passage here…" spellCheck={false} />
                 </label>
               ) : <>
