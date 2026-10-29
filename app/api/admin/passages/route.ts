@@ -16,9 +16,13 @@ export async function POST(req: Request) {
   const uid = await requireAdmin(req);
   if (!uid) return deny();
   const b = await req.json().catch(() => null);
-  const items = Array.isArray(b?.items) ? b.items.slice(0, 50) : [];
-  if (!items.length) return Response.json({ error: "No passages sent." }, { status: 400 });
-  const checked = items.map((it: any, i: number) => ({ i, ...validatePassage({ title: String(it.title ?? ""), language: it.language, body: String(it.body ?? "") }) }));
+  if (!Array.isArray(b?.items) || !b.items.length) return Response.json({ error: "Send between 1 and 50 passages." }, { status: 400 });
+  if (b.items.length > 50) return Response.json({ error: "Upload at most 50 passages per batch." }, { status: 413 });
+  const items = b.items;
+  const checked = items.map((it: any, i: number) => {
+    const item = it && typeof it === "object" && !Array.isArray(it) ? it : {};
+    return { i, ...validatePassage({ title: String(item.title ?? ""), language: item.language, body: String(item.body ?? "") }) };
+  });
   const bad = checked.filter((c: any) => !c.ok);
   if (bad.length) return Response.json({ error: "Some passages need fixing.", problems: bad.map((c: any) => ({ index: c.i, errors: c.errors })) }, { status: 422 });
   const db = sql();
