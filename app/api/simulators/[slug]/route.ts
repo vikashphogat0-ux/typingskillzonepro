@@ -15,7 +15,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       language: t.language,
       duration_sec: t.duration_sec,
       display_mode: t.display_mode,
-      backspace: t.backspace,
+      backspace: String(t.slug).startsWith("bsf-") ? "disabled" : String(t.slug).startsWith("dp-hcm-") ? "full" : t.backspace,
       scoring: t.scoring,
       description: t.description,
       participants: 0,

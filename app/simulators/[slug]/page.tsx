@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import TypingSimulator, { type SimResult } from "@/components/TypingSimulator";
 import Leaderboard from "@/components/Leaderboard";
 import { api } from "@/lib/clientApi";
+import ExamEmblem from "@/components/ExamEmblem";
 
 interface SimInfo {
   slug: string;
@@ -55,6 +56,8 @@ export default function SimulatorPage() {
   const [passageOptions, setPassageOptions] = useState<{ id: string; title: string; word_count: number }[]>([]);
   const [selectedPassageId, setSelectedPassageId] = useState("");
   const [passageSearch, setPassageSearch] = useState("");
+  const [passageSource, setPassageSource] = useState<"library" | "custom">("library");
+  const [customPassage, setCustomPassage] = useState("");
 
   useEffect(() => {
     if (!slug) return;
@@ -74,24 +77,31 @@ export default function SimulatorPage() {
   const startTest = async () => {
     setStartErr("");
     setTestState("starting");
-    const r = await api("/api/tests/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug, ...(selectedPassageId ? { passageId: selectedPassageId } : {}) }),
-    });
-    if (!r.ok) {
-      setTestState("idle");
-      if (r.status === 401) {
-        setStartErr("Sign in to use exam simulators.");
-      } else if (r.status === 402) {
-        setStartErr(r.data.error ?? "Daily limit reached. Upgrade to Pro for unlimited tests.");
-      } else {
-        setStartErr(r.data.error ?? "Could not start the test. Try again.");
+    try {
+      const customText = customPassage.trim();
+      if (passageSource === "custom" && customText.split(/\s+/u).filter(Boolean).length < 10) {
+        setStartErr("Paste at least 10 words in your custom passage.");
+        setTestState("idle");
+        return;
       }
-      return;
+      const r = await api("/api/tests/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, ...(passageSource === "custom" ? { customPassage: customText } : selectedPassageId ? { passageId: selectedPassageId } : {}) }),
+      });
+      if (!r.ok) {
+        setTestState("idle");
+        if (r.status === 401) setStartErr("Sign in to use exam simulators.");
+        else if (r.status === 402) setStartErr(r.data.error ?? "Daily limit reached. Upgrade to Pro for unlimited tests.");
+        else setStartErr(r.data.error ?? `Could not start the test (HTTP ${r.status}).`);
+        return;
+      }
+      setTestData(r.data);
+      setTestState("running");
+    } catch (e) {
+      setTestState("idle");
+      setStartErr(e instanceof Error ? `Could not start the test: ${e.message}` : "Network error while starting the test. Check your connection and try again.");
     }
-    setTestData(r.data);
-    setTestState("running");
   };
 
   const onFinish = useCallback(async (result: SimResult) => {
@@ -146,7 +156,7 @@ export default function SimulatorPage() {
       </nav>
 
       <section className="sim-detail-hero">
-        <div className={`exam-emblem ${examMark(sim.slug).tone}`} aria-label={`${examMark(sim.slug).family} category mark`}><span>{examMark(sim.slug).mark}</span><small>{sim.slug.includes("dp-hcm") || sim.slug.includes("delhi-police") ? "DELHI POLICE" : sim.slug.includes("bsf") ? "BSF HCM" : "EXAM PREP"}</small></div>
+        <ExamEmblem slug={sim.slug} mark={examMark(sim.slug).mark} short={sim.slug.includes("dp-hcm") || sim.slug.includes("delhi-police") ? "DELHI POLICE" : sim.slug.includes("bsf") ? "BSF HCM" : "EXAM PREP"} family={examMark(sim.slug).family} tone={examMark(sim.slug).tone} />
         <div>
           <div className="eyebrow">{examMark(sim.slug).family}</div>
           <h1>{sim.name}</h1>
@@ -272,14 +282,24 @@ export default function SimulatorPage() {
             )}
 
             <div className="practice-field simulator-passage-picker" style={{ marginTop: 18, maxWidth: 720 }}>
-              <label htmlFor="passage-id-search">Find passage by title or unique ID</label>
-              <input id="passage-id-search" value={passageSearch} onChange={e => setPassageSearch(e.target.value)} placeholder="Paste a passage ID or type a title…" autoComplete="off" />
-              <label htmlFor="passage-select">Passage for this attempt</label>
-              <select id="passage-select" value={selectedPassageId} onChange={(e) => setSelectedPassageId(e.target.value)}>
-                <option value="">Random passage for this exam language</option>
-                {visiblePassages.map((p) => <option key={p.id} value={p.id}>{p.title} · {p.word_count} words · ID {p.id}</option>)}
-              </select>
-              <small>{visiblePassages.length} matching passage(s). Every passage in this language can be practised with this simulator&apos;s configured duration, scoring and backspace rules. Passage content stays the same; only this exam&apos;s typing pattern changes.</small>
+              <div className="practice-mode-grid custom-passage-source" role="group" aria-label="Choose passage source">
+                <button type="button" className={passageSource === "library" ? "practice-mode-card selected" : "practice-mode-card"} aria-pressed={passageSource === "library"} onClick={() => setPassageSource("library")}>Library passage</button>
+                <button type="button" className={passageSource === "custom" ? "practice-mode-card selected" : "practice-mode-card"} aria-pressed={passageSource === "custom"} onClick={() => setPassageSource("custom")}>My custom passage</button>
+              </div>
+              {passageSource === "custom" ? (
+                <label htmlFor="custom-exam-passage">Paste your own passage (minimum 10 words)
+                  <textarea id="custom-exam-passage" className="custom-passage-input" rows={7} maxLength={50000} value={customPassage} onChange={e => setCustomPassage(e.target.value)} placeholder="Paste your own passage here…" spellCheck={false} />
+                </label>
+              ) : <>
+                <label htmlFor="passage-id-search">Find passage by title or unique ID</label>
+                <input id="passage-id-search" value={passageSearch} onChange={e => setPassageSearch(e.target.value)} placeholder="Paste a passage ID or type a title…" autoComplete="off" />
+                <label htmlFor="passage-select">Passage for this attempt</label>
+                <select id="passage-select" value={selectedPassageId} onChange={(e) => setSelectedPassageId(e.target.value)}>
+                  <option value="">Random passage for this exam language</option>
+                  {visiblePassages.map((p) => <option key={p.id} value={p.id}>{p.title} · {p.word_count} words · ID {p.id}</option>)}
+                </select>
+                <small>{visiblePassages.length} matching passage(s). Every passage in this language can be practised with this simulator&apos;s configured duration, scoring and backspace rules.</small>
+              </>}
             </div>
 
             <div style={{ marginTop: 20, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import AuthLink from "@/components/AuthLink";
+import "./site-polish.css";
 
 export const metadata: Metadata = {
   title: "Typing Skill Zone | Exam-focused typing practice",
@@ -14,6 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="top">
           <a href="/" className="brand">TypingSkillZone</a>
           <nav>
+            <a href="/" className="nav-home-link" aria-label="Return to TypingSkillZone home"><span aria-hidden="true">⌂</span> Home</a>
             <a href="/simulators">Explore Exams</a>
             <a href="/test">Practice</a>
             <a href="/library">Library</a>

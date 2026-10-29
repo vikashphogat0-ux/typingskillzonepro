@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/clientApi";
+import ExamEmblem from "@/components/ExamEmblem";
 
 interface Simulator {
   slug: string; name: string; language: "en" | "hi"; duration_sec: number;
@@ -62,7 +63,7 @@ export default function SimulatorsPage() {
           const target = sim.scoring?.qualifyingWpm;
           return <a key={sim.slug} className={`sim-page-card sim-page-card-v2 ${mark.tone}`} href={`/simulators/${sim.slug}`}>
             <div className="sim-card-brand-row">
-              <div className={`exam-emblem ${mark.tone}`} aria-label={`${mark.mark} exam category`}><span>{mark.mark}</span><small>{mark.short}</small></div>
+              <ExamEmblem slug={sim.slug} mark={mark.mark} short={mark.short} family={mark.family} tone={mark.tone} />
               <div className="sim-card-brand-copy"><span className="exam-family">{mark.family}</span><span className="sim-notice-pill">Configured exam pattern</span></div>
               <span className="exam-arrow" aria-hidden="true">↗</span>
             </div>
@@ -80,7 +81,7 @@ export default function SimulatorsPage() {
           </a>;
         })}</div>}
       <div className="sim-official-note"><strong>Official rule reminder</strong><p>Cards display the current configured practice profile. Verify qualifying speed, duration, error rules, keyboard/layout requirements and test procedure against the latest recruitment notification. The category marks are not official government seals.</p></div>
-      <p className="home-disclaimer">Exam marks are TypingSkillZone navigation artwork, not official government or recruitment-body logos. Confirm all qualifying rules from the current official notification.</p>
+      <p className="home-disclaimer">Official emblems identify the recruiting body where a verified asset is available. TypingSkillZone is an independent practice platform; confirm qualifying rules against the latest official notification.</p>
     </div>
   );
 }
