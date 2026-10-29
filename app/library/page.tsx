@@ -5,6 +5,12 @@ import { api, fmtDate } from "@/lib/clientApi";
 interface P { id: string; passage_number?: number; title: string; word_count: number; language?: string; body?: string; date?: string; preview?: string; exam?: string | null }
 type LibraryData = { today?: string; daily: Record<string, P | undefined>; archive: Record<string, P[]>; list: P[]; months?: string[]; monthly?: P[]; localFallback?: boolean; notice?: string };
 const passageLabel = (p: P) => String(p.passage_number ?? 1).padStart(2, "0");
+const currentISTMonth = () => {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit" }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value ?? "2026";
+  const month = parts.find((part) => part.type === "month")?.value ?? "01";
+  return `${year}-${month}`;
+};
 
 export default function Library() {
   const [d, setD] = useState<LibraryData | null>(null);
@@ -16,7 +22,7 @@ export default function Library() {
   const [open, setOpen] = useState<P | null>(null);
   const [printing, setPrinting] = useState<P | null>(null);
   const [searching, setSearching] = useState(false);
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [month, setMonth] = useState(currentISTMonth);
   const [monthly, setMonthly] = useState<P[]>([]);
   const [monthLoading, setMonthLoading] = useState(false);
   const [monthLang, setMonthLang] = useState<"all" | "en" | "hi">("all");
