@@ -178,12 +178,25 @@ export function analyzeKeyLog(events: KeyEvent[], reference: string) {
 
 /** DP HCM marks table supplied for this simulator. Below the qualifying threshold is disqualified (0 marks). */
 export function dpHcmMarks(language: Lang, actualWpm: number): number {
-  if (!Number.isFinite(actualWpm) || actualWpm < (language === "en" ? 30 : 25)) return 0;
-  const thresholds = language === "en"
-    ? [{ min: 50.0000001, marks: 25 }, { min: 45.0000001, marks: 21 }, { min: 40.0000001, marks: 18 }, { min: 35.0000001, marks: 15 }, { min: 30.0000001, marks: 12 }]
-    : [{ min: 45.0000001, marks: 25 }, { min: 40.0000001, marks: 21 }, { min: 35.0000001, marks: 18 }, { min: 30.0000001, marks: 15 }, { min: 25.0000001, marks: 12 }];
-  const band = thresholds.find((t) => actualWpm >= t.min);
-  return band?.marks ?? 10;
+  if (!Number.isFinite(actualWpm)) return 0;
+  // The published table uses whole-WPM bands; floor decimals before band lookup.
+  const speed = Math.floor(actualWpm);
+  const qualifying = language === "en" ? 30 : 25;
+  if (speed < qualifying) return 0;
+  if (language === "en") {
+    if (speed > 50) return 25;
+    if (speed >= 46) return 21;
+    if (speed >= 41) return 18;
+    if (speed >= 36) return 15;
+    if (speed >= 31) return 12;
+    return 10;
+  }
+  if (speed > 45) return 25;
+  if (speed >= 41) return 21;
+  if (speed >= 36) return 18;
+  if (speed >= 31) return 15;
+  if (speed >= 26) return 12;
+  return 10;
 }
 
 export function calculateScore(input: ScoreInput): ScoreResult {
