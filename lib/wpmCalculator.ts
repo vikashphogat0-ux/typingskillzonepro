@@ -18,7 +18,7 @@ export interface ScoringProfile {
   fullErrorWeight: number;
   halfErrorWeight: number;
   halfRules: { caseOnly: boolean; punctuationOnly: boolean };
-  netMethod: "penalty" | "accuracy";
+  netMethod: "penalty" | "accuracy" | "per-error";
   /** How error percentage is normalized. Default preserves legacy behavior. */
   errorPercentBasis?: ErrorPercentBasis;
   /** Optional exam duration metadata. The attempt duration is still passed to calculateScore. */
@@ -65,6 +65,8 @@ export interface ScoreResult {
   ignoredErrors: number;
   backspaceCount: number;
   passed: boolean | null;
+  /** Official-style mark band for profiles with a configured marks table. */
+  marks: number | null;
   wordOps: WordOp[];
 }
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -174,6 +176,16 @@ export function analyzeKeyLog(events: KeyEvent[], reference: string) {
   return { fixed, ignored: stack.filter(Boolean).length, backspaces, keystrokes: inserted + deleted };
 }
 
+/** DP HCM marks table supplied for this simulator. Below the qualifying threshold is disqualified (0 marks). */
+export function dpHcmMarks(language: Lang, actualWpm: number): number {
+  if (!Number.isFinite(actualWpm) || actualWpm < (language === "en" ? 30 : 25)) return 0;
+  const thresholds = language === "en"
+    ? [{ min: 50.0000001, marks: 25 }, { min: 45.0000001, marks: 21 }, { min: 40.0000001, marks: 18 }, { min: 35.0000001, marks: 15 }, { min: 30.0000001, marks: 12 }]
+    : [{ min: 45.0000001, marks: 25 }, { min: 40.0000001, marks: 21 }, { min: 35.0000001, marks: 18 }, { min: 30.0000001, marks: 15 }, { min: 25.0000001, marks: 12 }];
+  const band = thresholds.find((t) => actualWpm >= t.min);
+  return band?.marks ?? 10;
+}
+
 export function calculateScore(input: ScoreInput): ScoreResult {
   const { profile: p } = input;
   assertValidProfile(p);
@@ -202,8 +214,16 @@ export function calculateScore(input: ScoreInput): ScoreResult {
       : typedWords.length;
   const errorPercent = denominator ? Math.min(100, (errorUnits / denominator) * 100) : 0;
   const accuracy = Math.max(0, 100 - errorPercent);
-  const penaltyWpm = p.netMethod === "penalty" ? Math.min(grossWpm, errorUnits / minutes) : 0;
-  const netWpm = p.netMethod === "penalty" ? Math.max(0, grossWpm - penaltyWpm) : grossWpm * accuracy / 100;
+  // "per-error" is used by DP HCM: deduct one full WPM per full word error,
+  // independent of elapsed minutes. Half-errors are disabled in that profile.
+  const penaltyWpm = p.netMethod === "per-error"
+    ? Math.min(grossWpm, errorUnits)
+    : p.netMethod === "penalty" ? Math.min(grossWpm, errorUnits / minutes) : 0;
+  const netWpm = p.netMethod === "per-error" || p.netMethod === "penalty"
+    ? Math.max(0, grossWpm - penaltyWpm)
+    : grossWpm * accuracy / 100;
+  const isDpHcm = p.id === "delhi-police-hcm-en" || p.id === "delhi-police-hcm-hi";
+  const marks = isDpHcm ? dpHcmMarks(p.id.endsWith("-hi") ? "hi" : "en", netWpm) : null;
   const hasPassRule = p.qualifyingWpm !== undefined || p.maxErrorPercent !== undefined;
   const passed = hasPassRule
     ? (p.qualifyingWpm === undefined || netWpm >= p.qualifyingWpm) &&
@@ -214,7 +234,7 @@ export function calculateScore(input: ScoreInput): ScoreResult {
     keystrokes, grossWpm: round2(grossWpm), netWpm: round2(netWpm), penaltyWpm: round2(penaltyWpm),
     accuracy: round2(accuracy), errorPercent: round2(errorPercent), fullErrors, halfErrors,
     errorUnits: round2(errorUnits), fixedErrors: log?.fixed ?? 0, ignoredErrors: log?.ignored ?? 0,
-    backspaceCount: log?.backspaces ?? 0, passed, wordOps: ops,
+    backspaceCount: log?.backspaces ?? 0, passed, marks, wordOps: ops,
   };
 }
 
@@ -237,8 +257,18 @@ export const PROFILES: Record<string, ScoringProfile> = {
   "ssc-cgl-dest": { ...base, id: "ssc-cgl-dest", label: "SSC CGL DEST (key depressions)", unit: "keystrokes", language: "en", qualifyingWpm: 26.7 },
   "rrb-ntpc-en": { ...base, id: "rrb-ntpc-en", label: "RRB NTPC (English)", language: "en", qualifyingWpm: 30 },
   "rrb-ntpc-hi": { ...base, id: "rrb-ntpc-hi", label: "RRB NTPC (Hindi)", language: "hi", qualifyingWpm: 25 },
-  "delhi-police-hcm-en": { ...base, id: "delhi-police-hcm-en", label: "Delhi Police HCM (English; verify exam rules)", language: "en" },
-  "delhi-police-hcm-hi": { ...base, id: "delhi-police-hcm-hi", label: "Delhi Police HCM (Hindi; verify exam rules)", language: "hi" },
+  "delhi-police-hcm-en": {
+    ...base, id: "delhi-police-hcm-en", label: "Delhi Police Head Constable (Ministerial) — English",
+    language: "en", unit: "words", durationSec: 600, qualifyingWpm: 30,
+    fullErrorWeight: 1, halfErrorWeight: 0, halfRules: { caseOnly: false, punctuationOnly: false },
+    netMethod: "per-error", errorPercentBasis: "referenceWords",
+  },
+  "delhi-police-hcm-hi": {
+    ...base, id: "delhi-police-hcm-hi", label: "Delhi Police Head Constable (Ministerial) — Hindi",
+    language: "hi", unit: "words", durationSec: 600, qualifyingWpm: 25,
+    fullErrorWeight: 1, halfErrorWeight: 0, halfRules: { caseOnly: false, punctuationOnly: false },
+    netMethod: "per-error", errorPercentBasis: "referenceWords",
+  },
   "court-typing-en": { ...base, id: "court-typing-en", label: "Court Typing (English; configure per court)", language: "en" },
   "court-typing-hi": { ...base, id: "court-typing-hi", label: "Court Typing (Hindi; configure per court)", language: "hi" },
   "bsf-typing-en": { ...base, id: "bsf-typing-en", label: "BSF Typing (English; verify exam rules)", language: "en" },
