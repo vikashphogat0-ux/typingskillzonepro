@@ -270,3 +270,32 @@ test("anti-cheat rejects malformed key events without throwing", () => {
   assert.equal(validateAttempt({ typed: "a", events: [{ t: 1, type: "del", n: 0 }], elapsedSec: 1, durationSec: 60 }).tampered, true);
   assert.equal(validateAttempt({ typed: "ab", events: [{ t: 1, type: "ins", ch: "ab" }], elapsedSec: 1, durationSec: 60 }).tampered, true);
 });
+
+
+test("Delhi Police HCM uses 10-minute scoring, one full WPM per error, and official mark bands", () => {
+  const profile = PROFILES["delhi-police-hcm-en"];
+  const reference = Array.from({ length: 400 }, () => "abcde").join(" ");
+  const typed = Array.from({ length: 400 }, (_, i) => i < 10 ? "abxde" : "abcde").join(" ");
+  const r = calculateScore({ reference, typed, elapsedSec: 600, durationSec: 600, profile });
+  assert.equal(profile.durationSec, 600);
+  assert.equal(profile.qualifyingWpm, 30);
+  assert.equal(profile.halfErrorWeight, 0);
+  assert.equal(profile.halfRules.caseOnly, false);
+  assert.equal(r.grossWpm, 40);
+  assert.equal(r.fullErrors, 10);
+  assert.equal(r.halfErrors, 0);
+  assert.equal(r.netWpm, 30);
+  assert.equal(r.passed, true);
+  assert.equal(r.marks, 10);
+});
+
+test("Delhi Police HCM Hindi qualification and marks use Hindi thresholds", () => {
+  const profile = PROFILES["delhi-police-hcm-hi"];
+  const reference = Array.from({ length: 250 }, () => "भारत").join(" ");
+  const typed = Array.from({ length: 250 }, (_, i) => i < 5 ? "भारती" : "भारत").join(" ");
+  const r = calculateScore({ reference, typed, elapsedSec: 600, durationSec: 600, profile });
+  assert.equal(r.grossWpm, 25);
+  assert.equal(r.netWpm, 20);
+  assert.equal(r.passed, false);
+  assert.equal(r.marks, 0);
+});
