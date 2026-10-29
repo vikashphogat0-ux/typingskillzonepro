@@ -76,6 +76,8 @@ test("verified simulator presets use canonical scoring profiles and exam-specifi
   assert.equal(getVerifiedPreset("rrb-ntpc-en")?.profile?.netMethod, "rrb");
   assert.equal(getVerifiedPreset("delhi-high-court-jja-en")?.durationSec, 600);
   assert.equal(getVerifiedPreset("bsf-hcm-en"), undefined);
+  assert.equal(PROFILES["bsf-typing-en"].qualifyingWpm, undefined);
+  assert.equal(PROFILES["hc-clerk-en"].qualifyingWpm, undefined);
 });
 
 test("SSC CHSL profile uses a 10-minute timer and gross-speed qualification", () => {
