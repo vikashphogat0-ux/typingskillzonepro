@@ -13,7 +13,8 @@ export async function POST(req: Request) {
   const access = await getStudentAccess(uid);
   if (access.testsLeft !== null && access.testsLeft <= 0) return Response.json({ error: "You have used your free tests for today.", upgrade: true }, { status: 402 });
   const db = sql();
-  // Select only columns guaranteed by db/schema.sql. Optional presentation columns are not part of every deployed schema.\n  const [t] = await db`SELECT id, slug, name, language, duration_sec, display_mode, backspace, scoring FROM exam_templates WHERE slug = ${String(b.slug)} AND is_active`;
+  // Select only columns guaranteed by db/schema.sql. Optional presentation columns are not part of every deployed schema.
+  const [t] = await db`SELECT id, slug, name, language, duration_sec, display_mode, backspace, scoring FROM exam_templates WHERE slug = ${String(b.slug)} AND is_active`;
   if (!t) return Response.json({ error: "Simulator not found." }, { status: 404 });
 
   const requestedCustom = typeof b.customPassage === "string" ? b.customPassage.trim() : "";
@@ -30,7 +31,10 @@ export async function POST(req: Request) {
   }
 
   let bodies: string[];
-  if (b.passageId) {
+  if (requestedCustom) {
+    // A custom passage must not depend on the passage-library query.
+    bodies = [requestedCustom];
+  } else if (b.passageId) {
     const [selected] = await db`SELECT body FROM passages WHERE id = ${String(b.passageId)} AND language = ${t.language}`;
     if (!selected) return Response.json({ error: "That passage is unavailable for this simulator language." }, { status: 404 });
     bodies = [selected.body as string];
