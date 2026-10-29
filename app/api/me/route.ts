@@ -1,6 +1,6 @@
 import { sql } from "@/lib/db";
 import { getUserId } from "@/lib/auth";
-import { getNeonIdentity } from "@/lib/neon-auth";
+import { getNeonIdentity, getOrCreateAppUser } from "@/lib/neon-auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -16,8 +16,7 @@ export async function GET(req: Request) {
   try {
     const identity = await getNeonIdentity(req);
     if (!identity) return privateJson({ error: "Sign in required." }, 401);
-    const uid = await getUserId(req);
-    if (!uid) return privateJson({ error: "Unable to provision account." }, 500);
+    const uid = await getOrCreateAppUser(identity);
     const [user] = await sql()`SELECT id, name, email, created_at FROM users WHERE id = ${uid}`;
     if (!user) return privateJson({ error: "User not found." }, 404);
     return privateJson({ ...user, name: user.name ?? identity.name });
