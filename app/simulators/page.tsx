@@ -69,7 +69,7 @@ export default function SimulatorsPage() {
               <h2>{sim.name}</h2>
               <p className="sim-card-description">{sim.description || "A dedicated typing environment with configured timing, display and scoring settings."}</p>
               <div className="home-style-exam-meta"><span>{sim.language === "hi" ? "हिंदी" : "English"}</span><i /> <span>{Math.max(1, Math.round(sim.duration_sec / 60))} min</span><i /> <span>{bsLabel(sim.backspace)}</span></div>
-              <div className="exam-target"><span>{target ? "Configured target · verify official rules" : "Practice mode"}</span><b>{target ? <>{target} <small>net WPM</small></> : sim.scoring?.unit === "keystrokes" ? "Key depressions" : "Build skills"}</b></div>
+              <div className="exam-target"><span>{target ? "Configured target · verify official rules" : "Practice mode"}</span><b>{target ? <>{target} <small>{sim.scoring?.qualificationBasis === "gross" ? "gross WPM" : "net WPM"}</small></> : sim.scoring?.unit === "keystrokes" ? "Key depressions" : "Build skills"}</b></div>
               <div className="home-style-exam-footer"><span>Open dedicated simulator</span><span>→</span><small>Exam pattern configured for practice</small></div>
             </div>
           </a>;
