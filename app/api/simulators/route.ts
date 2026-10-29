@@ -8,7 +8,7 @@ export async function GET() {
       FROM exam_templates et
       WHERE et.is_active = true
       ORDER BY et.name`;
-    return Response.json(rows);
+    return Response.json(rows.map((row: any) => ({ ...row, backspace: String(row.slug).startsWith("bsf-") ? "disabled" : String(row.slug).startsWith("dp-hcm-") ? "full" : row.backspace })));
   } catch (error) {
     console.error("GET /api/simulators failed; serving built-in exam presets as a temporary fallback:", error);
     {
