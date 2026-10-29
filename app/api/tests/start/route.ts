@@ -6,16 +6,21 @@ import { SAMPLE_PASSAGES } from "@/lib/presets";
 
 /** Starts a simulator attempt. The server picks the text and keeps it, so the browser cannot choose its own reference. */
 export async function POST(req: Request) {
+  let stage = "checking sign-in";
+  try {
   const uid = await getUserId(req);
   if (!uid) return Response.json({ error: "Sign in to use the exam simulators." }, { status: 401 });
+  stage = "reading request";
   const b = await req.json().catch(() => null);
   if (!b?.slug) return Response.json({ error: "Choose a simulator." }, { status: 400 });
+  stage = "checking subscription and daily test allowance";
   const access = await getStudentAccess(uid);
   if (access.testsLeft !== null && access.testsLeft <= 0) return Response.json({ error: "You have used your free tests for today.", upgrade: true }, { status: 402 });
+  stage = "loading exam configuration";
   const db = sql();
   // Select only columns guaranteed by db/schema.sql. Optional presentation columns are not part of every deployed schema.
   const [t] = await db`SELECT id, slug, name, language, duration_sec, display_mode, backspace, scoring FROM exam_templates WHERE slug = ${String(b.slug)} AND is_active`;
-  if (!t) return Response.json({ error: "Simulator not found." }, { status: 404 });
+  if (!t) return Response.json({ error: "Simulator not found." }, { status: 404 });\n  stage = "loading passage";
 
   const requestedCustom = typeof b.customPassage === "string" ? b.customPassage.trim() : "";
   if (requestedCustom && (requestedCustom.split(/\s+/u).filter(Boolean).length < 10 || Array.from(requestedCustom).length > 50000)) {
@@ -43,10 +48,10 @@ export async function POST(req: Request) {
     const rows = await db`SELECT body FROM passages WHERE language = ${t.language} ORDER BY random() LIMIT 30`;
     bodies = rows.length ? rows.map((r: any) => r.body as string) : SAMPLE_PASSAGES[t.language as "en" | "hi"];
   }
-  const reference = requestedCustom ? requestedCustom : buildReference(bodies, minCharsFor(t.duration_sec));
+  stage = "preparing reference passage";\n  const reference = requestedCustom ? requestedCustom : buildReference(bodies, minCharsFor(t.duration_sec));
   const backspace = t.slug.startsWith("bsf-") ? "disabled" : t.slug.startsWith("dp-hcm-") ? "full" : t.backspace;
 
-  const [row] = await db`INSERT INTO tests (user_id, template_id, language, display_mode, backspace, duration_sec, reference_text, assignment_id)
+  stage = "saving test session";\n  const [row] = await db`INSERT INTO tests (user_id, template_id, language, display_mode, backspace, duration_sec, reference_text, assignment_id)
     VALUES (${uid}, ${t.id}, ${t.language}, ${t.display_mode}, ${backspace}, ${t.duration_sec}, ${reference}, ${assignmentId}) RETURNING id`;
   return Response.json({ testId: row.id, reference, lang: t.language, durationSec: t.duration_sec, mode: t.display_mode, backspace, profile: t.scoring, name: t.name, slug: t.slug, fontSizePt: 12, passageLayout: "continuous", enterKeyPolicy: "newline", tabKeyPolicy: "blocked" });
 }
