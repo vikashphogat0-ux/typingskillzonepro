@@ -1,14 +1,8 @@
-import { sql } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth";
-import { countWords, validatePassage } from "@/lib/adminValidation";
-
-export const runtime = "edge";
-
 type Slot = "morning" | "afternoon" | "live";
 type Lang = "en" | "hi";
 const slotCount: Record<Slot, number> = { morning: 5, afternoon: 5, live: 2 };
 const istDate = () => new Date(Date.now() + 19_800_000).toISOString().slice(0, 10);
-const wordCount = (s: string) => countWords(s);
+const wordCount = (s: string) => s.trim().split(/\s+/u).filter(Boolean).length;
 
 function languageFor(slot: Slot, index: number): Lang {
   if (slot === "live") return index === 0 ? "en" : "hi";
@@ -46,6 +40,7 @@ async function generateOne(language: Lang, slot: Slot, index: number, apiKey: st
   if (typeof raw !== "string") throw new Error("Passage provider returned an empty response.");
   let parsed: any;
   try { parsed = JSON.parse(raw); } catch { throw new Error("Passage provider returned invalid JSON."); }
+  const { validatePassage } = await import("@/lib/adminValidation");
   const checked = validatePassage({ title: String(parsed.title ?? ""), language, body: String(parsed.body ?? "") });
   const words = wordCount(checked.clean.body);
   if (!checked.ok) throw new Error(checked.errors.join(" "));
@@ -54,63 +49,96 @@ async function generateOne(language: Lang, slot: Slot, index: number, apiKey: st
 }
 
 export async function POST(req: Request) {
-  const uid = await requireAdmin(req);
-  const secret = process.env.PASSAGE_CRON_SECRET;
-  const supplied = req.headers.get("x-passage-cron-secret") ?? req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  const cronAuthorized = Boolean(secret && supplied && supplied === secret);
-  if (!uid && !cronAuthorized) return Response.json({ error: "Admin access or scheduled-job authorization required." }, { status: 403 });
-
-  const body: any = await req.json().catch(() => ({}));
-  const slot = body?.slot as Slot;
-  if (!["morning", "afternoon", "live"].includes(slot)) {
-    return Response.json({ error: "slot must be morning, afternoon, or live." }, { status: 400 });
-  }
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) return Response.json({ error: "GROQ_API_KEY is not configured in the Cloudflare Worker secrets." }, { status: 503 });
-  const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
-  const date = typeof body?.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date : istDate();
-  const count = slotCount[slot];
-  const db = sql();
-
-  const [created] = await db`INSERT INTO passage_generation_runs (generation_date, slot, requested_count, status)
-    VALUES (${date}::date, ${slot}, ${count}, 'running')
-    ON CONFLICT (generation_date, slot) DO NOTHING
-    RETURNING id`;
-  if (!created) {
-    const [existing] = await db`SELECT id, status, generated_count FROM passage_generation_runs WHERE generation_date = ${date}::date AND slot = ${slot}`;
-    if (existing?.status === "completed") return Response.json({ ok: true, alreadyCompleted: true, date, slot, generated: existing.generated_count });
-    await db`UPDATE passage_generation_runs SET status = 'running', error_message = NULL, started_at = now() WHERE generation_date = ${date}::date AND slot = ${slot}`;
-  }
-
+  let stage = "checking authorization";
   try {
-    const passages = [];
-    for (let i = 0; i < count; i++) {
-      const language = languageFor(slot, i);
-      let result: Awaited<ReturnType<typeof generateOne>> | null = null;
-      let lastError = "Generation failed.";
-      for (let attempt = 0; attempt < 2 && !result; attempt++) {
-        try { result = await generateOne(language, slot, i, apiKey, model); }
-        catch (error) { lastError = error instanceof Error ? error.message : "Generation failed."; }
-      }
-      if (!result) throw new Error(`Passage ${i + 1} (${language}) failed validation after retry: ${lastError}`);
-      passages.push({ ...result, language });
+    const secret = process.env.PASSAGE_CRON_SECRET;
+    const supplied = req.headers.get("x-passage-cron-secret") ?? req.headers.get("authorization")?.replace(/^Bearer\\s+/i, "");
+    const cronAuthorized = Boolean(secret && supplied && supplied === secret);
+
+    // Keep authentication out of the route's module-load path. Scheduled calls
+    // authenticate with the cron secret and do not need to load the user session stack.
+    let uid: string | null = null;
+    if (!cronAuthorized) {
+      const { requireAdmin } = await import("@/lib/auth");
+      uid = await requireAdmin(req);
+    }
+    if (!uid && !cronAuthorized) {
+      return Response.json({ error: "Admin access or scheduled-job authorization required." }, { status: 403 });
     }
 
-    let saved = 0;
-    for (const p of passages) {
-      const inserted = await db`INSERT INTO passages (template_id, language, title, body, word_count, source, generation_date, generation_slot, format_metadata)
-        VALUES (NULL, ${p.language}, ${p.title}, ${p.body}, ${p.wordCount}, 'scheduled-ai', ${date}::date, ${slot}, ${JSON.stringify({ topic: p.topic, minimumWords: 500, sharedAcrossSimulators: true })}::jsonb)
-        ON CONFLICT DO NOTHING RETURNING id`;
-      if (inserted.length) saved++;
+    stage = "reading request";
+    const body: any = await req.json().catch(() => ({}));
+    const slot = body?.slot as Slot;
+    if (!["morning", "afternoon", "live"].includes(slot)) {
+      return Response.json({ error: "slot must be morning, afternoon, or live." }, { status: 400 });
     }
-    await db`UPDATE passage_generation_runs SET status = 'completed', generated_count = ${saved}, completed_at = now(), error_message = NULL
-      WHERE generation_date = ${date}::date AND slot = ${slot}`;
-    return Response.json({ ok: true, date, slot, generated: saved, wordCounts: passages.map(p => p.wordCount) });
+
+    stage = "checking AI provider configuration";
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) return Response.json({ error: "GROQ_API_KEY is not configured in the Cloudflare Worker secrets." }, { status: 503 });
+    const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+    const date = typeof body?.date === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(body.date) ? body.date : istDate();
+    const count = slotCount[slot];
+
+    stage = "loading database client";
+    const { sql } = await import("@/lib/db");
+    const db = sql();
+
+    stage = "recording generation run";
+    const [created] = await db`INSERT INTO passage_generation_runs (generation_date, slot, requested_count, status)
+      VALUES (${date}::date, ${slot}, ${count}, 'running')
+      ON CONFLICT (generation_date, slot) DO NOTHING
+      RETURNING id`;
+    if (!created) {
+      const [existing] = await db`SELECT id, status, generated_count FROM passage_generation_runs WHERE generation_date = ${date}::date AND slot = ${slot}`;
+      if (existing?.status === "completed") return Response.json({ ok: true, alreadyCompleted: true, date, slot, generated: existing.generated_count });
+      await db`UPDATE passage_generation_runs SET status = 'running', error_message = NULL, started_at = now() WHERE generation_date = ${date}::date AND slot = ${slot}`;
+    }
+
+    stage = "generating passages";
+    try {
+      const passages = [];
+      for (let i = 0; i < count; i++) {
+        const language = languageFor(slot, i);
+        let result: Awaited<ReturnType<typeof generateOne>> | null = null;
+        let lastError = "Generation failed.";
+        for (let attempt = 0; attempt < 2 && !result; attempt++) {
+          try { result = await generateOne(language, slot, i, apiKey, model); }
+          catch (error) { lastError = error instanceof Error ? error.message : "Generation failed."; }
+        }
+        if (!result) throw new Error(`Passage ${i + 1} (${language}) failed validation after retry: ${lastError}`);
+        passages.push({ ...result, language });
+      }
+
+      stage = "saving generated passages";
+      let saved = 0;
+      for (const p of passages) {
+        const inserted = await db`INSERT INTO passages (template_id, language, title, body, word_count, source, generation_date, generation_slot, format_metadata)
+          VALUES (NULL, ${p.language}, ${p.title}, ${p.body}, ${p.wordCount}, 'scheduled-ai', ${date}::date, ${slot}, ${JSON.stringify({ topic: p.topic, minimumWords: 500, sharedAcrossSimulators: true })}::jsonb)
+          ON CONFLICT DO NOTHING RETURNING id`;
+        if (inserted.length) saved++;
+      }
+      await db`UPDATE passage_generation_runs SET status = 'completed', generated_count = ${saved}, completed_at = now(), error_message = NULL
+        WHERE generation_date = ${date}::date AND slot = ${slot}`;
+      return Response.json({ ok: true, date, slot, generated: saved, wordCounts: passages.map(p => p.wordCount) });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown generation error.";
+      try {
+        await db`UPDATE passage_generation_runs SET status = 'failed', error_message = ${message.slice(0, 500)}, completed_at = now()
+          WHERE generation_date = ${date}::date AND slot = ${slot}`;
+      } catch (recordError) {
+        console.error("[passage-generator] could not record generation failure", recordError);
+      }
+      console.error("Scheduled passage generation failed:", message);
+      return Response.json({ error: message }, { status: 502 });
+    }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown generation error.";
-    await db`UPDATE passage_generation_runs SET status = 'failed', error_message = ${message.slice(0, 500)}, completed_at = now()
-      WHERE generation_date = ${date}::date AND slot = ${slot}`;
-    console.error("Scheduled passage generation failed:", message);
-    return Response.json({ error: message }, { status: 502 });
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error("[passage-generator] route failed", { stage, detail });
+    return Response.json({
+      error: "Passage generation failed before processing completed.",
+      stage,
+      code: "PASSAGE_GENERATOR_ROUTE_FAILED",
+    }, { status: 500 });
   }
 }
