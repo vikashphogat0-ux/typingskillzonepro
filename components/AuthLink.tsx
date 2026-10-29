@@ -69,7 +69,8 @@ export default function AuthLink({ variant = "header" }: Props) {
         method: "POST",
         credentials: "same-origin",
         cache: "no-store",
-        headers: { Accept: "application/json" },
+        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || data?.error) {
