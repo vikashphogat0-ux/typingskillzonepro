@@ -1,5 +1,6 @@
 "use client";
 import { usePathname } from "next/navigation";
+import AuthLink from "@/components/AuthLink";
 
 const groups = [
   { title: "WORKSPACE", links: [
@@ -34,6 +35,7 @@ export default function AppSidebar() {
           </a>;
         })}
       </nav>
+      {group.title === "ACCOUNT" && <div className="sidebar-auth-action"><span className="sidebar-icon" aria-hidden="true">◎</span><AuthLink variant="sidebar" /></div>}
     </section>)}
     <a className="sidebar-upgrade" href="/pricing">
       <span className="upgrade-icon">✦</span><strong>Student Pro</strong>
