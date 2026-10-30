@@ -15,6 +15,9 @@ const groups = [
     { href: "/dashboard", icon: "◷", label: "Results & Analytics" },
     { href: "/pricing", icon: "✧", label: "Plans & Billing" },
   ]},
+  { title: "ADMINISTRATION", links: [
+    { href: "/admin/control", icon: "⚙", label: "Admin Control Centre" },
+  ]},
 ];
 
 export default function AppSidebar() {

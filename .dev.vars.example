@@ -18,3 +18,7 @@ NEXT_PUBLIC_URL=http://localhost:3000
 GROQ_API_KEY=YOUR_GROQ_API_KEY
 GROQ_MODEL=openai/gpt-oss-120b
 PASSAGE_CRON_SECRET=GENERATE_A_LONG_RANDOM_SECRET
+
+# Optional owner-level admin bootstrap. Comma-separated exact account email addresses.
+# Configure the same value as a Cloudflare Worker secret/variable for production.
+SUPER_ADMIN_EMAILS=owner@example.com
