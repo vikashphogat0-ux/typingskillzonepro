@@ -747,3 +747,5 @@ select option{background:#101a2a;color:#edf3ff}
  .print-area h1{font-size:16pt!important;text-align:center;margin:0 0 16pt!important}
  .print-area p{font-size:12pt!important;line-height:1.65!important;white-space:pre-wrap!important;color:#111!important}
 }
+
+.rkc-library-page .print-area{display:none}
