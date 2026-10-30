@@ -85,7 +85,7 @@ export default function TestPage() {
     }
     setPassageSource("library");
     setSelectedPassageId(passageId);
-  }, [slug, presets]);
+  }, []);
 
   const choose = (s: string) => {
     const p = presets.find((x) => x.slug === s);
