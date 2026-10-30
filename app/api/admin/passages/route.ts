@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     // One parameterized INSERT keeps the entire batch atomic.
     const inserted = await db`
       INSERT INTO passages (template_id, language, title, body, word_count, created_by)
-      SELECT ${templateId}, item.language, item.title, item.body, item.word_count, ${uid}
+      SELECT ${templateId}::uuid, item.language, item.title, item.body, item.word_count, ${uid}
       FROM jsonb_to_recordset(${JSON.stringify(payload)}::jsonb)
         AS item(language text, title text, body text, word_count integer)
       RETURNING id
