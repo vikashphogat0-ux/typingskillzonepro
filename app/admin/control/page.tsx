@@ -38,7 +38,7 @@ export default function AdminControlCentre(){
         request<SubscriptionRow[]>("/api/admin/subscriptions"),
       ]);
       const denied=results.find(x=>x.status===403);
-      if(denied){setError("Your session does not have administrator permissions. Sign in with an account whose users.role is admin.");return;}
+      if(denied){setError("Your session does not have administrator permissions. Sign in with an account whose users.role is admin, or add its exact email to the server-only SUPER_ADMIN_EMAILS allowlist.");return;}
       if(results.some(x=>!x.ok)){setError("Some control-centre data could not be loaded. Check the failed API endpoint and server logs.");return;}
       setUsers(results[0].data);setInstitutes(results[1].data);setPassages(results[2].data);setTemplates(results[3].data);setSubscriptions(results[4].data);
     }catch{setError("Network error while loading control-centre data.");}
