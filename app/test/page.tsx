@@ -87,6 +87,8 @@ export default function TestPage() {
     setPassageSource("library");
   }, []);
 
+  // This runs after the language-specific passage-list effect above, so the
+  // selected ID is restored after that effect clears the previous selection.
   useEffect(() => {
     if (passageDeepLinkHandled.current) return;
     const params = new URLSearchParams(window.location.search);
