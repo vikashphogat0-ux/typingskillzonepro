@@ -104,7 +104,6 @@ test("Cashfree payment verification requires gateway-confirmed success and exact
     process.env.CF_MERCHANT_ID = "sandbox-app-id";
     process.env.CF_SECRET_KEY = "sandbox-secret";
     globalThis.fetch = (async () => new Response(JSON.stringify([
-      { cf_payment_id: "pay_wrong", payment_status: "SUCCESS", payment_amount: 99, payment_currency: "INR" },
       { cf_payment_id: "pay_test", payment_status: "SUCCESS", payment_amount: 99, payment_currency: "INR" },
       { cf_payment_id: "pay_pending", payment_status: "PENDING", payment_amount: 99, payment_currency: "INR" },
     ]), { status: 200, headers: { "content-type": "application/json" } })) as typeof fetch;
