@@ -1,5 +1,29 @@
-"use client";
-import {useEffect,useState} from "react";
-import {api} from "@/lib/clientApi";
-type Row={id:string;net_wpm:string|number;accuracy:string|number;simulator?:string|null};
-export default function ExamResults(){const[rows,setRows]=useState<Row[]>([]),[loading,setLoading]=useState(true);useEffect(()=>{api("/api/leaderboard").then(r=>{if(r.ok&&Array.isArray(r.data))setRows(r.data)}).finally(()=>setLoading(false))},[]);return <main className="public-page"><span className="public-kicker">Performance</span><h1 className="public-title">Exam-based typing results</h1><p className="public-lead">Explore available typing performance data. Your personal attempt history remains in your account dashboard.</p>{loading?<div className="empty-state">Loading results…</div>:rows.length?<div className="result-grid" style={{marginTop:30}}>{rows.map((r,i)=><article className="result-card" key={r.id||i}><small>RESULT {i+1}</small><p>{r.simulator||"Typing test"}</p><strong>{Number(r.net_wpm||0).toFixed(1)} WPM</strong><p>{Number(r.accuracy||0).toFixed(1)}% accuracy</p></article>)}</div>:<div className="empty-state" style={{marginTop:28}}>No public results are available right now. <a href="/simulators">Start a typing test</a> and review your result after signing in.</div>}</main>}
+export default function ExamResults() {
+  return (
+    <main className="public-page">
+      <span className="public-kicker">Performance & evaluation</span>
+      <h1 className="public-title">Exam-based typing results</h1>
+      <p className="public-lead">
+        Every completed test is evaluated using its selected examination rules. Review your own saved attempts, compare your typing with the reference passage and track your progress securely from your account.
+      </p>
+      <section className="result-grid" style={{ marginTop: 30 }}>
+        <article className="result-card">
+          <strong>Net WPM</strong>
+          <p>Typing speed calculated using the selected exam’s scoring method.</p>
+        </article>
+        <article className="result-card">
+          <strong>Accuracy</strong>
+          <p>See your accuracy and the errors counted under the selected exam rules.</p>
+        </article>
+        <article className="result-card">
+          <strong>Detailed review</strong>
+          <p>Compare your typed text with the reference and identify every mistake.</p>
+        </article>
+      </section>
+      <div className="public-actions" style={{ marginTop: 30 }}>
+        <a className="site-button" href="/simulators">Explore exam simulators</a>
+        <a className="site-button secondary" href="/dashboard">View my results</a>
+      </div>
+    </main>
+  );
+}
