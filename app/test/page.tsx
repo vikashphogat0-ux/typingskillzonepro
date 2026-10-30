@@ -71,6 +71,22 @@ export default function TestPage() {
     if (p) { setMode(p.mode); setBs(p.backspace); }
   }, [slug, presets]);
 
+  // Deep-link from the Passage Library: load the requested passage in the
+  // matching free-practice language profile without changing exam presets.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const passageId = params.get("passage");
+    if (!passageId) return;
+    const requestedLanguage = params.get("lang");
+    if (requestedLanguage === "en" || requestedLanguage === "hi") {
+      const practiceSlug = requestedLanguage === "hi" ? "practice-5min-hi" : "practice-1min";
+      const matchingPractice = presets.find((item) => item.slug === practiceSlug);
+      if (matchingPractice) setSlug(matchingPractice.slug);
+    }
+    setPassageSource("library");
+    setSelectedPassageId(passageId);
+  }, [slug, presets]);
+
   const choose = (s: string) => {
     const p = presets.find((x) => x.slug === s);
     if (!p) return;
