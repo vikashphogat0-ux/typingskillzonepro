@@ -16,7 +16,7 @@ const groups = [
     { href: "/pricing", icon: "✧", label: "Plans & Billing" },
   ]},
   { title: "ADMINISTRATION", links: [
-    { href: "/admin", icon: "⚙", label: "Admin Control Centre" },
+    { href: "/admin/control", icon: "⚙", label: "Admin Control Centre" },
   ]},
 ];
 
