@@ -1,7 +1,7 @@
 import { passageJobs, type PassageSlot, type PassageLanguage } from "@/lib/passageGenerationPlan";
 
 const istDate = () => new Date(Date.now() + 19_800_000).toISOString().slice(0, 10);
-const wordCount = (s: string) => s.trim().split(/\\s+/u).filter(Boolean).length;
+const wordCount = (s: string) => s.trim().split(/\s+/u).filter(Boolean).length;
 
 async function generateOne(language: PassageLanguage, slot: PassageSlot, index: number, apiKey: string, model: string, correction?: string) {
   const languageName = language === "hi" ? "Hindi in natural, grammatically correct Devanagari" : "English in clear, original Indian competitive-exam prose";
@@ -16,7 +16,7 @@ async function generateOne(language: PassageLanguage, slot: PassageSlot, index: 
     "Use keyboard-friendly punctuation. Keep the full passage in the requested language.",
     "Do not include simulator instructions or branding in the passage body.",
     correction ? `CORRECTION REQUIRED: The previous response failed validation: ${correction}. Generate a completely corrected JSON object and verify that title and body are non-empty strings and body is 550-750 words.` : "",
-  ].filter(Boolean).join("\\n");
+  ].filter(Boolean).join("\n");
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -38,7 +38,7 @@ async function generateOne(language: PassageLanguage, slot: PassageSlot, index: 
   if (typeof raw !== "string" || !raw.trim()) throw new Error("Passage provider returned an empty response.");
   let parsed: any;
   try {
-    const cleaned = raw.replace(/^\\s*```(?:json)?\\s*/i, "").replace(/\\s*```\\s*$/i, "").trim();
+    const cleaned = raw.replace(/^\s*```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
     parsed = JSON.parse(cleaned);
   } catch {
     throw new Error("Passage provider returned malformed JSON.");
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
   let stage = "checking authorization";
   try {
     const secret = process.env.PASSAGE_CRON_SECRET;
-    const supplied = req.headers.get("x-passage-cron-secret") ?? req.headers.get("authorization")?.replace(/^Bearer\\s+/i, "");
+    const supplied = req.headers.get("x-passage-cron-secret") ?? req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const cronAuthorized = Boolean(secret && supplied && supplied === secret);
     let uid: string | null = null;
     if (!cronAuthorized) {
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) return Response.json({ error: "GROQ_API_KEY is not configured in the Cloudflare Worker secrets." }, { status: 503 });
     const model = process.env.GROQ_MODEL?.trim() || "openai/gpt-oss-120b";
-    const date = typeof body?.date === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(body.date) ? body.date : istDate();
+    const date = typeof body?.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date : istDate();
 
     stage = "loading database client";
     const { sql } = await import("@/lib/db");
