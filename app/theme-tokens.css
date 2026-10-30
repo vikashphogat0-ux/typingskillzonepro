@@ -1,127 +1,103 @@
-/* TypingSkillZone centralized visual tokens.
-   Keep all shared colors, surfaces, borders, radii and focus states here.
-   Component/layout styles should consume these variables instead of defining
-   competing page-level palettes. */
+/* TypingSkillZone single source of truth — charcoal / midnight theme.
+   Keep visual tokens here; legacy stylesheets must consume these aliases. */
 :root {
-  color-scheme: light;
-  --tsz-bg: #f4f7fb;
-  --tsz-bg-subtle: #edf3f9;
-  --tsz-surface: #ffffff;
-  --tsz-surface-raised: #ffffff;
-  --tsz-surface-muted: #f6f9fc;
-  --tsz-ink: #102b4e;
-  --tsz-text: #24364b;
-  --tsz-muted: #61758b;
-  --tsz-primary: #087fba;
-  --tsz-primary-hover: #075985;
-  --tsz-accent: #0f9f9a;
-  --tsz-success: #16835f;
-  --tsz-warning: #a66a08;
-  --tsz-danger: #bd3348;
-  --tsz-border: #d9e4ef;
-  --tsz-border-strong: #bfd0e1;
-  --tsz-focus: rgba(8, 127, 186, .34);
+  color-scheme: dark;
+  --tsz-bg: #0b0f19;
+  --tsz-bg-subtle: #111827;
+  --tsz-surface: #111b2e;
+  --tsz-surface-raised: #17243a;
+  --tsz-surface-muted: rgba(255,255,255,.035);
+  --tsz-ink: #edf5ff;
+  --tsz-text: #dce8f7;
+  --tsz-muted: #94a8c4;
+  --tsz-primary: #3988ff;
+  --tsz-primary-hover: #2563eb;
+  --tsz-accent: #35d8f5;
+  --tsz-success: #34d399;
+  --tsz-warning: #fbbf24;
+  --tsz-danger: #fb7185;
+  --tsz-border: rgba(132,164,207,.17);
+  --tsz-border-strong: rgba(132,164,207,.3);
+  --tsz-focus: rgba(53,216,245,.55);
   --tsz-radius-sm: 9px;
   --tsz-radius: 14px;
   --tsz-radius-lg: 20px;
-  --tsz-shadow-sm: 0 3px 12px rgba(16, 43, 78, .045);
-  --tsz-shadow: 0 8px 24px rgba(16, 43, 78, .075);
+  --tsz-shadow-sm: 0 3px 14px rgba(0,0,0,.16);
+  --tsz-shadow: 0 12px 34px rgba(0,0,0,.24);
 
-  /* Backward-compatible aliases used by the existing simulator and practice CSS. */
+  /* Backward-compatible aliases consumed by existing exam and practice CSS. */
   --ink: var(--tsz-text);
   --mute: var(--tsz-muted);
   --board: var(--tsz-bg);
   --sheet: var(--tsz-surface);
   --line: var(--tsz-border);
   --red: var(--tsz-danger);
-  --redbg: #fff0f2;
+  --redbg: rgba(251,113,133,.13);
   --green: var(--tsz-success);
-  --greenbg: #e8f7ef;
-  --gold: #f4b740;
+  --greenbg: rgba(52,211,153,.13);
+  --gold: var(--tsz-warning);
+  --tsz-bg-2: var(--tsz-bg-subtle);
+  --tsz-panel: rgba(17,27,46,.88);
+  --tsz-panel-soft: rgba(255,255,255,.035);
+  --tsz-panel-hover: rgba(255,255,255,.065);
+  --tsz-border-bright: rgba(57,193,255,.35);
+  --tsz-cyan: var(--tsz-accent);
   --tsz-blue: var(--tsz-primary);
-  --tsz-blue-deep: var(--tsz-primary-hover);
-  --tsz-blue-soft: #e5f4ff;
-  --tsz-teal: var(--tsz-accent);
-  --tsz-amber: #f4b740;
+  --tsz-blue-deep: #8bdfff;
+  --tsz-blue-soft: rgba(57,136,255,.14);
+  --tsz-purple: #a78bfa;
+  --tsz-teal: #35d8f5;
+  --tsz-amber: var(--tsz-warning);
   --tsz-green: var(--tsz-success);
+  --tsz-surface-soft: var(--tsz-surface-muted);
+  --tsz-border-strong: var(--tsz-border-strong);
+  --tsz-shadow: var(--tsz-shadow);
 }
-html { min-height: 100%; background: var(--tsz-bg); color-scheme: light; }
+html { min-height:100%; background:var(--tsz-bg); color-scheme:dark; }
 body {
-  min-width: 320px;
-  min-height: 100vh;
-  background: var(--tsz-bg);
-  color: var(--tsz-text);
+  min-width:320px; min-height:100vh;
+  background:radial-gradient(ellipse at 76% -12%,rgba(30,91,170,.2),transparent 36%),linear-gradient(145deg,#0b0f19,#0e1524 58%,#0b1120);
+  color:var(--tsz-text);
 }
-.tsz-app-shell { background: var(--tsz-bg); }
-.tsz-sidebar { background: var(--tsz-surface) !important; border-color: var(--tsz-border) !important; }
-.tsz-topbar { background: rgba(255,255,255,.96) !important; border-color: var(--tsz-border) !important; }
-.tsz-content { color: var(--tsz-text); }
-.page, .home, .library-page { color: var(--tsz-text); }
-:where(.card,.panel,.summary,.tiles,.chart,.lesson,.sim-page-card,.sim-card,
-.library-card,.passage-card,.result-card,.metric-card,.stat-card,.exam-card,
-.pricing-card,.feature-card,.profile-card,.settings-card,.card-p,.rankline,
-.pitem,.library-day-card,.dash-panel,.dash-metric,.dash-quick-card,.dash-exam-card) {
-  border-color: var(--tsz-border);
-  border-radius: var(--tsz-radius);
+.tsz-app-shell,.tsz-main-column,.tsz-content,.page,.home,.library-page { background-color:transparent; color:var(--tsz-text); }
+.tsz-sidebar,.tsz-topbar { background:rgba(8,14,26,.94) !important; color:var(--tsz-text) !important; border-color:var(--tsz-border) !important; }
+.tsz-sidebar *, .tsz-topbar * { color:inherit; }
+.page h1,.page h2,.page h3,.home h1,.home h2,.home h3,.library-page h1,.library-page h2,.library-page h3 { color:var(--tsz-ink); }
+.page p,.home p,.library-page p,.page label,.home label,.library-page label { color:var(--tsz-text); }
+:where(.card,.panel,.summary,.tiles,.chart,.lesson,.sim-page-card,.sim-card,.library-card,.passage-card,.result-card,.metric-card,.stat-card,.exam-card,.pricing-card,.feature-card,.profile-card,.settings-card,.card-p,.rankline,.pitem,.library-day-card,.dash-panel,.dash-metric,.dash-quick-card,.dash-exam-card) {
+  background:var(--tsz-surface) !important; color:var(--tsz-text) !important;
+  border-color:var(--tsz-border) !important; border-radius:var(--tsz-radius);
+  box-shadow:var(--tsz-shadow-sm);
 }
-input, textarea, select {
-  color: var(--tsz-text);
-  border-color: var(--tsz-border-strong);
+:where(.card,.panel,.summary,.tiles,.chart,.lesson,.sim-page-card,.sim-card,.library-card,.passage-card,.result-card,.metric-card,.stat-card,.exam-card,.pricing-card,.feature-card,.profile-card,.settings-card,.card-p,.rankline,.pitem,.library-day-card,.dash-panel,.dash-metric,.dash-quick-card,.dash-exam-card) :where(p,span,small,label,strong,b,h1,h2,h3,h4) { color:inherit; }
+.hero,.simulators-hero,.sim-v2-hero,.library-hero,.cta-section,.dash-welcome {
+  background:radial-gradient(ellipse at 95% 0%,rgba(53,216,245,.1),transparent 38%),linear-gradient(135deg,#111d31,#0d1728 70%,#102433) !important;
+  border-color:var(--tsz-border) !important; color:var(--tsz-text) !important;
 }
-:focus-visible { outline: 3px solid var(--tsz-focus) !important; outline-offset: 3px; }
+.hero h1,.simulators-hero h1,.library-hero h1,.cta-section h2,.dash-welcome h1,
+.hero p,.simulators-hero p,.library-hero p,.cta-section p,.dash-welcome p { color:var(--tsz-text) !important; }
+button,input,textarea,select { color:var(--tsz-text); background-color:var(--tsz-surface); border-color:var(--tsz-border-strong); }
+input::placeholder,textarea::placeholder { color:var(--tsz-muted); opacity:1; }
+a { color:var(--tsz-blue-deep); }
+:focus-visible { outline:2px solid var(--tsz-focus) !important; outline-offset:3px; }
+::selection { background:rgba(53,216,245,.28); color:var(--tsz-ink); }
 
-/* One predictable emblem frame and readable local fallback for every exam card. */
-.exam-card-emblem,
-.home-style-exam-card .exam-card-emblem {
-  width: 82px !important;
-  height: 96px !important;
-  flex: 0 0 82px !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  padding: 8px !important;
-  border: 1px solid var(--tsz-border-strong) !important;
-  border-radius: var(--tsz-radius) !important;
-  background: linear-gradient(145deg, #f7fbff, #e7f1fa) !important;
-  color: var(--tsz-ink) !important;
+/* Stable exam emblem treatment; text fallback remains legible when artwork fails. */
+.exam-card-emblem,.home-style-exam-card .exam-card-emblem {
+  width:82px !important; height:96px !important; flex:0 0 82px !important;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+  padding:8px !important; border:1px solid var(--tsz-border-strong) !important;
+  border-radius:var(--tsz-radius) !important;
+  background:linear-gradient(145deg,#172943,#0d192b) !important;
+  color:var(--tsz-ink) !important;
 }
-.exam-card-emblem img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
+.exam-card-emblem img { display:block; width:100%; height:100%; max-width:100%; max-height:100%; object-fit:contain; }
 .exam-card-emblem .exam-card-fallback {
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: 4px;
-  width: 100%;
-  min-width: 0;
-  color: var(--tsz-ink) !important;
-  font-size: 18px;
-  font-weight: 900;
-  line-height: 1.15;
-  letter-spacing: .025em;
-  text-align: center;
-  overflow-wrap: anywhere;
+  display:grid; justify-items:center; align-content:center; gap:4px; width:100%; min-width:0;
+  color:var(--tsz-ink) !important; font-size:18px; font-weight:900; line-height:1.15;
+  letter-spacing:.025em; text-align:center; overflow-wrap:anywhere;
 }
-.exam-card-emblem .exam-card-fallback small {
-  display: block;
-  margin: 0 !important;
-  color: var(--tsz-muted) !important;
-  font-size: 10px !important;
-  font-weight: 750 !important;
-  letter-spacing: .07em;
-}
-@media (max-width: 560px) {
-  .exam-card-emblem,
-  .home-style-exam-card .exam-card-emblem {
-    width: 68px !important;
-    height: 78px !important;
-    flex-basis: 68px !important;
-  }
+.exam-card-emblem .exam-card-fallback small { display:block; margin:0 !important; color:var(--tsz-muted) !important; font-size:10px !important; font-weight:750 !important; letter-spacing:.07em; }
+@media(max-width:560px) {
+ .exam-card-emblem,.home-style-exam-card .exam-card-emblem { width:68px !important; height:78px !important; flex-basis:68px !important; }
 }
