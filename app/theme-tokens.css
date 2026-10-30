@@ -50,8 +50,6 @@
   --tsz-amber: var(--tsz-warning);
   --tsz-green: var(--tsz-success);
   --tsz-surface-soft: var(--tsz-surface-muted);
-  --tsz-border-strong: var(--tsz-border-strong);
-  --tsz-shadow: var(--tsz-shadow);
 }
 html { min-height:100%; background:var(--tsz-bg); color-scheme:dark; }
 body {
