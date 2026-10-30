@@ -197,7 +197,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
       <div className="tsz-exam-screen-meta">
         <span><small>LANGUAGE</small><strong>{lang === "hi" ? "Hindi" : "English"}</strong></span>
         <span><small>DURATION</small><strong>{Math.round(durationSec / 60)} minutes</strong></span>
-        <span><small>WORDS TYPED</small><strong>{typedChars.filter((c, i) => /\\s/u.test(c) && i > 0).length + (typedChars.length ? 1 : 0)}</strong></span>
+        <span><small>WORDS TYPED</small><strong>{typedChars.filter((c, i) => /\s/u.test(c) && i > 0).length + (typedChars.length ? 1 : 0)}</strong></span>
         <span><small>CORRECTION</small><strong>{backspace === "full" ? "Full backspace" : backspace === "word" ? "Word only" : "Disabled"}</strong></span>
       </div>
       <div className="sim-bar">
