@@ -26,11 +26,19 @@ async function generateOne(language: Lang, slot: Slot, index: number, apiKey: st
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model, temperature: 0.75, max_completion_tokens: 4096,
-      // Avoid provider-side JSON-mode validation failures on reasoning models.
-      // The prompt still requests a JSON object; we validate/parse it locally.
+      model,
+      temperature: 0.65,
+      // GPT-OSS exposes reasoning tokens; hide them so only the JSON answer is
+      // returned. Explicit JSON Object Mode prevents the provider from trying
+      // to validate an implicit/structured schema before our local validator.
+      reasoning_effort: "low",
+      reasoning_format: "hidden",
+      response_format: { type: "json_object" },
+      // 550–750 words plus JSON punctuation needs a larger completion budget;
+      // GPT-OSS reasoning tokens count toward this limit as well.
+      max_completion_tokens: 8192,
       messages: [
-        { role: "system", content: "You write original, high-quality typing passages. Follow exact language and word-count requirements. Output valid JSON only." },
+        { role: "system", content: "You write original, high-quality typing passages. Follow exact language and word-count requirements. Output one valid JSON object only. Do not include reasoning, markdown, or text outside the JSON object." },
         { role: "user", content: prompt },
       ],
     }),
@@ -138,11 +146,11 @@ export async function POST(req: Request) {
         const language = languageFor(slot, i);
         let result: Awaited<ReturnType<typeof generateOne>> | null = null;
         let lastError = "Generation failed.";
-        for (let attempt = 0; attempt < 2 && !result; attempt++) {
+        for (let attempt = 0; attempt < 3 && !result; attempt++) {
           try { result = await generateOne(language, slot, i, apiKey, model); }
           catch (error) { lastError = error instanceof Error ? error.message : "Generation failed."; }
         }
-        if (!result) throw new Error(`Passage ${i + 1} (${language}) failed validation after retry: ${lastError}`);
+        if (!result) throw new Error(`Passage ${i + 1} (${language}) failed validation after 3 attempts: ${lastError}`);
         passages.push({ ...result, language });
       }
 
