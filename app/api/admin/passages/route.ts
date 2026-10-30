@@ -25,27 +25,39 @@ export async function POST(req: Request) {
   });
   const bad = checked.filter((c: any) => !c.ok);
   if (bad.length) return Response.json({ error: "Some passages need fixing.", problems: bad.map((c: any) => ({ index: c.i, errors: c.errors })) }, { status: 422 });
-  const db = sql();
   const slug = b.templateSlug ? String(b.templateSlug).trim() : null;
-  if (slug) {
-    const [template] = await db`SELECT id FROM exam_templates WHERE slug = ${slug} LIMIT 1`;
-    if (!template) return Response.json({ error: "The selected exam template does not exist." }, { status: 422 });
+  try {
+    const db = sql();
+    let templateId: string | null = null;
+    if (slug) {
+      const [template] = await db`SELECT id FROM exam_templates WHERE slug = ${slug} LIMIT 1`;
+      if (!template) return Response.json({ error: "The selected exam template does not exist." }, { status: 422 });
+      templateId = String(template.id);
+    }
+    const payload = checked.map((item: any) => ({
+      language: item.clean.language,
+      title: item.clean.title,
+      body: item.clean.body,
+      word_count: countWords(item.clean.body),
+    }));
+    // One parameterized INSERT keeps the entire batch atomic.
+    const inserted = await db`
+      INSERT INTO passages (template_id, language, title, body, word_count, created_by)
+      SELECT ${templateId}, item.language, item.title, item.body, item.word_count, ${uid}
+      FROM jsonb_to_recordset(${JSON.stringify(payload)}::jsonb)
+        AS item(language text, title text, body text, word_count integer)
+      RETURNING id
+    `;
+    if (inserted.length !== payload.length) {
+      console.error("Bulk passage insert count mismatch", { expected: payload.length, inserted: inserted.length });
+      return Response.json({ error: `Only ${inserted.length} of ${payload.length} passages were confirmed saved. Refresh the passage list before retrying.`, saved: inserted.length }, { status: 500 });
+    }
+    return Response.json({ ok: true, saved: inserted.length });
+  } catch (error) {
+    console.error("POST /api/admin/passages bulk save failed:", error);
+    const detail = error instanceof Error ? error.message : "Unknown database error";
+    return Response.json({ error: "Bulk passage save failed. No passages were confirmed saved. " + detail.slice(0, 300) }, { status: 500 });
   }
-  const payload = checked.map((item: any) => ({
-    language: item.clean.language,
-    title: item.clean.title,
-    body: item.clean.body,
-    word_count: countWords(item.clean.body),
-  }));
-  // A single INSERT is atomic: the batch is either fully stored or not stored.
-  const inserted = await db`
-    INSERT INTO passages (template_id, language, title, body, word_count, created_by)
-    SELECT (SELECT id FROM exam_templates WHERE slug = ${slug}), item.language, item.title, item.body, item.word_count, ${uid}
-    FROM jsonb_to_recordset(${JSON.stringify(payload)}::jsonb)
-      AS item(language text, title text, body text, word_count integer)
-    RETURNING id
-  `;
-  return Response.json({ ok: true, saved: inserted.length });
 }
 
 export async function DELETE(req: Request) {
