@@ -54,24 +54,50 @@ export default function Admin() {
   const savePassages = async (items: { title: string; language: Lang; body: string }[]) => {
     if (savingPassages || !items.length) return;
     setSavingPassages(true);
-    setMsg(`Saving ${items.length} passage(s)…`);
+    let saved = 0;
+    let remaining = [...items];
     try {
-      const r = await post("/api/admin/passages", { items, templateSlug: tplSlug || undefined });
-      if (r.ok && Number(r.data.saved) === items.length) {
-        setMsg(`Successfully saved all ${r.data.saved} passage(s).`);
-        setTitle(""); setBody(""); setBulk([]);
-        await load();
-      } else if (r.ok) {
-        setMsg(`The server reported ${Number(r.data.saved) || 0} saved out of ${items.length}. Refresh the list before retrying to avoid duplicates.`);
-        await load();
-      } else {
-        const details = Array.isArray(r.data.problems)
-          ? r.data.problems.map((p: any) => `Passage ${p.index + 1}: ${(p.errors ?? []).join(" ")}`).join(" | ")
-          : r.data.error ?? `Save failed (HTTP ${r.status}).`;
-        setMsg(details);
+      // Keep each request small enough to avoid edge/runtime 413 body-size limits.
+      const maxChunkBytes = 24 * 1024;
+      const chunks: typeof items[] = [];
+      let chunk: typeof items = [];
+      for (const item of items) {
+        const candidate = [...chunk, item];
+        const bytes = new TextEncoder().encode(JSON.stringify({ items: candidate, templateSlug: tplSlug || undefined })).byteLength;
+        if (chunk.length && (bytes > maxChunkBytes || candidate.length > 10)) {
+          chunks.push(chunk);
+          chunk = [item];
+        } else {
+          chunk = candidate;
+        }
       }
+      if (chunk.length) chunks.push(chunk);
+
+      for (let index = 0; index < chunks.length; index++) {
+        const batch = chunks[index];
+        setMsg(`Saving passages: ${saved} of ${items.length} complete (batch ${index + 1}/${chunks.length})…`);
+        const r = await post("/api/admin/passages", { items: batch, templateSlug: tplSlug || undefined });
+        if (!r.ok || Number(r.data.saved) !== batch.length) {
+          const details = Array.isArray(r.data.problems)
+            ? r.data.problems.map((p: any) => `Passage ${p.index + 1}: ${(p.errors ?? []).join(" ")}`).join(" | ")
+            : r.data.error ?? `Save failed (HTTP ${r.status}).`;
+          if (bulk.length) setBulk(remaining.map(({ title, body }) => ({ title, body })));
+          setMsg(`${saved} of ${items.length} passages saved. Remaining passages are still loaded below. ${details}`);
+          await load();
+          return;
+        }
+        saved += batch.length;
+        remaining = items.slice(saved);
+        if (bulk.length) setBulk(remaining.map(({ title, body }) => ({ title, body })));
+      }
+
+      setMsg(`Successfully saved all ${saved} passage(s).`);
+      setTitle(""); setBody(""); setBulk([]);
+      await load();
     } catch (error) {
-      setMsg(error instanceof Error ? `Upload failed: ${error.message}` : "Upload failed because of a network error. Check your connection and retry.");
+      if (bulk.length) setBulk(remaining.map(({ title, body }) => ({ title, body })));
+      setMsg(`${saved} of ${items.length} passages saved. Remaining passages are still loaded below. ${error instanceof Error ? error.message : "Network error; refresh the list before retrying."}`);
+      await load();
     } finally {
       setSavingPassages(false);
     }
