@@ -37,7 +37,7 @@ export async function GET(req: Request) {
       WHERE p.created_at >= (${safeMonth} || '-01')::date
         AND p.created_at < ((${safeMonth} || '-01')::date + interval '1 month')
         AND (${lang}::text IS NULL OR p.language = ${lang})
-      ORDER BY p.created_at ASC, p.id ASC`;
+      ORDER BY p.created_at DESC, p.id DESC`;
     const monthRows = await db`SELECT DISTINCT to_char(created_at, 'YYYY-MM') AS month FROM passages ORDER BY month DESC`;
     const months = monthRows.map((row: any) => String(row.month));
     if (!months.includes(safeMonth)) months.unshift(safeMonth);
