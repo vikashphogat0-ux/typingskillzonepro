@@ -24,6 +24,7 @@ export default function Admin() {
   const [rows, setRows] = useState<Row[]>([]);
   const [generationBusy, setGenerationBusy] = useState("");
   const [generationMsg, setGenerationMsg] = useState("");
+  const [savingPassages, setSavingPassages] = useState(false);
 
   const runGeneration = async (slot: "morning" | "afternoon" | "live") => {
     const label = slot === "morning" ? "7 AM batch (5 passages)" : slot === "afternoon" ? "1 PM batch (5 passages)" : "7 PM live batch (2 passages)";
@@ -51,9 +52,29 @@ export default function Admin() {
   const bulkChecks = useMemo(() => bulk.map((b) => validatePassage({ ...b, language: lang })), [bulk, lang]);
 
   const savePassages = async (items: { title: string; language: Lang; body: string }[]) => {
-    const r = await post("/api/admin/passages", { items, templateSlug: tplSlug || undefined });
-    if (r.ok) { setMsg(`Saved ${r.data.saved} passage${r.data.saved === 1 ? "" : "s"}.`); setTitle(""); setBody(""); setBulk([]); load(); }
-    else setMsg(r.data.problems ? r.data.problems.map((p: any) => `#${p.index + 1}: ${p.errors.join(" ")}`).join("  ") : r.data.error ?? "Could not save.");
+    if (savingPassages || !items.length) return;
+    setSavingPassages(true);
+    setMsg(`Saving ${items.length} passage(s)…`);
+    try {
+      const r = await post("/api/admin/passages", { items, templateSlug: tplSlug || undefined });
+      if (r.ok && Number(r.data.saved) === items.length) {
+        setMsg(`Successfully saved all ${r.data.saved} passage(s).`);
+        setTitle(""); setBody(""); setBulk([]);
+        await load();
+      } else if (r.ok) {
+        setMsg(`The server reported ${Number(r.data.saved) || 0} saved out of ${items.length}. Refresh the list before retrying to avoid duplicates.`);
+        await load();
+      } else {
+        const details = Array.isArray(r.data.problems)
+          ? r.data.problems.map((p: any) => `Passage ${p.index + 1}: ${(p.errors ?? []).join(" ")}`).join(" | ")
+          : r.data.error ?? `Save failed (HTTP ${r.status}).`;
+        setMsg(details);
+      }
+    } catch (error) {
+      setMsg(error instanceof Error ? `Upload failed: ${error.message}` : "Upload failed because of a network error. Check your connection and retry.");
+    } finally {
+      setSavingPassages(false);
+    }
   };
   const onFile = async (f?: File) => { if (f) setBulk(parseBulk(await f.text())); };
   const delPassage = async (id: string) => { if (confirm("Delete this passage?")) { await api(`/api/admin/passages?id=${id}`, { method: "DELETE" }); load(); } };
@@ -109,11 +130,11 @@ export default function Admin() {
 
           <h2>Upload many at once</h2>
           <p className="hint">Use a .txt file in UTF-8. Separate passages with a line containing only ---. Start a passage with a line like “# Title” to name it. Language and template above apply to all.</p>
-          <input type="file" accept=".txt,text/plain" onChange={(e) => onFile(e.target.files?.[0])} aria-label="Upload passages file" />
+          <input type="file" accept=".txt,text/plain" disabled={savingPassages} onChange={(e) => { setMsg(""); void onFile(e.target.files?.[0]).catch((error) => setMsg(error instanceof Error ? error.message : "Could not read this TXT file.")); }} aria-label="Upload passages file" />
           {bulk.length > 0 && (<>
             <p>{bulk.length} passages found, {bulkChecks.filter((c) => c.ok).length} valid.</p>
             <ul>{bulkChecks.map((c, i) => <li key={i}>{c.clean.title}: {c.ok ? "ready" : <span className="err">{c.errors.join(" ")}</span>}</li>)}</ul>
-            <button className="go" disabled={bulkChecks.some((c) => !c.ok)} onClick={() => savePassages(bulkChecks.map((c) => c.clean))}>Save all</button>
+            <button className="go" disabled={savingPassages || bulkChecks.some((c) => !c.ok)} onClick={() => savePassages(bulkChecks.map((c) => c.clean))}>{savingPassages ? "Saving passages…" : `Save all ${bulk.length} passages`}</button>
           </>)}
 
           <h2>Saved passages ({rows.length})</h2>
