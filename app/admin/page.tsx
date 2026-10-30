@@ -81,6 +81,7 @@ export default function Admin() {
           const details = Array.isArray(r.data.problems)
             ? r.data.problems.map((p: any) => `Passage ${p.index + 1}: ${(p.errors ?? []).join(" ")}`).join(" | ")
             : r.data.error ?? `Save failed (HTTP ${r.status}).`;
+          if (bulk.length) setBulk(remaining.map(({ title, body }) => ({ title, body })));
           setMsg(`${saved} of ${items.length} passages saved. Remaining passages are still loaded below. ${details}`);
           await load();
           return;
