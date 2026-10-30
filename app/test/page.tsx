@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import TypingSimulator, { type SimResult } from "@/components/TypingSimulator";
 import { PRESETS, SAMPLE_PASSAGES, type DisplayMode, type ExamPreset } from "@/lib/presets";
@@ -71,8 +71,9 @@ export default function TestPage() {
     if (p) { setMode(p.mode); setBs(p.backspace); }
   }, [slug, presets]);
 
-  // Deep-link from the Passage Library: load the requested passage in the
-  // matching free-practice language profile without changing exam presets.
+  // Deep-link from the Passage Library: select a matching free-practice
+  // language profile, then restore the passage after its language list loads.
+  const passageDeepLinkHandled = useRef(false);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const passageId = params.get("passage");
@@ -84,8 +85,20 @@ export default function TestPage() {
       if (matchingPractice) setSlug(matchingPractice.slug);
     }
     setPassageSource("library");
-    setSelectedPassageId(passageId);
   }, []);
+
+  useEffect(() => {
+    if (passageDeepLinkHandled.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const passageId = params.get("passage");
+    if (!passageId) return;
+    const requestedLanguage = params.get("lang");
+    if (requestedLanguage === "en" || requestedLanguage === "hi") {
+      if (requestedLanguage !== preset.lang) return;
+    }
+    setSelectedPassageId(passageId);
+    passageDeepLinkHandled.current = true;
+  }, [preset.lang]);
 
   const choose = (s: string) => {
     const p = presets.find((x) => x.slug === s);
