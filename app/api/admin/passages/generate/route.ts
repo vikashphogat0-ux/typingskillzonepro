@@ -85,7 +85,7 @@ export async function POST(req: Request) {
     stage = "recording generation run";
     await db`INSERT INTO passage_generation_runs (generation_date, slot, requested_count, status)
       VALUES (${date}::date, ${slot}, ${slot === "live" ? 4 : 10}, 'running')
-      ON CONFLICT (generation_date, slot) DO UPDATE SET status = 'running', error_message = NULL, started_at = now()`;
+      ON CONFLICT (generation_date, slot) DO UPDATE SET requested_count = EXCLUDED.requested_count, status = 'running', error_message = NULL, started_at = now()`;
 
     stage = "checking existing passages";
     const existingRows = await db`SELECT language, count(*)::int AS count FROM passages
