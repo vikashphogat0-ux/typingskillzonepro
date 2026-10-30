@@ -26,6 +26,10 @@ For local Cloudflare/OpenNext development, copy `.dev.vars.example` to `.dev.var
 
 Use `CF_SECRET_KEY` as the Cashfree PG client secret for both order creation and webhook signature verification. This project does **not** read a separate `CF_WEBHOOK_SECRET` variable. If you already have a `CF_WEBHOOK_SECRET` entry in your local `.dev.vars`, remove it and make sure `CF_SECRET_KEY` contains the matching environment's Cashfree secret. Never paste secret values into chat or GitHub.
 
+## Super Admin owner access
+
+The application supports the existing `users.role = 'admin'` accounts and an optional server-only `SUPER_ADMIN_EMAILS` allowlist. Set `SUPER_ADMIN_EMAILS` to the exact email address(es) of platform owner account(s), comma-separated, in the Cloudflare Worker secrets/variables for the deployed environment. For local development, set it in `.dev.vars` or `.env.local`. The allowlist is checked server-side after the Neon Auth session is verified; it is never sent to the browser and does not require a database role migration. Do not put this value in any `NEXT_PUBLIC_*` variable. If it is unset, only users with `users.role = 'admin'` can access admin APIs.
+
 ## Environment variables
 
 Set variables in Cloudflare Dashboard → Workers & Pages → `typing-skill-zone-v2` → Settings → Variables and secrets. Set them for **Production** only after sandbox/staging tests pass. Do not commit credentials.
