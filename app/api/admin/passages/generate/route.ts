@@ -92,7 +92,12 @@ export async function POST(req: Request) {
       WHERE generation_date = ${date}::date AND generation_slot = ${slot} AND source = 'scheduled-ai'
       GROUP BY language`;
     const existing: Record<PassageLanguage, number> = { en: 0, hi: 0 };
-    for (const row of existingRows) if (row.language === "en" || row.language === "hi") existing[row.language] = Number(row.count);
+    for (const row of existingRows) {
+      if (row.language === "en" || row.language === "hi") {
+        const language = row.language as PassageLanguage;
+        existing[language] = Number(row.count);
+      }
+    }
     const jobs = passageJobs(slot, existing);
     const failures: string[] = [];
     let saved = 0;
@@ -133,7 +138,12 @@ export async function POST(req: Request) {
       WHERE generation_date = ${date}::date AND generation_slot = ${slot} AND source = 'scheduled-ai'
       GROUP BY language`;
     const finalCounts: Record<PassageLanguage, number> = { en: 0, hi: 0 };
-    for (const row of finalRows) if (row.language === "en" || row.language === "hi") finalCounts[row.language] = Number(row.count);
+    for (const row of finalRows) {
+      if (row.language === "en" || row.language === "hi") {
+        const language = row.language as PassageLanguage;
+        finalCounts[language] = Number(row.count);
+      }
+    }
     const target = slot === "live" ? 2 : 5;
     const complete = finalCounts.en >= target && finalCounts.hi >= target && failures.length === 0;
     const summary = failures.join(" | ").slice(0, 500) || null;
