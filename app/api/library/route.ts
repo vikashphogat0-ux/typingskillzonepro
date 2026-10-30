@@ -30,14 +30,14 @@ export async function GET(req: Request) {
       SELECT p.id, p.passage_number, p.title, p.language, p.word_count, left(p.body, 140) AS preview, et.name AS exam
       FROM ranked p LEFT JOIN exam_templates et ON et.id = p.template_id
       WHERE (${lang}::text IS NULL OR p.language = ${lang}) AND (${q} = '' OR p.title ILIKE ${like} OR p.id::text ILIKE ${like} OR p.passage_number::text = ltrim(${q}, '0') OR p.body ILIKE ${like}) AND (${tpl} = '' OR et.slug = ${tpl})
-      ORDER BY p.created_at ASC, p.id ASC`;
+      ORDER BY p.created_at DESC, p.id DESC`;
     const monthly = await db`WITH ranked AS (SELECT p.*, row_number() OVER (ORDER BY p.created_at ASC, p.id ASC) AS passage_number FROM passages p)
       SELECT p.id, p.passage_number, p.title, p.language, p.word_count, left(p.body, 180) AS preview, p.created_at::date::text AS date, et.name AS exam
       FROM ranked p LEFT JOIN exam_templates et ON et.id = p.template_id
       WHERE p.created_at >= (${safeMonth} || '-01')::date
         AND p.created_at < ((${safeMonth} || '-01')::date + interval '1 month')
         AND (${lang}::text IS NULL OR p.language = ${lang})
-      ORDER BY p.created_at ASC, p.id ASC`;
+      ORDER BY p.created_at DESC, p.id DESC`;
     const monthRows = await db`SELECT DISTINCT to_char(created_at, 'YYYY-MM') AS month FROM passages ORDER BY month DESC`;
     const months = monthRows.map((row: any) => String(row.month));
     if (!months.includes(safeMonth)) months.unshift(safeMonth);

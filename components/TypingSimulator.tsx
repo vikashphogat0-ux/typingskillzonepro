@@ -189,7 +189,17 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
   const activeIdx = typedChars.length;
 
   return (
-    <section className="sim" aria-label="Typing test">
+    <section className="sim tsz-exam-screen" aria-label="Typing test">
+      <header className="tsz-exam-screen-header">
+        <div className="tsz-exam-screen-brand"><span className="tsz-exam-screen-mark">TS</span><div><strong>TypingSkillZone</strong><small>{examName}</small></div></div>
+        <div className="tsz-exam-screen-status"><span className="tsz-live-dot" /> {phase === "warmup" ? "WARM-UP" : phase === "break" ? "BREAK" : done ? "COMPLETED" : "LIVE TEST"}</div>
+      </header>
+      <div className="tsz-exam-screen-meta">
+        <span><small>LANGUAGE</small><strong>{lang === "hi" ? "Hindi" : "English"}</strong></span>
+        <span><small>DURATION</small><strong>{Math.round(durationSec / 60)} minutes</strong></span>
+        <span><small>WORDS TYPED</small><strong>{typedChars.filter((c, i) => /\s/u.test(c) && i > 0).length + (typedChars.length ? 1 : 0)}</strong></span>
+        <span><small>CORRECTION</small><strong>{backspace === "full" ? "Full backspace" : backspace === "word" ? "Word only" : "Disabled"}</strong></span>
+      </div>
       <div className="sim-bar">
         <div className={(phase === "test" ? left : phaseLeft) < 30 ? "clock low" : "clock"} role="timer" aria-live="off">{fmt(phase === "test" ? left : phaseLeft)}</div>
         <div className="meter" aria-hidden><i style={{ width: `${refChars.length ? Math.min(100, (typedChars.length / refChars.length) * 100) : 0}%` }} /></div>
