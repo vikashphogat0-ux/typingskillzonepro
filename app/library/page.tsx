@@ -132,7 +132,7 @@ export default function Library() {
       <button type="button" className="library-action primary" onClick={() => void loadPassage(passage)}>{selected?.id === passage.id ? "Hide passage" : "View passage"}</button>
       <a className="library-action" href={`/api/library/download?id=${encodeURIComponent(passage.id)}`}>Download TXT</a>
       <button type="button" className="library-action" onClick={() => void printPassage(passage)}>Print / Save PDF</button>
-      <a className="library-action" href={`/test?passage=${encodeURIComponent(passage.id)}`}>Practise this passage</a>
+      <a className="library-action" href={`/test?passage=${encodeURIComponent(passage.id)}&lang=${passage.language === "hi" ? "hi" : "en"}`}>Practise this passage</a>
     </div>
   );
 
