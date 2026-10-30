@@ -3,12 +3,7 @@ import "./globals.css";
 import AuthLink from "@/components/AuthLink";
 import AppSidebar from "@/components/AppSidebar";
 import GlobalSearch from "@/components/GlobalSearch";
-import "./site-polish.css";
-import "./desktop-header-fix.css";
-import "./design-system.css";
-import "./dashboard-home.css";
-import "./full-site-redesign.css";
-import "./theme-tokens.css";
+import "./fresh-design.css";
 
 export const metadata: Metadata = {
   title: "Typing Skill Zone | Exam-focused typing practice",
