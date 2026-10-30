@@ -1,4 +1,4 @@
-import { verifyWebhookSignature } from "@/lib/cashfree";
+import { verifyWebhookSignature, verifyCashfreePayment } from "@/lib/cashfree";
 import { processPaidOrder } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
@@ -51,7 +51,12 @@ export async function POST(req: Request) {
 
   const amountPaise = Math.round(amountRupees * 100);
   try {
-    const accepted = await processPaidOrder(orderId, paymentId, amountPaise, currency);
+    const verified = await verifyCashfreePayment(orderId, paymentId, amountPaise, currency);
+    if (!verified) {
+      console.error("Cashfree webhook payment failed independent gateway verification", { orderId, paymentId });
+      return new Response("Payment could not be independently verified", { status: 400 });
+    }
+    const accepted = await processPaidOrder(orderId, verified.paymentId, verified.amountPaise, verified.currency);
     if (!accepted) {
       // A mismatched/untracked payment must never grant subscription access.
       console.error("Cashfree webhook did not match a pending order", { orderId, paymentId });
