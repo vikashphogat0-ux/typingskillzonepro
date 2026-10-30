@@ -59,7 +59,7 @@ export default function ExamDetailPage({ params }: { params: Promise<{ slug: str
           <li><strong>Scoring:</strong> {exam.scoring?.label ?? "Standard"}</li>
         </ul>
 
-        <a className="go" href={`/practice/${exam.slug}`}>
+        <a className="go" href={`/simulators/${exam.slug}`}>
           Start Practice
         </a>
       </div>
