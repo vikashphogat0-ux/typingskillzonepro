@@ -25,3 +25,64 @@ body{background:#fff;color:var(--site-ink);font-family:Inter,ui-sans-serif,syste
 .page img,.page svg,.page canvas{max-width:100%}
 @media(max-width:700px){.app-route-header{align-items:flex-start;flex-direction:column;padding:14px 18px}.app-route-header nav{justify-content:flex-start;width:100%;gap:10px 16px}.page{width:calc(100% - 32px);padding:26px 0 48px}}
 @media(max-width:420px){.footer-content{grid-template-columns:1fr}.footer-content .footer-section:first-child{grid-column:auto}.hero-demo-stats{gap:6px}.hero-demo-stats div{padding:9px}}
+
+
+/* Passage Library — RKC-inspired numbered document catalogue, branded for TSZ */
+.library-page{max-width:1120px!important;padding-top:38px!important}
+.library-page .library-hero{border-radius:10px;background:linear-gradient(120deg,#f4f7fc,#eaf1fb);border:1px solid #dce5f1;box-shadow:none;color:#17243b;padding:34px clamp(20px,4vw,42px);margin-bottom:28px}
+.library-page .library-hero:after{display:none}
+.library-page .library-hero .eyebrow{color:#2459c4}
+.library-page .library-hero h1{color:#17243b;font-size:clamp(30px,4vw,44px);letter-spacing:-1.2px;margin:12px 0}
+.library-page .library-hero p{color:#5f6f86;max-width:760px}
+.library-stat-row{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0 4px}
+.library-stat-row>div{min-width:135px;padding:12px 16px;background:#fff;border:1px solid #dce5f1;border-radius:8px}
+.library-stat-row strong,.library-stat-row span{display:block}
+.library-stat-row strong{font-size:21px;color:#2459c4}
+.library-stat-row span{font-size:11px;color:#64748b;margin-top:2px}
+.library-section-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:0 0 14px;border-bottom:1px solid #e3e9f2}
+.library-section-heading h2{font-size:23px;letter-spacing:-.5px;margin:0;color:#17243b}
+.library-section-heading p{font-size:13px;color:#64748b;margin:4px 0 0}
+.library-page .tabs{position:static;display:flex;gap:6px;flex-wrap:wrap;background:transparent;border:0;padding:0}
+.library-page .tabs button{border:1px solid #dce5f1;background:#fff;color:#46546a;border-radius:6px!important;padding:9px 13px!important;font-size:12px!important}
+.library-page .tabs button[aria-selected="true"]{background:#2459c4;color:#fff;border-color:#2459c4}
+.library-page .library-archive{margin-top:24px}
+.library-page .library-intro h2{font-size:20px;color:#17243b}
+.library-page .library-intro p{font-size:13px;color:#64748b}
+.library-page .library-month-toolbar{border-radius:8px;background:#f8fafd;border-color:#e0e7f0;box-shadow:none}
+.library-page .library-month-list{gap:8px}
+.library-page .library-month-item,.library-page .pitem{border:1px solid #e1e7ef!important;border-radius:8px;background:#fff;box-shadow:none;transition:border-color .15s,background .15s}
+.library-page .library-month-item:hover,.library-page .pitem:hover{transform:none;box-shadow:none;border-color:#a9bfdf!important;background:#fbfdff}
+.library-page .library-month-item.selected{border-color:#2459c4!important}
+.library-page .library-month-select{min-height:72px;padding:12px 14px;gap:12px}
+.library-row-number{width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;border-radius:6px;background:#f0f4fa;color:#52647d;font-size:12px;font-weight:800}
+.library-page .library-language-mark{width:34px;height:34px;flex-basis:34px;border-radius:6px;font-size:11px}
+.library-page .library-month-title strong{font-size:14px;color:#1c2c49}
+.library-page .library-month-title small{font-size:11px;line-height:1.5;color:#77849a}
+.library-row-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+.library-action{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:6px 11px;border:1px solid #d4dfed;border-radius:5px;background:#fff;color:#2459c4;text-decoration:none;font:700 11px/1.2 inherit;cursor:pointer;white-space:nowrap}
+.library-action:hover{background:#edf3ff;border-color:#b8cbea}
+.library-list-row{padding:12px 14px!important;margin:0!important;border-radius:8px!important}
+.library-list-row-head{display:flex;align-items:center;gap:12px;min-width:0}
+.library-list-row-title{flex:1;min-width:0;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.library-list-row-title>b{font-size:14px;color:#1c2c49}
+.library-list-row .tag{font-size:10px;padding:2px 7px;border-radius:4px;background:#f5f7fa;color:#64748b;border-color:#e3e9f2}
+.library-list-row .hint{font-size:11px}
+.library-list-row>.passage-box{max-height:360px;margin-top:12px}
+.library-list-row>p{font-size:12px;margin:8px 0 0}
+@media(max-width:680px){
+ .library-page{padding-top:22px!important}
+ .library-page .library-hero{padding:24px 18px}
+ .library-stat-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+ .library-stat-row>div{min-width:0;padding:10px 8px}
+ .library-stat-row strong{font-size:17px}
+ .library-stat-row span{font-size:9px}
+ .library-section-heading{align-items:flex-start;flex-direction:column}
+ .library-page .tabs{width:100%}
+ .library-page .tabs button{flex:1;padding:9px 7px!important}
+ .library-page .library-month-select{align-items:flex-start;flex-wrap:wrap;padding:11px}
+ .library-page .library-month-title{flex:1 1 calc(100% - 100px)}
+ .library-row-actions{width:100%;padding-left:44px}
+ .library-list-row-head{align-items:flex-start;flex-wrap:wrap}
+ .library-list-row-title{flex:1 1 calc(100% - 45px)}
+ .library-list-row-head>.library-row-actions{padding-left:42px}
+}
