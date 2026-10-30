@@ -44,9 +44,6 @@
   --tsz-teal: var(--tsz-accent);
   --tsz-amber: #f4b740;
   --tsz-green: var(--tsz-success);
-  --tsz-border-strong: var(--tsz-border-strong);
-  --tsz-radius: var(--tsz-radius);
-  --tsz-shadow: var(--tsz-shadow);
 }
 html { min-height: 100%; background: var(--tsz-bg); color-scheme: light; }
 body {
