@@ -59,7 +59,7 @@ body{background:#fff;color:var(--site-ink);font-family:Inter,ui-sans-serif,syste
 .library-page .library-month-title strong{font-size:14px;color:#1c2c49}
 .library-page .library-month-title small{font-size:11px;line-height:1.5;color:#77849a}
 .library-row-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto}
-.library-action{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:6px 11px;border:1px solid #d4dfed;border-radius:5px;background:#fff;color:#2459c4;text-decoration:none;font:700 11px/1.2 inherit;cursor:pointer;white-space:nowrap}
+.library-action{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:6px 11px;border:1px solid #d4dfed;border-radius:5px;background:#fff;color:#2459c4;text-decoration:none;font-family:inherit;font-size:11px;font-weight:700;line-height:1.2;cursor:pointer;white-space:nowrap}
 .library-action:hover{background:#edf3ff;border-color:#b8cbea}
 .library-list-row{padding:12px 14px!important;margin:0!important;border-radius:8px!important}
 .library-list-row-head{display:flex;align-items:center;gap:12px;min-width:0}
