@@ -8,6 +8,7 @@ import "./desktop-header-fix.css";
 import "./design-system.css";
 import "./dashboard-home.css";
 import "./full-site-redesign.css";
+import "./theme-tokens.css";
 
 export const metadata: Metadata = {
   title: "Typing Skill Zone | Exam-focused typing practice",

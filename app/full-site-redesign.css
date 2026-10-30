@@ -1,16 +1,7 @@
 /* Typing Skill Zone — original light exam-first design system.
    Inspired by exam-focused usability patterns; original styling and branding.
    Presentation only: preserves routes, APIs, auth, database and payment logic. */
-:root{
-  color-scheme:light;
-  --tsz-bg:#f5f8fc;--tsz-surface:#fff;--tsz-surface-soft:#f0f6fb;
-  --tsz-ink:#172b4d;--tsz-text:#253858;--tsz-muted:#62748a;
-  --tsz-blue:#087fba;--tsz-blue-deep:#075985;--tsz-blue-soft:#e5f4ff;
-  --tsz-teal:#0f9f9a;--tsz-amber:#f4b740;--tsz-green:#16835f;
-  --tsz-border:#dbe5ef;--tsz-border-strong:#bfd0e1;
-  --tsz-shadow:0 8px 24px rgba(30,64,100,.07);
-  --tsz-radius:16px;
-}
+/* Shared theme tokens are defined in theme-tokens.css. */
 *,*::before,*::after{box-sizing:border-box}
 html{background:var(--tsz-bg);scroll-padding-top:96px}
 body{min-width:320px;background:var(--tsz-bg);color:var(--tsz-text);font-family:Inter,"Segoe UI",system-ui,-apple-system,sans-serif;line-height:1.6}
