@@ -1,0 +1,130 @@
+/* TypingSkillZone centralized visual tokens.
+   Keep all shared colors, surfaces, borders, radii and focus states here.
+   Component/layout styles should consume these variables instead of defining
+   competing page-level palettes. */
+:root {
+  color-scheme: light;
+  --tsz-bg: #f4f7fb;
+  --tsz-bg-subtle: #edf3f9;
+  --tsz-surface: #ffffff;
+  --tsz-surface-raised: #ffffff;
+  --tsz-surface-muted: #f6f9fc;
+  --tsz-ink: #102b4e;
+  --tsz-text: #24364b;
+  --tsz-muted: #61758b;
+  --tsz-primary: #087fba;
+  --tsz-primary-hover: #075985;
+  --tsz-accent: #0f9f9a;
+  --tsz-success: #16835f;
+  --tsz-warning: #a66a08;
+  --tsz-danger: #bd3348;
+  --tsz-border: #d9e4ef;
+  --tsz-border-strong: #bfd0e1;
+  --tsz-focus: rgba(8, 127, 186, .34);
+  --tsz-radius-sm: 9px;
+  --tsz-radius: 14px;
+  --tsz-radius-lg: 20px;
+  --tsz-shadow-sm: 0 3px 12px rgba(16, 43, 78, .045);
+  --tsz-shadow: 0 8px 24px rgba(16, 43, 78, .075);
+
+  /* Backward-compatible aliases used by the existing simulator and practice CSS. */
+  --ink: var(--tsz-text);
+  --mute: var(--tsz-muted);
+  --board: var(--tsz-bg);
+  --sheet: var(--tsz-surface);
+  --line: var(--tsz-border);
+  --red: var(--tsz-danger);
+  --redbg: #fff0f2;
+  --green: var(--tsz-success);
+  --greenbg: #e8f7ef;
+  --gold: #f4b740;
+  --tsz-blue: var(--tsz-primary);
+  --tsz-blue-deep: var(--tsz-primary-hover);
+  --tsz-blue-soft: #e5f4ff;
+  --tsz-teal: var(--tsz-accent);
+  --tsz-amber: #f4b740;
+  --tsz-green: var(--tsz-success);
+  --tsz-border-strong: var(--tsz-border-strong);
+  --tsz-radius: var(--tsz-radius);
+  --tsz-shadow: var(--tsz-shadow);
+}
+html { min-height: 100%; background: var(--tsz-bg); color-scheme: light; }
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--tsz-bg);
+  color: var(--tsz-text);
+}
+.tsz-app-shell { background: var(--tsz-bg); }
+.tsz-sidebar { background: var(--tsz-surface) !important; border-color: var(--tsz-border) !important; }
+.tsz-topbar { background: rgba(255,255,255,.96) !important; border-color: var(--tsz-border) !important; }
+.tsz-content { color: var(--tsz-text); }
+.page, .home, .library-page { color: var(--tsz-text); }
+:where(.card,.panel,.summary,.tiles,.chart,.lesson,.sim-page-card,.sim-card,
+.library-card,.passage-card,.result-card,.metric-card,.stat-card,.exam-card,
+.pricing-card,.feature-card,.profile-card,.settings-card,.card-p,.rankline,
+.pitem,.library-day-card,.dash-panel,.dash-metric,.dash-quick-card,.dash-exam-card) {
+  border-color: var(--tsz-border);
+  border-radius: var(--tsz-radius);
+}
+input, textarea, select {
+  color: var(--tsz-text);
+  border-color: var(--tsz-border-strong);
+}
+:focus-visible { outline: 3px solid var(--tsz-focus) !important; outline-offset: 3px; }
+
+/* One predictable emblem frame and readable local fallback for every exam card. */
+.exam-card-emblem,
+.home-style-exam-card .exam-card-emblem {
+  width: 82px !important;
+  height: 96px !important;
+  flex: 0 0 82px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 8px !important;
+  border: 1px solid var(--tsz-border-strong) !important;
+  border-radius: var(--tsz-radius) !important;
+  background: linear-gradient(145deg, #f7fbff, #e7f1fa) !important;
+  color: var(--tsz-ink) !important;
+}
+.exam-card-emblem img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.exam-card-emblem .exam-card-fallback {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  color: var(--tsz-ink) !important;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: .025em;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.exam-card-emblem .exam-card-fallback small {
+  display: block;
+  margin: 0 !important;
+  color: var(--tsz-muted) !important;
+  font-size: 10px !important;
+  font-weight: 750 !important;
+  letter-spacing: .07em;
+}
+@media (max-width: 560px) {
+  .exam-card-emblem,
+  .home-style-exam-card .exam-card-emblem {
+    width: 68px !important;
+    height: 78px !important;
+    flex-basis: 68px !important;
+  }
+}
