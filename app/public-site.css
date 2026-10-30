@@ -86,3 +86,58 @@ body{background:#fff;color:var(--site-ink);font-family:Inter,ui-sans-serif,syste
  .library-list-row-title{flex:1 1 calc(100% - 45px)}
  .library-list-row-head>.library-row-actions{padding-left:42px}
 }
+
+
+/* RKC-inspired exam selection and CBT typing workspace — TypingSkillZone implementation */
+.practice-page{max-width:1120px!important;padding-top:30px!important}
+.practice-page .practice-hero{padding:30px 34px!important;border:1px solid #dce5f1!important;border-radius:10px!important;background:linear-gradient(115deg,#f2f6fc,#fff 62%,#edf3fc)!important;box-shadow:none!important}
+.practice-page .practice-hero h1{font-size:clamp(30px,4vw,42px)!important;color:#17243b!important;letter-spacing:-1px!important}
+.practice-page .practice-hero>p{max-width:760px;color:#5e6d83!important;font-size:14px!important;line-height:1.7}
+.practice-hero-pills span{border:1px solid #d9e3f1!important;background:#fff!important;color:#53647c!important;border-radius:5px!important;font-size:11px!important}
+.practice-layout{grid-template-columns:minmax(0,1.55fr) minmax(250px,.75fr)!important;gap:20px!important;align-items:start}
+.practice-config,.practice-side-card,.practice-library-link{border:1px solid #dfe6ef!important;border-radius:9px!important;box-shadow:none!important}
+.practice-config{padding:24px!important;background:#fff}
+.practice-section-heading{margin:4px 0 18px!important;padding-bottom:12px;border-bottom:1px solid #e8edf4}
+.practice-section-heading h2{font-size:18px!important;color:#1d2d48}
+.practice-section-heading p{font-size:12px!important;color:#718096}
+.practice-step{background:#eaf0fb!important;color:#2459c4!important;border-radius:5px!important}
+.practice-field{font-size:12px!important;color:#33445e!important;gap:7px!important}
+.practice-field select,.practice-field input,.custom-passage-input{border:1px solid #d4deeb!important;border-radius:6px!important;background:#fff!important;font-size:13px!important}
+.practice-mode-grid{gap:9px!important}
+.practice-mode-card{border:1px solid #dce4ef!important;border-radius:7px!important;background:#fff!important;padding:13px!important;text-align:left!important}
+.practice-mode-card.selected{border-color:#3265bd!important;background:#f3f7ff!important;box-shadow:inset 0 0 0 1px #3265bd!important}
+.practice-mode-card strong{font-size:12px!important;color:#233653}
+.practice-mode-card>span:not(.practice-mode-check){font-size:11px!important;line-height:1.5!important;color:#6c7b91}
+.practice-summary{border:1px solid #dce5f1!important;border-radius:7px!important;background:#f8fafd!important}
+.practice-start{border-radius:6px!important;background:#2459c4!important;box-shadow:none!important;font-size:13px!important;min-height:44px}
+.practice-start:hover{background:#19499f!important;transform:none!important}
+.practice-side-card{padding:20px!important}
+.practice-side-dark{background:#172846!important;color:#fff!important}
+.practice-side-card h2{font-size:22px!important}
+.practice-side-card p,.practice-side-card li{font-size:12px!important;line-height:1.7}
+.practice-library-link{background:#fff!important}
+.tsz-exam-screen{max-width:1100px;margin:0 auto;padding:18px!important;border:1px solid #d8e1ed;border-radius:10px;background:#f5f7fb;box-shadow:0 10px 32px rgba(24,45,78,.07)}
+.tsz-exam-screen-header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:4px 4px 16px;border-bottom:1px solid #e0e7f0}
+.tsz-exam-screen-brand{display:flex;align-items:center;gap:10px}
+.tsz-exam-screen-mark{width:38px;height:38px;display:grid;place-items:center;border-radius:7px;background:#2459c4;color:#fff;font-size:12px;font-weight:900}
+.tsz-exam-screen-brand strong,.tsz-exam-screen-brand small{display:block}
+.tsz-exam-screen-brand strong{font-size:14px;color:#1b2b46}
+.tsz-exam-screen-brand small{font-size:11px;color:#718096;margin-top:2px}
+.tsz-exam-screen-status{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:850;letter-spacing:.08em;color:#315b9c}
+.tsz-live-dot{width:7px;height:7px;border-radius:50%;background:#16a36a;box-shadow:0 0 0 3px #d9f3e7}
+.tsz-exam-screen-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:14px 0}
+.tsz-exam-screen-meta>span{padding:9px 11px;border:1px solid #e0e7f0;border-radius:6px;background:#fff;min-width:0}
+.tsz-exam-screen-meta small,.tsz-exam-screen-meta strong{display:block}
+.tsz-exam-screen-meta small{font-size:9px;letter-spacing:.08em;color:#8290a4;font-weight:800}
+.tsz-exam-screen-meta strong{font-size:12px;color:#263a59;margin-top:3px;overflow-wrap:anywhere}
+.tsz-exam-screen .sim-bar{align-items:center;padding:12px 14px;border:1px solid #dce5f1;border-radius:7px;background:#fff;margin-bottom:12px}
+.tsz-exam-screen .clock{font-size:26px;color:#1e3760}
+.tsz-exam-screen .clock.low{color:#c22e3d}
+.tsz-exam-screen .meter{height:8px;background:#e9eef6}
+.tsz-exam-screen .meter i{background:#2e62bd}
+.tsz-exam-screen .rules{font-size:11px}
+.tsz-exam-screen .sheet{border:1px solid #d9e1ec;border-left:4px solid #315eaa;border-radius:7px;background:#fff;padding:22px 24px;min-height:270px;max-height:390px;line-height:1.9;color:#26354d}
+.tsz-exam-screen .entry{border:1px solid #cbd7e7;border-radius:7px;background:#fff;min-height:150px;padding:16px;font-size:18px;line-height:1.7;box-shadow:inset 0 1px 2px rgba(20,40,70,.03)}
+.tsz-exam-screen .entry:focus{outline:3px solid rgba(49,94,170,.15);border-color:#4775bd}
+.tsz-exam-screen .offscreen-print-tools,.tsz-exam-screen .mode-note{border-radius:7px}
+@media(max-width:760px){.practice-layout{grid-template-columns:1fr!important}.practice-side{grid-row:1}.practice-side-dark{display:none}.practice-config{padding:17px!important}.tsz-exam-screen{padding:10px!important}.tsz-exam-screen-meta{grid-template-columns:repeat(2,minmax(0,1fr))}.tsz-exam-screen .sim-bar{gap:9px}.tsz-exam-screen .rules{width:100%}.tsz-exam-screen .sheet{padding:15px;min-height:220px}}
