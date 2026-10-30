@@ -576,3 +576,30 @@ select option{background:#101a2a;color:#edf3ff}
  .custom-passage-source{grid-template-columns:1fr}
  .practice-result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+/* Categorised RKC-style exam directory */
+.exam-directory-hero{padding:clamp(22px,4vw,38px);border:1px solid var(--tsz-line);border-radius:18px;background:radial-gradient(ellipse at 90% 0%,rgba(109,156,255,.15),transparent 38%),var(--tsz-panel);box-shadow:var(--tsz-shadow)}
+.exam-directory-hero .public-title{color:var(--tsz-text)!important;margin-bottom:10px}
+.exam-directory-hero .public-lead{color:var(--tsz-muted)!important}
+.exam-directory-stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.exam-directory-stats span{padding:9px 13px;border:1px solid var(--tsz-line);border-radius:9px;background:rgba(255,255,255,.035);color:var(--tsz-muted);font-size:11px}
+.exam-directory-stats strong{color:var(--tsz-cyan);margin-right:5px}
+.exam-directory-controls{display:grid;grid-template-columns:minmax(220px,1.5fr) minmax(130px,.65fr) minmax(190px,1fr) auto;gap:12px;align-items:end;margin:22px 0 12px;padding:17px;border:1px solid var(--tsz-line);border-radius:14px;background:var(--tsz-panel)}
+.exam-directory-controls label{display:block;min-width:0;color:var(--tsz-muted);font-size:11px;font-weight:800}
+.exam-directory-controls label>span{display:block;margin-bottom:6px}
+.exam-directory-controls input,.exam-directory-controls select{width:100%;min-height:43px;margin:0;padding:10px 12px;border:1px solid var(--tsz-line-strong);border-radius:9px;background:#0a111d;color:var(--tsz-text);font-size:12px}
+.exam-directory-controls .site-button{min-height:43px;white-space:nowrap}
+.exam-directory-shortcuts{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:12px 0 28px}
+.exam-directory-shortcuts>span{margin-right:5px;color:var(--tsz-subtle);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.exam-directory-shortcuts button{padding:6px 10px;border:1px solid var(--tsz-line);border-radius:999px;background:rgba(255,255,255,.025);color:var(--tsz-muted);font-size:10px;font-weight:700}
+.exam-directory-shortcuts button:hover{border-color:var(--tsz-accent);color:var(--tsz-cyan)}
+.exam-directory-groups{display:grid;gap:32px}
+.exam-directory-group-head{display:flex;align-items:end;justify-content:space-between;gap:15px;margin:0 0 15px;padding-bottom:12px;border-bottom:1px solid var(--tsz-line)}
+.exam-directory-group-head h2{margin:4px 0 0;color:var(--tsz-text);font-size:22px;letter-spacing:-.5px}
+.exam-directory-group-head>span{color:var(--tsz-subtle);font-size:11px}
+.exam-directory-meta{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px;color:var(--tsz-subtle);font-size:10px}
+.exam-directory-meta span+span:before{content:"·";margin-right:9px;color:var(--tsz-subtle)}
+.exam-directory-footer{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:34px 0 0}
+@media(max-width:820px){.exam-directory-controls{grid-template-columns:1fr 1fr}.exam-directory-search{grid-column:1/-1}}
+@media(max-width:520px){.exam-directory-controls{grid-template-columns:1fr}.exam-directory-search{grid-column:auto}.exam-directory-controls .site-button{width:100%}.exam-directory-group-head{align-items:flex-start;flex-direction:column}}
