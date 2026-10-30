@@ -91,3 +91,36 @@ test("Cashfree order creation uses the PG Orders API and never returns credentia
     }
   }
 });
+
+test("Cashfree payment verification requires gateway-confirmed success and exact amount", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalEnv = {
+    CF_ENVIRONMENT: process.env.CF_ENVIRONMENT,
+    CF_MERCHANT_ID: process.env.CF_MERCHANT_ID,
+    CF_SECRET_KEY: process.env.CF_SECRET_KEY,
+  };
+  try {
+    process.env.CF_ENVIRONMENT = "sandbox";
+    process.env.CF_MERCHANT_ID = "sandbox-app-id";
+    process.env.CF_SECRET_KEY = "sandbox-secret";
+    globalThis.fetch = (async () => new Response(JSON.stringify([
+      { cf_payment_id: "pay_wrong", payment_status: "SUCCESS", payment_amount: 99, payment_currency: "INR" },
+      { cf_payment_id: "pay_test", payment_status: "SUCCESS", payment_amount: 99, payment_currency: "INR" },
+      { cf_payment_id: "pay_pending", payment_status: "PENDING", payment_amount: 99, payment_currency: "INR" },
+    ]), { status: 200, headers: { "content-type": "application/json" } })) as typeof fetch;
+
+    const { verifyCashfreePayment } = await import("../lib/cashfree.ts");
+    assert.deepEqual(await verifyCashfreePayment("order_test", "pay_test", 9900), {
+      paymentId: "pay_test", amountPaise: 9900, currency: "INR",
+    });
+    assert.equal(await verifyCashfreePayment("order_test", "pay_wrong", 9900), null);
+    assert.equal(await verifyCashfreePayment("order_test", "pay_test", 10000), null);
+    assert.equal(await verifyCashfreePayment("order_test", "pay_pending", 9900), null);
+  } finally {
+    globalThis.fetch = originalFetch;
+    for (const [key, value] of Object.entries(originalEnv)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
