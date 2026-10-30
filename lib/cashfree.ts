@@ -131,3 +131,52 @@ export async function createPaymentOrder(input: CreateCashfreeOrderInput): Promi
     mode: cashfreeMode(),
   };
 }
+export interface VerifiedCashfreePayment {
+  paymentId: string;
+  amountPaise: number;
+  currency: string;
+}
+
+/**
+ * Independently confirms a webhook-reported success against Cashfree's
+ * authenticated order-payments API before any subscription is activated.
+ */
+export async function verifyCashfreePayment(
+  orderId: string,
+  paymentId: string,
+  expectedAmountPaise: number,
+  expectedCurrency = "INR"
+): Promise<VerifiedCashfreePayment | null> {
+  if (!orderId || !paymentId || !Number.isSafeInteger(expectedAmountPaise) || expectedAmountPaise <= 0) return null;
+  const clientId = requiredEnv("CF_MERCHANT_ID");
+  const clientSecret = requiredEnv("CF_SECRET_KEY");
+  const response = await fetch(
+    `${cashfreeApiBaseUrl()}/orders/${encodeURIComponent(orderId)}/payments`,
+    {
+      method: "GET",
+      headers: {
+        "x-client-id": clientId,
+        "x-client-secret": clientSecret,
+        "x-api-version": CASHFREE_API_VERSION,
+        "accept": "application/json",
+      },
+      cache: "no-store",
+    }
+  );
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 180);
+    throw new Error(`Cashfree payment verification failed: HTTP ${response.status} ${detail}`);
+  }
+  const payments: any = await response.json();
+  if (!Array.isArray(payments)) throw new Error("Cashfree returned an invalid payment verification response.");
+  const payment = payments.find((item) =>
+    String(item?.cf_payment_id ?? "") === paymentId &&
+    String(item?.payment_status ?? "").toUpperCase() === "SUCCESS"
+  );
+  if (!payment) return null;
+  const amount = Number(payment.payment_amount);
+  const currency = String(payment.payment_currency ?? "");
+  if (!Number.isFinite(amount) || Math.round(amount * 100) !== expectedAmountPaise || currency !== expectedCurrency) return null;
+  return { paymentId, amountPaise: expectedAmountPaise, currency };
+}
+
