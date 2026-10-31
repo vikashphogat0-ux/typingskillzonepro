@@ -127,7 +127,7 @@ export default function Login() {
   };
 
   if (mode === "forgot-sent") {
-    return <div className="page setup">
+    return <div className="page setup auth-page">
       <h1>Check your email</h1>
       <p>If this address is registered, Neon Auth will send password-reset instructions to <b>{email}</b>.</p>
       <p><button type="button" className="link" onClick={() => { setMode("in"); clear(); }}>Back to sign in</button></p>
