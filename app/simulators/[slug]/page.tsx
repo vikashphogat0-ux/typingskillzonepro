@@ -122,7 +122,7 @@ export default function SimulatorPage() {
     } catch (e) {
       setLibraryError(e instanceof Error ? e.message : "Unable to load passages.");
     } finally { setLibraryLoading(false); }
-  }, [sim]);
+  }, [sim, tab]);
 
   useEffect(() => {
     if ((tab === "daily" || tab === "monthly") && sim) void loadLibrary(tab === "monthly" ? month || undefined : undefined);
