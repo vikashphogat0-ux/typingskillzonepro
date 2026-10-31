@@ -19,11 +19,57 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build:cloudflare
+      - name: Verify required preview configuration
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
+          NEON_AUTH_BASE_URL: ${{ secrets.PREVIEW_NEON_AUTH_BASE_URL }}
+          NEXT_PUBLIC_NEON_AUTH_URL: ${{ secrets.PREVIEW_NEON_AUTH_BASE_URL }}
+          CF_MERCHANT_ID: ${{ secrets.CASHFREE_SANDBOX_MERCHANT_ID }}
+          CF_SECRET_KEY: ${{ secrets.CASHFREE_SANDBOX_SECRET_KEY }}
+          SUPER_ADMIN_EMAILS: ${{ secrets.PREVIEW_SUPER_ADMIN_EMAILS }}
+        run: |
+          required=(CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID DATABASE_URL NEON_AUTH_BASE_URL NEXT_PUBLIC_NEON_AUTH_URL CF_MERCHANT_ID CF_SECRET_KEY SUPER_ADMIN_EMAILS)
+          missing=()
+          for name in "${required[@]}"; do
+            if [[ -z "${!name}" ]]; then missing+=("$name"); fi
+          done
+          if (( ${#missing[@]} )); then
+            printf '::error::Missing required GitHub Actions secrets: %s\n' "${missing[*]}"
+            exit 1
+          fi
+      - name: Type-check and test
+        run: |
+          npm run typecheck
+          npm test
+      - name: Build Cloudflare application
+        run: npm run build:cloudflare
+        env:
+          NEXT_PUBLIC_NEON_AUTH_URL: ${{ secrets.PREVIEW_NEON_AUTH_BASE_URL }}
+          NEXT_PUBLIC_URL: https://typingskillzone-rebuild-preview.workers.dev
       - name: Deploy isolated preview Worker
         run: npx wrangler deploy --config wrangler.preview.jsonc
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Configure preview Worker secrets
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
+          NEON_AUTH_BASE_URL: ${{ secrets.PREVIEW_NEON_AUTH_BASE_URL }}
+          CF_MERCHANT_ID: ${{ secrets.CASHFREE_SANDBOX_MERCHANT_ID }}
+          CF_SECRET_KEY: ${{ secrets.CASHFREE_SANDBOX_SECRET_KEY }}
+          SUPER_ADMIN_EMAILS: ${{ secrets.PREVIEW_SUPER_ADMIN_EMAILS }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          PASSAGE_CRON_SECRET: ${{ secrets.PASSAGE_CRON_SECRET }}
+        run: |
+          for name in DATABASE_URL NEON_AUTH_BASE_URL CF_MERCHANT_ID CF_SECRET_KEY SUPER_ADMIN_EMAILS GROQ_API_KEY PASSAGE_CRON_SECRET; do
+            value="${!name}"
+            if [[ -n "$value" ]]; then
+              printf '%s' "$value" | npx wrangler secret put "$name" --config wrangler.preview.jsonc
+            fi
+          done
