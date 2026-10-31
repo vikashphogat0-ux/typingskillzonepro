@@ -10,6 +10,7 @@ import ExamEmblem from "@/components/ExamEmblem";
 interface SimInfo {
   slug: string; name: string; language: "en" | "hi"; duration_sec: number;
   display_mode: string; backspace: string; scoring: any; description?: string;
+  passage_layout?: string; enter_key_policy?: "newline" | "blocked"; tab_key_policy?: "insert" | "blocked"; font_size_pt?: number;
   participants?: number; my_best?: string | null;
 }
 interface PassageItem { id: string; title: string; language?: string; word_count: number; preview?: string; date?: string; exam?: string; passage_number?: number; body?: string }
@@ -191,6 +192,30 @@ export default function SimulatorPage() {
     finally { setPreviewLoading(false); }
   };
 
+  const printPassage = async (passage: PassageItem) => {
+    const target = window.open("", "_blank");
+    if (!target) { window.alert("Allow pop-ups to print or save this passage as PDF."); return; }
+    target.document.write("<!doctype html><title>Preparing passage…</title><p>Preparing print view…</p>");
+    try {
+      let full = passage;
+      if (!full.body) {
+        const response = await api(`/api/library?id=${encodeURIComponent(passage.id)}`);
+        if (!response.ok) throw new Error(response.data?.error ?? "Unable to load passage.");
+        full = { ...passage, ...response.data };
+      }
+      const escapeHtml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      const title = escapeHtml(full.title || "Exam passage");
+      const exam = escapeHtml(sim?.name || "TypingSkillZone");
+      const body = escapeHtml(full.body ?? full.preview ?? "");
+      target.document.open();
+      target.document.write(`<!doctype html><html lang="${sim?.language ?? "en"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${exam} — ${title}</title><style>body{font-family:Arial,"Noto Sans Devanagari",sans-serif;max-width:850px;margin:32px auto;padding:0 24px;color:#172033;line-height:1.75}h1{font-size:18pt;margin:0 0 5px}h2{font-size:13pt;font-weight:500;margin:0 0 22px;color:#526176}.passage{font-size:${Math.max(10,Math.min(18,sim?.font_size_pt ?? 12))}pt;white-space:pre-wrap;overflow-wrap:anywhere}@page{margin:18mm}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${exam}</h1><h2>${title} · ID ${escapeHtml(full.id)}</h2><div class="passage">${body}</div><script>window.onload=()=>window.print()<\/script></body></html>`);
+      target.document.close();
+      target.focus();
+    } catch (error) {
+      target.document.body.textContent = error instanceof Error ? error.message : "Unable to prepare print view.";
+    }
+  };
+
   if (loading) return <div className="page"><p>Loading exam workspace…</p></div>;
   if (error || !sim) return <div className="page"><h1>Simulator not found</h1><p>{error}</p><a href="/simulators" className="go alt">Back to simulators</a></div>;
 
@@ -241,7 +266,7 @@ export default function SimulatorPage() {
           <div><span>YOUR BEST NET WPM</span><strong>{sim.my_best ?? "—"}</strong><small>Personal best on record</small></div>
           <div><span>RANKED PARTICIPANTS</span><strong>{sim.participants ?? 0}</strong><small>On this simulator</small></div>
         </div>
-        <div className="exam-pattern-card"><div><span className="exam-workspace-eyebrow">EXAM PATTERN</span><h3>{sim.name} Test</h3></div><p>{sim.description || `${sim.name}: configured ${Math.round(sim.duration_sec / 60)}-minute typing test. Review the scoring, display and keyboard rules before starting.`}</p><div className="exam-pattern-tags"><span>{MODE_LABELS[sim.display_mode] ?? sim.display_mode}</span><span>{BS_LABELS[sim.backspace] ?? sim.backspace}</span><span>{scoring.unit === "keystrokes" ? "Key depressions" : "Words per minute"}</span></div><button className="exam-text-link" onClick={() => setTab("practice")}>Review rules and start →</button></div>
+        <div className="exam-pattern-card"><div><span className="exam-workspace-eyebrow">EXAM PATTERN</span><h3>{sim.name} Test</h3></div><p>{sim.description || `${sim.name}: configured ${Math.round(sim.duration_sec / 60)}-minute typing test. Review the scoring, display and keyboard rules before starting.`}</p><div className="exam-pattern-tags"><span>{MODE_LABELS[sim.display_mode] ?? sim.display_mode}</span><span>{BS_LABELS[sim.backspace] ?? sim.backspace}</span><span>{scoring.unit === "keystrokes" ? "Key depressions" : "Words per minute"}</span><span>Paragraphs: {sim.passage_layout === "continuous" ? "Continuous" : "Preserve line breaks"}</span><span>Enter: {sim.enter_key_policy === "blocked" ? "Blocked" : "New paragraph"}</span><span>Tab: {sim.tab_key_policy === "insert" ? "Insert tab" : "Blocked"}</span></div><button className="exam-text-link" onClick={() => setTab("practice")}>Review rules and start →</button></div>
         <div className="exam-dashboard-lower"><button onClick={() => setTab("leaderboard")}>View exam leaderboard ↗</button><a href="/exams">Explore other examinations ↗</a><a href="/library">Open full passage library ↗</a></div>
       </section>}
 
@@ -258,7 +283,7 @@ export default function SimulatorPage() {
             <small>{visiblePassages.length} matching passages available. The selected simulator controls timing, scoring, layout and keyboard rules.</small>
           </>}
         </div>
-        <div className="exam-rules-grid"><div><span>DURATION</span><strong>{Math.round(sim.duration_sec / 60)} minutes</strong></div><div><span>DISPLAY</span><strong>{sim.display_mode}</strong></div><div><span>BACKSPACE</span><strong>{sim.backspace}</strong></div><div><span>SCORING</span><strong>{scoring.unit === "keystrokes" ? "Key depressions" : scoring.netMethod ?? "Standard WPM"}</strong></div></div>
+        <div className="exam-rules-grid"><div><span>DURATION</span><strong>{Math.round(sim.duration_sec / 60)} minutes</strong></div><div><span>DISPLAY</span><strong>{sim.display_mode}</strong></div><div><span>BACKSPACE</span><strong>{sim.backspace}</strong></div><div><span>SCORING</span><strong>{scoring.unit === "keystrokes" ? "Key depressions" : scoring.netMethod ?? "Standard WPM"}</strong></div><div><span>PASSAGE FORMAT</span><strong>{sim.passage_layout === "continuous" ? "Continuous" : "Paragraphs"}</strong></div><div><span>ENTER KEY</span><strong>{sim.enter_key_policy === "blocked" ? "Blocked" : "New line"}</strong></div><div><span>TAB KEY</span><strong>{sim.tab_key_policy === "insert" ? "Insert tab" : "Blocked"}</strong></div></div>
         <div className="exam-practice-actions"><button className="exam-action-primary" disabled={testState === "starting"} onClick={() => startTest()}>{testState === "starting" ? "Preparing test…" : "Start typing test →"}</button><button className="exam-action-secondary" onClick={() => { setTab("daily"); }}>Explore daily passages</button></div>
       </section>}
 
@@ -266,10 +291,10 @@ export default function SimulatorPage() {
         <div className="exam-workspace-section-heading"><div><span className="exam-workspace-eyebrow">DAILY PRACTICE · {sim.language === "hi" ? "HINDI" : "ENGLISH"}</span><h2>Daily passages</h2><p>Open today’s selected passage or revisit recent daily practice passages for this language.</p></div><button className="exam-small-refresh" onClick={() => void loadLibrary()}>Refresh passages ↻</button></div>
         {libraryLoading && <div className="exam-workspace-state">Loading daily passages…</div>}
         {libraryError && <div className="exam-workspace-error">{libraryError}</div>}
-        {!libraryLoading && todayPassage && <article className="exam-daily-feature"><div className="exam-passage-card-top"><span className="exam-workspace-eyebrow">TODAY’S PASSAGE</span><span>{library?.today ?? todayPassage.date}</span></div><h3>{todayPassage.title}</h3><p>{todayPassage.body ?? todayPassage.preview}</p><div className="exam-passage-card-footer"><span>{todayPassage.word_count} words · {sim.language === "hi" ? "Hindi" : "English"} · ID {todayPassage.id}</span><div><a href={`/api/library/download?id=${encodeURIComponent(todayPassage.id)}`}>Download TXT ↓</a><button onClick={() => { setPassageSource("library"); setSelectedPassageId(todayPassage.id); setTab("practice"); }}>Practise this passage →</button></div></div></article>}
+        {!libraryLoading && todayPassage && <div className="exam-passage-row exam-passage-row-feature"><div className="exam-passage-row-main"><span className="exam-passage-row-exam">{sim.name}</span><strong>{todayPassage.title}</strong><small>TODAY · {todayPassage.word_count} words · ID {todayPassage.id}</small></div><div className="exam-passage-row-actions"><button onClick={() => void fetchPreview(todayPassage)}>View</button><button onClick={() => void printPassage(todayPassage)}>Print</button><button className="exam-row-practice" onClick={() => { setPassageSource("library"); setSelectedPassageId(todayPassage.id); setTab("practice"); }}>Practise</button></div></div>}
         {!libraryLoading && !todayPassage && !libraryError && <div className="exam-workspace-state">No daily passage is available for this language today.</div>}
         <div className="exam-workspace-subheading"><h3>Recent daily passages</h3><span>Last 14 days</span></div>
-        <div className="exam-daily-list">{archiveItems.map(item => <article key={item.date + item.id}><div><strong>{item.title}</strong><small>{item.date} · {item.word_count} words · ID {item.id}</small></div><button onClick={() => void fetchPreview(item)}>Preview</button><button onClick={() => { setSelectedPassageId(item.id); setPassageSource("library"); setTab("practice"); }}>Practise →</button></article>)}</div>
+        <div className="exam-passage-list">{archiveItems.map(item => <article className="exam-passage-row" key={item.date + item.id}><div className="exam-passage-row-main"><span className="exam-passage-row-exam">{sim.name}</span><strong>{item.title}</strong><small>{item.date} · {item.word_count} words · ID {item.id}</small></div><div className="exam-passage-row-actions"><button onClick={() => void fetchPreview(item)}>View</button><button onClick={() => void printPassage(item)}>Print</button><button className="exam-row-practice" onClick={() => { setSelectedPassageId(item.id); setPassageSource("library"); setTab("practice"); }}>Practise</button></div></article>)}{!archiveItems.length && !libraryLoading && <div className="exam-workspace-state">No recent passages are available.</div>}</div>
         {selectedPreview && <div className="exam-passage-preview"><div><h3>{selectedPreview.title}</h3><button onClick={() => setSelectedPreview(null)}>Close ×</button></div>{previewLoading ? <p>Loading passage…</p> : <p>{selectedPreview.body ?? selectedPreview.preview}</p>}<button className="exam-action-primary" onClick={() => { setSelectedPassageId(selectedPreview.id); setPassageSource("library"); setTab("practice"); }}>Practise this passage →</button></div>}
       </section>}
 
@@ -278,7 +303,7 @@ export default function SimulatorPage() {
         <div className="exam-month-toolbar"><label>Select month<select value={month} onChange={e => { setMonth(e.target.value); setSelectedPreview(null); void loadLibrary(e.target.value); }}><option value="">Choose month</option>{(library?.months ?? []).map(m => <option key={m} value={m}>{new Date(m + "-01T00:00:00").toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</option>)}</select></label><span>{monthlyItems.length} passages in selected month</span></div>
         {libraryLoading && <div className="exam-workspace-state">Loading monthly archive…</div>}
         {libraryError && <div className="exam-workspace-error">{libraryError}</div>}
-        {!libraryLoading && !libraryError && <div className="exam-monthly-list">{monthlyItems.map(item => <article key={item.id}><div className="exam-month-number">{item.passage_number ?? "—"}</div><div className="exam-month-copy"><strong>{item.title}</strong><small>{item.date ?? "Archive"} · {item.word_count} words · ID {item.id}</small><p>{item.preview}</p></div><div className="exam-month-actions"><button onClick={() => void fetchPreview(item)}>Preview</button><a href={`/api/library/download?id=${encodeURIComponent(item.id)}`}>Download</a><button onClick={() => { setSelectedPassageId(item.id); setPassageSource("library"); setTab("practice"); }}>Practise</button></div></article>)}{!monthlyItems.length && <div className="exam-workspace-state">No passages found for this month and language.</div>}</div>}
+        {!libraryLoading && !libraryError && <div className="exam-passage-list">{monthlyItems.map(item => <article className="exam-passage-row" key={item.id}><div className="exam-passage-row-main"><span className="exam-passage-row-exam">{sim.name}</span><strong>{item.title}</strong><small>{item.date ?? "Archive"} · {item.word_count} words · Passage {item.passage_number ?? "—"} · ID {item.id}</small></div><div className="exam-passage-row-actions"><button onClick={() => void fetchPreview(item)}>View</button><button onClick={() => void printPassage(item)}>Print</button><button className="exam-row-practice" onClick={() => { setSelectedPassageId(item.id); setPassageSource("library"); setTab("practice"); }}>Practise</button></div></article>)}{!monthlyItems.length && <div className="exam-workspace-state">No passages found for this month and language.</div>}</div>}
         {selectedPreview && <div className="exam-passage-preview"><div><h3>{selectedPreview.title}</h3><button onClick={() => setSelectedPreview(null)}>Close ×</button></div>{previewLoading ? <p>Loading passage…</p> : <p>{selectedPreview.body ?? selectedPreview.preview}</p>}<button className="exam-action-primary" onClick={() => { setSelectedPassageId(selectedPreview.id); setPassageSource("library"); setTab("practice"); }}>Practise this passage →</button></div>}
       </section>}
 
