@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     if (languages.size !== 1) return Response.json({ error: "All passages in one upload batch must use the same language." }, { status: 422 });
     const targetTemplates: { id: string; slug: string; name: string; language: string }[] = [];
     for (const slug of slugs) {
-      const [template] = await db`SELECT id, slug, language FROM exam_templates WHERE slug = ${slug} AND is_active = true LIMIT 1`;
+      const [template] = await db`SELECT id, slug, name, language FROM exam_templates WHERE slug = ${slug} AND is_active = true LIMIT 1`;
       if (!template) return Response.json({ error: `The selected exam directory "${slug}" does not exist or is inactive.` }, { status: 422 });
       targetTemplates.push({ id: String(template.id), slug: String(template.slug), name: String(template.name), language: String(template.language) });
     }
