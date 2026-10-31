@@ -146,3 +146,29 @@ body{background-image:radial-gradient(ellipse at 16% -10%,rgba(72,111,190,.17),t
  .auth-page{width:calc(100% - 24px)!important;margin:24px auto!important;padding:22px 18px!important}
 }
 @media(prefers-reduced-motion:reduce){.public-nav,.auth-page *{scroll-behavior:auto;transition:none!important}}
+
+
+/* Corrective pass 2: auth page wrapper must override legacy .page width !important */
+.page.setup.auth-page{
+  box-sizing:border-box!important;display:flex!important;flex-direction:column!important;
+  align-items:stretch!important;width:min(480px,calc(100% - 32px))!important;
+  max-width:480px!important;min-width:0!important;margin:clamp(28px,7vh,72px) auto!important;
+  padding:clamp(22px,4vw,36px)!important;gap:14px!important;text-align:left!important;
+}
+.page.setup.auth-page>.form{
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;
+  padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;gap:14px!important;
+}
+.page.setup.auth-page>.form>label{width:100%;min-width:0}
+.page.setup.auth-page>.form>label>input{box-sizing:border-box;width:100%!important}
+.page.setup.auth-page>.form>.go{display:flex;width:100%!important;max-width:none!important}
+.page.setup.auth-page>p{width:100%;max-width:none;margin:0!important;text-align:left}
+.exam-catalogue-card-top .exam-card-emblem,.tsz-home-exam-card-top .exam-card-emblem{
+  box-sizing:border-box;display:flex;flex:0 0 46px;align-items:center;justify-content:center;
+  width:46px;height:46px;min-width:46px;min-height:46px;aspect-ratio:1;overflow:hidden;border-radius:11px;
+}
+.exam-card-emblem img{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;object-position:center;padding:5px;box-sizing:border-box}
+.exam-card-fallback{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;height:100%;min-width:0;text-align:center;line-height:1.05;overflow:hidden;font-size:clamp(9px,1vw,12px)!important;letter-spacing:-.2px}
+.exam-card-fallback small{display:block;max-width:100%;font-size:6px!important;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:700px){.page.setup.auth-page{width:calc(100% - 24px)!important;margin:24px auto!important;padding:22px 18px!important}}
