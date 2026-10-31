@@ -7,7 +7,8 @@ import AuthLink from "@/components/AuthLink";
 const links = [
   ["/", "Home"],
   ["/exams", "Exams"],
-  ["/dashboard", "Exam Results"],
+  ["/simulators", "Simulators"],
+  ["/dashboard", "My Results"],
   ["/faqs", "FAQs"],
   ["/blog", "Blog"],
   ["/pricing", "Pricing"],
