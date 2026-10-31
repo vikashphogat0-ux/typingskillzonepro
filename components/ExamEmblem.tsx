@@ -37,7 +37,7 @@ export default function ExamEmblem({ slug, mark, short, family, tone }: Props) {
         />
       ) : (
         <span className="exam-card-fallback" aria-hidden="true">
-          {mark}
+          <strong>{mark}</strong>
           <small>{short}</small>
         </span>
       )}
