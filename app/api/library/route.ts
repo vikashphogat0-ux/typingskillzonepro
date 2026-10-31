@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     const safeMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth) ? requestedMonth : today.slice(0, 7);
     const daily: Record<string, any> = {}, archive: Record<string, any[]> = {};
     for (const l of ["en", "hi"]) {
-      const pool = await db\`WITH ranked AS (SELECT p.id, p.title, p.language, p.word_count, row_number() OVER (ORDER BY p.created_at ASC, p.id ASC) AS passage_number FROM passages p WHERE p.language = \${l} AND (\${tpl} = '' OR p.template_id = (SELECT id FROM exam_templates WHERE slug = \${tpl}))) SELECT id, title, word_count, passage_number FROM ranked ORDER BY id\`;
+      const pool = await db`WITH ranked AS (SELECT p.id, p.title, p.language, p.word_count, row_number() OVER (ORDER BY p.created_at ASC, p.id ASC) AS passage_number FROM passages p WHERE p.language = ${l} AND (${tpl} = '' OR p.template_id = (SELECT id FROM exam_templates WHERE slug = ${tpl}))) SELECT id, title, word_count, passage_number FROM ranked ORDER BY id`;
       const pick = dailyPick(pool as any[], today, l);
       if (pick) { const [full] = await db`WITH ranked AS (SELECT id, row_number() OVER (ORDER BY created_at ASC, id ASC) AS passage_number FROM passages) SELECT p.id, p.title, p.word_count, p.body, ranked.passage_number FROM passages p JOIN ranked ON ranked.id = p.id WHERE p.id = ${pick.id}`; daily[l] = { date: today, ...full }; }
       archive[l] = dates.map((d) => ({ date: d, ...(dailyPick(pool as any[], d, l) as any) })).filter((x) => x.id);
@@ -37,7 +37,7 @@ export async function GET(req: Request) {
       WHERE p.created_at >= (${safeMonth} || '-01')::date
         AND p.created_at < ((${safeMonth} || '-01')::date + interval '1 month')
         AND (${lang}::text IS NULL OR p.language = ${lang})
-        AND (\${tpl} = '' OR et.slug = \${tpl})
+        AND (${tpl} = '' OR et.slug = ${tpl})
       ORDER BY p.created_at DESC, p.id DESC`;
     const monthRows = await db`SELECT DISTINCT to_char(created_at, 'YYYY-MM') AS month FROM passages ORDER BY month DESC`;
     const months = monthRows.map((row: any) => String(row.month));
