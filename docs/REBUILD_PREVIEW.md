@@ -71,7 +71,7 @@ Open Actions → Deploy rebuild preview → Run workflow. The workflow runs type
 
 Expected preview host after a successful deployment:
 
-`https://typingskillzone-rebuild-preview.<your-workers-subdomain>.workers.dev`
+`https://typingskillzone-rebuild-preview.vikashphogat0.workers.dev`
 
 Cloudflare may require enabling the workers.dev subdomain once in the dashboard.
 
