@@ -48,6 +48,7 @@ export default function Admin() {
 
   /* ---------- passages ---------- */
   const [title, setTitle] = useState(""); const [lang, setLang] = useState<Lang>("en"); const [body, setBody] = useState(""); const [selectedExamSlugs, setSelectedExamSlugs] = useState<string[]>([]);
+  useEffect(() => { if (tpls.length && selectedExamSlugs.length === 0) setSelectedExamSlugs(tpls.filter((x) => x.language === "en" && x.is_active).map((x) => x.slug)); }, [tpls, selectedExamSlugs]);
   const check = useMemo(() => validatePassage({ title, language: lang, body }), [title, lang, body]);
   const [bulk, setBulk] = useState<{ title: string; body: string }[]>([]);
   const bulkChecks = useMemo(() => bulk.map((b) => validatePassage({ ...b, language: lang })), [bulk, lang]);
