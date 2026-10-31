@@ -39,7 +39,7 @@ export async function GET(req: Request) {
         AND (${lang}::text IS NULL OR p.language = ${lang})
         AND (${tpl} = '' OR et.slug = ${tpl})
       ORDER BY p.created_at DESC, p.id DESC`;
-    const monthRows = await db`SELECT DISTINCT to_char(created_at, 'YYYY-MM') AS month FROM passages ORDER BY month DESC`;
+    const monthRows = await db`SELECT DISTINCT to_char(p.created_at, 'YYYY-MM') AS month FROM passages p LEFT JOIN exam_templates et ON et.id = p.template_id WHERE (${tpl} = '' OR et.slug = ${tpl}) ORDER BY month DESC`;
     const months = monthRows.map((row: any) => String(row.month));
     if (!months.includes(safeMonth)) months.unshift(safeMonth);
     return Response.json({ today, daily, archive, list, monthly, months });
