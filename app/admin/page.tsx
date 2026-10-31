@@ -164,9 +164,9 @@ export default function Admin() {
           </>)}
 
           <h2>Saved passages ({rows.length})</h2>
-          <div className="tbl"><table><thead><tr><th>Title</th><th>Language</th><th>Words</th><th>Exam</th><th></th></tr></thead><tbody>
-            {rows.map((r) => <tr key={r.id}><td title={r.preview}>{r.title}</td><td>{r.language === "hi" ? "Hindi" : "English"}</td><td>{r.word_count}</td><td>{r.template ?? "Any"}</td><td><button className="link" onClick={() => delPassage(r.id)}>Delete</button></td></tr>)}
-            {!rows.length && <tr><td colSpan={5}>No passages yet. Add one above. Until then students get the built-in samples.</td></tr>}
+          <div className="tbl"><table><thead><tr><th>Passage ID</th><th>Title</th><th>Language</th><th>Words</th><th>Exam directory</th><th></th></tr></thead><tbody>
+            {rows.map((r) => <tr key={r.id}><td><code>{r.id}</code></td><td title={r.preview}>{r.title}</td><td>{r.language === "hi" ? "Hindi" : "English"}</td><td>{r.word_count}</td><td>{r.template ?? "Any"}</td><td><button className="link" onClick={() => delPassage(r.id)}>Delete</button></td></tr>)}
+            {!rows.length && <tr><td colSpan={6}>No passages yet. Add one above. Until then students get the built-in samples.</td></tr>}
           </tbody></table></div>
         </>
       ) : (
