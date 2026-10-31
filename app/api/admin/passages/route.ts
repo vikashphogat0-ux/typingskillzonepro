@@ -38,30 +38,41 @@ export async function POST(req: Request) {
     const db = sql();
     const languages = new Set(checked.map((item: any) => item.clean.language));
     if (languages.size !== 1) return Response.json({ error: "All passages in one upload batch must use the same language." }, { status: 422 });
-    const targetTemplates: { id: string; slug: string; language: string }[] = [];
+    const targetTemplates: { id: string; slug: string; name: string; language: string }[] = [];
     for (const slug of slugs) {
       const [template] = await db`SELECT id, slug, language FROM exam_templates WHERE slug = ${slug} AND is_active = true LIMIT 1`;
       if (!template) return Response.json({ error: `The selected exam directory "${slug}" does not exist or is inactive.` }, { status: 422 });
-      targetTemplates.push({ id: String(template.id), slug: String(template.slug), language: String(template.language) });
+      targetTemplates.push({ id: String(template.id), slug: String(template.slug), name: String(template.name), language: String(template.language) });
     }
     const language = checked[0].clean.language;
     const wrongLanguage = targetTemplates.filter((template) => template.language !== language);
     if (wrongLanguage.length) return Response.json({ error: `Passage language does not match these exam directories: ${wrongLanguage.map((x) => x.slug).join(", ")}. Select only ${language === "hi" ? "Hindi" : "English"} directories.` }, { status: 422 });
 
-    const payload = checked.map((item: any) => ({
+    const basePayload = checked.map((item: any) => ({
       language: item.clean.language,
       title: item.clean.title,
       body: item.clean.body,
       word_count: countWords(item.clean.body),
     }));
-    const destinations: (string | null)[] = targetTemplates.length ? targetTemplates.map((template) => template.id) : [null];
-    const statements = destinations.map((templateId) => db`
-      INSERT INTO passages (template_id, language, title, body, word_count, created_by)
-      SELECT ${templateId}::uuid, item.language, item.title, item.body, item.word_count, ${uid}
-      FROM jsonb_to_recordset(${JSON.stringify(payload)}::jsonb)
-        AS item(language text, title text, body text, word_count integer)
-      RETURNING id
-    `);
+    const destinations: { id: string | null; slug: string; name: string }[] = targetTemplates.length
+      ? targetTemplates.map((template) => ({ id: template.id, slug: template.slug, name: String((template as any).name ?? template.slug) }))
+      : [{ id: null, slug: "general", name: "TypingSkillZone" }];
+    const statements = destinations.map((destination) => {
+      const payload = basePayload.map((item: any) => {
+        const match = /^Passage\s+(\d+)$/i.exec(item.title.trim());
+        const title = match
+          ? `${destination.name} — Passage ${String(Number(match[1])).padStart(2, "0")}`
+          : item.title;
+        return { ...item, title: title.slice(0, 120) };
+      });
+      return db`
+        INSERT INTO passages (template_id, language, title, body, word_count, created_by)
+        SELECT ${destination.id}::uuid, item.language, item.title, item.body, item.word_count, ${uid}
+        FROM jsonb_to_recordset(${JSON.stringify(payload)}::jsonb)
+          AS item(language text, title text, body text, word_count integer)
+        RETURNING id
+      `;
+    });
     const insertedBatches = await db.transaction(statements);
     const insertedCount = insertedBatches.reduce((total: number, rows: any) => total + rows.length, 0);
     const expected = payload.length * destinations.length;
