@@ -324,8 +324,9 @@ export const PROFILES: Record<string, ScoringProfile> = {
   "ibps-dest": { ...base, id: "ibps-dest", label: "IBPS DEST (verify recruitment-specific criteria)", language: "en", unit: "keystrokes", durationSec: 300 },
   "court-typing-en": { ...base, id: "court-typing-en", label: "Court Typing (English; court-specific rules required)", language: "en" },
   "delhi-high-court-jja-en": {
-    ...base, id: "delhi-high-court-jja-en", label: "Delhi High Court JJA/Restorer 2026 (English; 35 WPM target, error threshold not verified)",
-    language: "en", durationSec: 600, qualifyingWpm: 35, qualificationBasis: "gross",
+    ...base, id: "delhi-high-court-jja-en", label: "Delhi High Court JJA/Restorer 2026 — 35 WPM, 10 minutes, maximum 3% mistakes",
+    language: "en", durationSec: 600, qualifyingWpm: 35, qualificationBasis: "gross", maxErrorPercent: 3,
+    errorPercentBasis: "typedWords",
     halfRules: { caseOnly: false, punctuationOnly: false },
   },
   "court-typing-hi": { ...base, id: "court-typing-hi", label: "Court Typing (Hindi; court-specific rules required)", language: "hi" },
