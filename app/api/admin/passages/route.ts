@@ -36,6 +36,8 @@ export async function POST(req: Request) {
 
   try {
     const db = sql();
+    const languages = new Set(checked.map((item: any) => item.clean.language));
+    if (languages.size !== 1) return Response.json({ error: "All passages in one upload batch must use the same language." }, { status: 422 });
     const targetTemplates: { id: string; slug: string; language: string }[] = [];
     for (const slug of slugs) {
       const [template] = await db`SELECT id, slug, language FROM exam_templates WHERE slug = ${slug} AND is_active = true LIMIT 1`;
