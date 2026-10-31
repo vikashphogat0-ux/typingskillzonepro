@@ -49,10 +49,9 @@ export const PRESETS: ExamPreset[] = [
 
 /** Profiles whose core rules have been checked against the linked official notifications. */
 const VERIFIED_EXAM_SLUGS = new Set([
-  "ssc-chsl-en", "ssc-chsl-hi", "ssc-cgl-deo",
+  "ssc-chsl-en", "ssc-chsl-hi",
   "rrb-ntpc-en", "rrb-ntpc-hi", "dp-hcm-en", "dp-hcm-hi",
   "bsf-hcm-en", "bsf-hcm-hi", "crpf-hcm-en", "crpf-hcm-hi", "cisf-hcm-en", "cisf-hcm-hi",
-  "delhi-high-court-jja-en",
 ]);
 
 export function getBuiltInPreset(slug: string): ExamPreset | undefined {
