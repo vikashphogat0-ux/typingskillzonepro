@@ -91,7 +91,7 @@ export default function SimulatorPage() {
         if (!active) return;
         if (!r.ok) { setError(r.data?.error ?? "Simulator not found."); return; }
         setSim(r.data);
-        const passages = await api(`/api/library?lang=${r.data.language}`);
+        const passages = await api(`/api/library?lang=${r.data.language}&template=${encodeURIComponent(r.data.slug)}`);
         if (!active) return;
         if (passages.ok && Array.isArray(passages.data?.list)) setPassageOptions(passages.data.list);
       })
@@ -104,7 +104,7 @@ export default function SimulatorPage() {
     if (!sim) return;
     setLibraryLoading(true); setLibraryError("");
     try {
-      const params = new URLSearchParams({ lang: sim.language });
+      const params = new URLSearchParams({ lang: sim.language, template: sim.slug });
       if (selectedMonth) params.set("month", selectedMonth);
       let response = await api(`/api/library?${params.toString()}`);
       if (!response.ok) throw new Error(response.data?.error ?? "Passage library is unavailable.");
