@@ -42,6 +42,7 @@ export default function Admin() {
     const [a, b] = await Promise.all([api("/api/admin/templates"), api("/api/admin/passages")]);
     if (a.status === 403 || b.status === 403 || a.status === 500) { setDenied(true); return; }
     setTpls(a.data); setRows(b.data);
+    setSelectedExamSlugs((current) => current.length ? current : a.data.filter((x: Tpl) => x.language === "en" && x.is_active).map((x: Tpl) => x.slug));
   }, []);
   useEffect(() => { load(); }, [load]);
 
