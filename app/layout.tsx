@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./public-site.css";
+import "./charcoal-v2.css";
 import SiteShell from "@/components/SiteShell";
 
 export const metadata: Metadata = {
