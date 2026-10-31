@@ -75,6 +75,8 @@ Expected preview host after a successful deployment:
 
 Cloudflare may require enabling the workers.dev subdomain once in the dashboard.
 
+After deployment, configure the Cashfree **sandbox** webhook to the preview URL plus `/api/webhook` and subscribe to `PAYMENT_SUCCESS_WEBHOOK`. Do not change the live Cashfree webhook while testing the preview.
+
 ## Important boundaries
 
 - This branch does not change `main`.
