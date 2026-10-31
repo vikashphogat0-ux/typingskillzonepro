@@ -37,45 +37,59 @@ Open http://localhost:3000.
 - Existing typing session, server-side scoring, result history, auth, institute and Cashfree services remain in the root application.
 - Separate Cloudflare preview Worker configuration and manual GitHub Actions deployment workflow.
 
-## Preview deployment (does not replace production)
+## Preview deployment from VS Code (does not replace production)
 
-The preview Worker name is `typingskillzone-rebuild-preview`. It does not reuse the production Worker name, route or custom domain.
+The preview Worker name is `typingskillzone-rebuild-preview`. It uses a separate Worker name and workers.dev URL; it does not reuse the production Worker name or custom domain.
 
 ### 1. Create an isolated Neon preview database
 
-Create a Neon database branch for staging from the Neon console. Use its connection string as `PREVIEW_DATABASE_URL`. Do not point the preview Worker at the live production database: practice attempts, admin uploads and subscriptions can write data.
+Create a Neon database branch for staging from the Neon console. Use its connection string as the preview `DATABASE_URL`. Do not point the preview Worker at the live production database: practice attempts, admin uploads and subscription events write data.
 
-The preview database must contain the current application schema and seed data. Use a backup/branch and apply only reviewed, additive migrations. Do not run the destructive fresh-auth cutover.
+The preview database must contain the current application schema and seed data. Use a Neon branch/backup and apply only reviewed, additive migrations. Do not run the destructive fresh-auth cutover.
 
-### 2. Add GitHub Actions secrets
+### 2. Configure Cloudflare credentials in the VS Code terminal
 
-In GitHub, open Settings → Secrets and variables → Actions → New repository secret. Add:
+Use a Cloudflare API token with Workers Scripts edit permission. Authenticate Wrangler:
 
-| Secret | Purpose |
-|---|---|
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API token with Workers Scripts edit permission |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
-| `PREVIEW_DATABASE_URL` | Neon staging branch connection string |
-| `PREVIEW_NEON_AUTH_BASE_URL` | Neon Auth base URL configured for the preview environment |
-| `CASHFREE_SANDBOX_MERCHANT_ID` | Cashfree sandbox App ID |
-| `CASHFREE_SANDBOX_SECRET_KEY` | Cashfree sandbox secret |
-| `PREVIEW_SUPER_ADMIN_EMAILS` | Comma-separated admin email allowlist for the preview |
-| `GROQ_API_KEY` | Optional AI passage generation key |
-| `PASSAGE_CRON_SECRET` | Optional strong secret for scheduled passage generation |
+```powershell
+npx wrangler login
+$env:CLOUDFLARE_ACCOUNT_ID = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+```
 
-Do not paste credentials into source files, commit them, or use live Cashfree credentials for the preview.
+If you use an API token instead of Wrangler OAuth, set `CLOUDFLARE_API_TOKEN` in the terminal environment. Never commit it.
 
-### 3. Run the preview workflow
+### 3. Build and deploy the preview Worker
 
-Open Actions → Deploy rebuild preview → Run workflow. The workflow runs typecheck, tests and the Cloudflare build before deployment. It deploys only the preview Worker and configures its runtime secrets.
+Set the Neon Auth public URL before the build because Next.js embeds `NEXT_PUBLIC_*` variables at build time:
 
-Expected preview host after a successful deployment:
+```powershell
+$env:NEXT_PUBLIC_NEON_AUTH_URL = "YOUR_PREVIEW_NEON_AUTH_BASE_URL"
+npm run deploy:preview
+```
+
+Expected preview host for the current Cloudflare workers.dev account:
 
 `https://typingskillzone-rebuild-preview.vikashphogat0.workers.dev`
 
-Cloudflare may require enabling the workers.dev subdomain once in the dashboard.
+### 4. Add preview Worker runtime secrets
 
-After deployment, configure the Cashfree **sandbox** webhook to the preview URL plus `/api/webhook` and subscribe to `PAYMENT_SUCCESS_WEBHOOK`. Do not change the live Cashfree webhook while testing the preview.
+After the first deploy creates the Worker, run each command and paste the corresponding value when Wrangler prompts:
+
+```powershell
+npx wrangler secret put DATABASE_URL --config wrangler.preview.jsonc
+npx wrangler secret put NEON_AUTH_BASE_URL --config wrangler.preview.jsonc
+npx wrangler secret put CF_MERCHANT_ID --config wrangler.preview.jsonc
+npx wrangler secret put CF_SECRET_KEY --config wrangler.preview.jsonc
+npx wrangler secret put SUPER_ADMIN_EMAILS --config wrangler.preview.jsonc
+npx wrangler secret put GROQ_API_KEY --config wrangler.preview.jsonc
+npx wrangler secret put PASSAGE_CRON_SECRET --config wrangler.preview.jsonc
+```
+
+Use the Neon **preview branch** connection string, the preview Neon Auth URL, and Cashfree **sandbox** credentials. The last two secrets are optional if AI passage generation and scheduled publishing are not enabled. Redeploy with `npm run deploy:preview` after changing build-time public environment values.
+
+### 5. Configure the Cashfree sandbox webhook
+
+In Cashfree sandbox settings, set the webhook URL to the preview URL plus `/api/webhook` and subscribe to `PAYMENT_SUCCESS_WEBHOOK`. Do not change the live Cashfree webhook while testing the preview.
 
 ## Important boundaries
 
