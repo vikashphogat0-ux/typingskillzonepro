@@ -46,7 +46,7 @@ export default function Admin() {
   useEffect(() => { load(); }, [load]);
 
   /* ---------- passages ---------- */
-  const [title, setTitle] = useState(""); const [lang, setLang] = useState<Lang>("en"); const [body, setBody] = useState(""); const [tplSlug, setTplSlug] = useState("");
+  const [title, setTitle] = useState(""); const [lang, setLang] = useState<Lang>("en"); const [body, setBody] = useState(""); const [selectedExamSlugs, setSelectedExamSlugs] = useState<string[]>([]);
   const check = useMemo(() => validatePassage({ title, language: lang, body }), [title, lang, body]);
   const [bulk, setBulk] = useState<{ title: string; body: string }[]>([]);
   const bulkChecks = useMemo(() => bulk.map((b) => validatePassage({ ...b, language: lang })), [bulk, lang]);
@@ -63,7 +63,7 @@ export default function Admin() {
       let chunk: typeof items = [];
       for (const item of items) {
         const candidate = [...chunk, item];
-        const bytes = new TextEncoder().encode(JSON.stringify({ items: candidate, templateSlug: tplSlug || undefined })).byteLength;
+        const bytes = new TextEncoder().encode(JSON.stringify({ items: candidate, templateSlugs: selectedExamSlugs })).byteLength;
         if (chunk.length && (bytes > maxChunkBytes || candidate.length > 10)) {
           chunks.push(chunk);
           chunk = [item];
@@ -76,7 +76,7 @@ export default function Admin() {
       for (let index = 0; index < chunks.length; index++) {
         const batch = chunks[index];
         setMsg(`Saving passages: ${saved} of ${items.length} complete (batch ${index + 1}/${chunks.length})…`);
-        const r = await post("/api/admin/passages", { items: batch, templateSlug: tplSlug || undefined });
+        const r = await post("/api/admin/passages", { items: batch, templateSlugs: selectedExamSlugs });
         if (!r.ok || Number(r.data.saved) !== batch.length) {
           const details = Array.isArray(r.data.problems)
             ? r.data.problems.map((p: any) => `Passage ${p.index + 1}: ${(p.errors ?? []).join(" ")}`).join(" | ")
@@ -146,7 +146,7 @@ export default function Admin() {
           <div className="form">
             <label>Title<input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} /></label>
             <label>Language<select value={lang} onChange={(e) => setLang(e.target.value as Lang)}><option value="en">English</option><option value="hi">Hindi</option></select></label>
-            <label>Attach to exam template (optional)<select value={tplSlug} onChange={(e) => setTplSlug(e.target.value)}><option value="">Any exam</option>{tpls.map((x) => <option key={x.slug} value={x.slug}>{x.name}</option>)}</select></label>
+            <label>Publish to exam directories <select multiple value={selectedExamSlugs} onChange={(e) => setSelectedExamSlugs(Array.from(e.target.selectedOptions, option => option.value))} size={Math.min(7, Math.max(3, tpls.filter(x => x.language === lang && x.is_active).length))}>{tpls.filter(x => x.language === lang && x.is_active).map(x => <option key={x.slug} value={x.slug}>{x.name} · {x.slug}</option>)}</select><small className="hint">Hold Ctrl (Windows) to select multiple exams. Each selected simulator receives its own passage copy. Leave empty to publish to the general library only.</small></label>
             <label>Passage text<textarea rows={8} lang={lang} value={body} onChange={(e) => setBody(e.target.value)} onBlur={() => setBody(cleanBody(body))} /></label>
             <p className="hint">{countWords(body)} words</p>
             {check.errors.map((e) => <p key={e} className="err">{e}</p>)}
@@ -155,7 +155,7 @@ export default function Admin() {
           </div>
 
           <h2>Upload many at once</h2>
-          <p className="hint">Use a .txt file in UTF-8. Separate passages with a line containing only ---. Start a passage with a line like “# Title” to name it. Language and template above apply to all.</p>
+          <p className="hint">Use a UTF-8 .txt file. Separate passages with a line containing only ---. Start a passage with “# Title” to name it. Language and selected exam directories above apply to all.</p>
           <input type="file" accept=".txt,text/plain" disabled={savingPassages} onChange={(e) => { setMsg(""); void onFile(e.target.files?.[0]).catch((error) => setMsg(error instanceof Error ? error.message : "Could not read this TXT file.")); }} aria-label="Upload passages file" />
           {bulk.length > 0 && (<>
             <p>{bulk.length} passages found, {bulkChecks.filter((c) => c.ok).length} valid.</p>
