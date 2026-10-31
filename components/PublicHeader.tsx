@@ -5,20 +5,20 @@ import { usePathname } from "next/navigation";
 import AuthLink from "@/components/AuthLink";
 
 const links = [
+  ["/", "Home"],
   ["/exams", "Exams"],
-  ["/simulators", "Simulators"],
-  ["/library", "Passage Library"],
-  ["/test", "Practice"],
-  ["/dashboard", "My Results"],
+  ["/dashboard", "Exam Results"],
+  ["/faqs", "FAQs"],
+  ["/blog", "Blog"],
   ["/pricing", "Pricing"],
-  ["/institution", "Institutes"],
+  ["/institution", "For Institutes"],
 ];
 
 export default function PublicHeader() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname() || "/";
   return (
-    <header className="public-header">
+    <header className="public-header home-reference-header">
       <div className="public-header-inner">
         <a href="/" className="public-brand" aria-label="Typing Skill Zone home">
           <span className="public-brand-mark">TS</span>
