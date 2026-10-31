@@ -225,3 +225,20 @@ body{background-image:radial-gradient(ellipse at 16% -10%,rgba(72,111,190,.17),t
  .exam-results-heading{align-items:flex-start;gap:10px}
 }
 @media(prefers-reduced-motion:reduce){.public-header.home-reference-header *{scroll-behavior:auto;transition:none!important}}
+
+/* Compact exam-specific passage rows */
+.exam-passage-list{display:grid;gap:9px;margin-top:14px}
+.exam-passage-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px;padding:14px 16px;border:1px solid var(--v2-border);border-radius:11px;background:linear-gradient(110deg,rgba(255,255,255,.035),rgba(255,255,255,.015));transition:border-color .18s,transform .18s,background .18s}
+.exam-passage-row:hover{border-color:rgba(113,223,212,.34);background:rgba(113,223,212,.045);transform:translateY(-1px)}
+.exam-passage-row-feature{margin:18px 0 10px;border-color:rgba(113,223,212,.25);background:linear-gradient(110deg,rgba(113,223,212,.07),rgba(255,255,255,.02))}
+.exam-passage-row-main{display:grid;gap:4px;min-width:0}
+.exam-passage-row-exam{color:var(--v2-cyan);font:800 9px/1.4 ui-monospace,monospace;letter-spacing:1px;text-transform:uppercase}
+.exam-passage-row-main strong{color:var(--v2-text);font-size:13px;line-height:1.45;overflow-wrap:anywhere}
+.exam-passage-row-main small{color:var(--v2-muted);font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+.exam-passage-row-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+.exam-passage-row-actions button{min-width:66px;padding:8px 11px;border:1px solid var(--v2-border);border-radius:8px;background:rgba(255,255,255,.035);color:#c9d9ec;font-size:10px;font-weight:800;cursor:pointer}
+.exam-passage-row-actions button:hover{border-color:rgba(113,223,212,.42);color:var(--v2-cyan)}
+.exam-passage-row-actions .exam-row-practice{border-color:rgba(117,170,255,.38);background:linear-gradient(120deg,rgba(117,170,255,.18),rgba(113,223,212,.09));color:#b9d6ff}
+.exam-passage-preview{max-height:65vh;overflow:auto}
+.exam-passage-preview>p{white-space:pre-wrap;line-height:1.85}
+@media(max-width:640px){.exam-passage-row{grid-template-columns:minmax(0,1fr);gap:12px;padding:13px}.exam-passage-row-actions{justify-content:flex-start}.exam-passage-row-actions button{flex:1;min-width:0}}
