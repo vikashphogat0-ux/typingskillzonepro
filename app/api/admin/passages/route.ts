@@ -75,12 +75,12 @@ export async function POST(req: Request) {
     });
     const insertedBatches = await db.transaction(statements);
     const insertedCount = insertedBatches.reduce((total: number, rows: any) => total + rows.length, 0);
-    const expected = payload.length * destinations.length;
+    const expected = basePayload.length * destinations.length;
     if (insertedCount !== expected) {
       console.error("Multi-directory passage insert count mismatch", { expected, insertedCount });
       return Response.json({ error: "Passage publication was incomplete. Refresh the passage list before retrying.", saved: 0 }, { status: 500 });
     }
-    return Response.json({ ok: true, saved: payload.length, publications: insertedCount, directories: targetTemplates.map((x) => x.slug) });
+    return Response.json({ ok: true, saved: basePayload.length, publications: insertedCount, directories: targetTemplates.map((x) => x.slug) });
   } catch (error) {
     console.error("POST /api/admin/passages multi-directory save failed:", error);
     const detail = error instanceof Error ? error.message : "Unknown database error";
