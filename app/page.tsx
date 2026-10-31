@@ -1,87 +1,120 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { api } from "@/lib/clientApi";
+import ExamEmblem from "@/components/ExamEmblem";
 
 type Exam = { slug: string; name: string; language: "en" | "hi"; duration_sec: number; description?: string };
+type ExamGroup = { key: string; name: string; exams: Exam[]; mark: string; tone: string; family: string };
+
+function identity(slug: string) {
+  const s = slug.toLowerCase();
+  if (s.includes("delhi-police") || s.includes("dp-hcm")) return { mark: "DP", tone: "red", family: "Delhi Police" };
+  if (s.includes("bsf")) return { mark: "BSF", tone: "green", family: "Border Security Force" };
+  if (s.includes("cisf")) return { mark: "CISF", tone: "blue", family: "Central Industrial Security Force" };
+  if (s.includes("crpf")) return { mark: "CRPF", tone: "red", family: "Central Reserve Police Force" };
+  if (s.includes("ssc")) return { mark: "SSC", tone: "violet", family: "Staff Selection Commission" };
+  if (s.includes("rrb") || s.includes("railway")) return { mark: "RRB", tone: "orange", family: "Railway Recruitment Board" };
+  if (s.includes("dsssb")) return { mark: "DS", tone: "violet", family: "Delhi Subordinate Services Selection Board" };
+  if (s.includes("court") || s.includes("jja") || s.includes("clerk")) return { mark: "HC", tone: "teal", family: "Court Recruitment" };
+  return { mark: "TSZ", tone: "blue", family: "TypingSkillZone" };
+}
+
+function groupExams(exams: Exam[]): ExamGroup[] {
+  const groups = new Map<string, ExamGroup>();
+  for (const exam of exams) {
+    const key = exam.slug.replace(/-(en|hi)$/, "");
+    const info = identity(exam.slug);
+    const existing = groups.get(key);
+    if (existing) existing.exams.push(exam);
+    else groups.set(key, { key, name: exam.name.replace(/\s*[—-]\s*(English|Hindi).*$/i, "").replace(/\s*\((English|Hindi).*$/i, ""), exams: [exam], ...info });
+  }
+  return [...groups.values()].slice(0, 9);
+}
+
+const features = [
+  { number: "01", title: "Exam-specific simulators", text: "Each recruitment profile has its own dashboard, passage collection, keyboard policy and scoring configuration." },
+  { number: "02", title: "Daily & monthly passages", text: "Open a daily passage or browse the archive by month. Search by passage title or unique ID." },
+  { number: "03", title: "Verified result analysis", text: "Review gross speed, net speed, accuracy and error breakdown from your saved attempts." },
+];
 
 export default function Home() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   useEffect(() => {
     let active = true;
-    api("/api/templates")
-      .then(result => {
-        if (!active) return;
-        if (result.ok && Array.isArray(result.data)) setExams(result.data);
-        else setError(result.data?.error || "Exam catalogue is temporarily unavailable.");
-      })
-      .catch(() => { if (active) setError("Unable to load the exam catalogue."); })
+    api("/api/templates").then((r) => {
+      if (!active) return;
+      if (r.ok && Array.isArray(r.data)) setExams(r.data);
+      else setError(r.data?.error ?? "The examination catalogue is temporarily unavailable.");
+    }).catch(() => { if (active) setError("Unable to connect to the examination catalogue."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
-
-  const visibleExams = useMemo(() => exams.slice(0, 6), [exams]);
+  const groups = useMemo(() => groupExams(exams), [exams]);
 
   return (
-    <div className="home-reference">
-      <section className="home-reference-hero">
-        <div className="home-reference-inner">
-          <div className="home-reference-copy">
-            <span className="home-reference-kicker"><i /> A focused workspace for competitive typing exams</span>
-            <h1>Train like it’s the <span>real examination.</span></h1>
-            <p>Prepare in English and Hindi with exam-specific typing environments, structured passage collections and transparent performance evaluation.</p>
-            <div className="home-reference-actions">
-              <a className="home-reference-primary" href="/exams">Explore examinations <span aria-hidden="true">→</span></a>
-              <a className="home-reference-secondary" href="/test">Start free practice</a>
+    <div className="tsz-home-v2">
+      <section className="tsz-home-hero">
+        <div className="tsz-home-hero-inner">
+          <div className="tsz-home-copy">
+            <div className="tsz-kicker"><i /> EXAM-READY TYPING PRACTICE</div>
+            <h1>Prepare with purpose.<br /><span>Perform with precision.</span></h1>
+            <p>One focused platform for competitive typing examinations. Choose your exam, practise in its actual pattern, and measure every improvement.</p>
+            <div className="tsz-home-actions">
+              <Link href="/exams" className="tsz-primary-button">Explore examinations <span>↗</span></Link>
+              <Link href="/test" className="tsz-secondary-button">Start free practice</Link>
             </div>
-            <div className="home-reference-proof" aria-label="Platform features">
-              <span><b>EN</b> English typing</span><i />
-              <span><b>हि</b> Hindi typing</span><i />
-              <span><b>CBT</b> Exam-style practice</span>
-            </div>
+            <div className="tsz-home-proof"><span><b>EN</b> English</span><i /><span><b>हि</b> Hindi</span><i /><span><b>CBT</b> Exam-style interface</span></div>
           </div>
-          <div className="home-reference-preview" aria-label="Typing simulator preview">
-            <div className="home-reference-preview-head">
-              <span><i /> SIMULATOR PREVIEW</span><b>10:00</b>
+          <div className="tsz-hero-visual">
+            <div className="tsz-visual-glow" />
+            <div className="tsz-preview-window">
+              <div className="tsz-preview-top"><span><i /> LIVE SIMULATOR PREVIEW</span><b>10:00</b></div>
+              <div className="tsz-preview-body">
+                <div className="tsz-preview-label">PASSAGE PREVIEW <span>ENGLISH</span></div>
+                <p>Regular practice develops accuracy, confidence and a steady typing rhythm. Candidates should focus on correct key placement and maintain consistent speed throughout the examination.</p>
+                <div className="tsz-preview-caret">Regular practice develops accuracy, confidence and a steady typing rhythm<span /></div>
+                <div className="tsz-preview-stats"><div><strong>42.8</strong><small>NET WPM</small></div><div><strong>97.4%</strong><small>ACCURACY</small></div><div><strong>08:32</strong><small>TIME LEFT</small></div></div>
+                <div className="tsz-preview-progress"><i /></div>
+              </div>
             </div>
-            <div className="home-reference-passage">
-              A typing skill test measures speed, accuracy and the ability to reproduce a given passage within a fixed duration. Candidates should maintain a steady rhythm and follow the instructions of the selected examination.
-            </div>
-            <div className="home-reference-metrics">
-              <div><strong>NET WPM</strong><span>SCORING PROFILE</span></div>
-              <div><strong>ACCURACY</strong><span>ERROR REVIEW</span></div>
-              <div><strong>LIVE</strong><span>TEST TIMER</span></div>
-            </div>
+            <div className="tsz-floating-note note-a">⌁ Exam-specific rules</div>
+            <div className="tsz-floating-note note-b">↗ Progress you can measure</div>
           </div>
         </div>
       </section>
-      <section className="home-reference-benefits" aria-label="Platform benefits">
-        <div><span>01</span><p><strong>Exam-specific simulators</strong><small>Rules and scoring configured for each examination.</small></p></div>
-        <div><span>02</span><p><strong>English & Hindi typing</strong><small>Practice in the language required by your exam.</small></p></div>
-        <div><span>03</span><p><strong>Performance analysis</strong><small>Review net speed, accuracy and typing errors.</small></p></div>
+
+      <section className="tsz-home-feature-strip">
+        <div><b>01</b><span><strong>Dedicated workspaces</strong><small>Separate dashboard for each exam</small></span></div>
+        <div><b>02</b><span><strong>Daily & monthly library</strong><small>Passages organised by exam</small></span></div>
+        <div><b>03</b><span><strong>Performance analytics</strong><small>Review every saved attempt</small></span></div>
       </section>
-      <section className="home-reference-exams">
-        <div className="home-reference-section-head">
-          <div><span className="home-reference-label">START PREPARING</span><h2>Choose your examination</h2><p>Open an exam profile and practise with its configured pattern.</p></div>
-          <a href="/exams">View all examinations <span aria-hidden="true">→</span></a>
-        </div>
-        {loading ? <div className="home-reference-state">Loading active examinations…</div> :
-          error ? <div className="home-reference-state" role="status">{error} <a href="/exams">Open the exam catalogue</a>.</div> :
-          <div className="home-reference-exam-grid">{visibleExams.map(exam => (
-            <a className="home-reference-exam-card" href={"/simulators/" + exam.slug} key={exam.slug}>
-              <span className="home-reference-exam-mark">{exam.name.slice(0, 3).toUpperCase()}</span>
-              <span className="home-reference-exam-copy"><strong>{exam.name}</strong><small>{exam.language === "hi" ? "Hindi typing" : "English typing"} · {Math.max(1, Math.round(exam.duration_sec / 60))} min</small></span>
-              <span className="home-reference-exam-arrow" aria-hidden="true">→</span>
-            </a>
-          ))}</div>}
+
+      <section className="tsz-home-exams" id="examinations">
+        <div className="tsz-section-head"><div><span className="tsz-kicker">CHOOSE YOUR PATH</span><h2>Find your examination</h2><p>Open the dedicated simulator dashboard for your recruitment examination.</p></div><Link href="/exams">View all exams ↗</Link></div>
+        {loading ? <div className="tsz-home-state">Loading active examinations…</div> : error ? <div className="tsz-home-state" role="alert">{error} <Link href="/exams">Open exam directory</Link></div> : groups.length ? (
+          <div className="tsz-home-exam-grid">{groups.map((group) => {
+            const preferred = group.exams.find((e) => e.language === "en") ?? group.exams[0];
+            const languages = [...new Set(group.exams.map((e) => e.language))];
+            return <article className="tsz-home-exam-card" key={group.key}>
+              <div className="tsz-home-exam-card-top"><ExamEmblem slug={preferred.slug} mark={group.mark} short={group.family} family={group.family} tone={group.tone} /><span className="tsz-exam-code">{group.key.toUpperCase()}</span></div>
+              <span className="tsz-exam-family">{group.family}</span><h3>{group.name}</h3>
+              <p>{preferred.description || "Dedicated typing practice, exam-specific passages and performance tracking."}</p>
+              <div className="tsz-home-exam-meta"><span>{languages.includes("en") ? "English" : ""}{languages.length > 1 ? " + " : ""}{languages.includes("hi") ? "Hindi" : ""}</span><span>{Math.round(preferred.duration_sec / 60)} min pattern</span></div>
+              <Link href={`/simulators/${preferred.slug}`} className="tsz-home-exam-link">Open simulator <span>→</span></Link>
+            </article>;
+          })}</div>
+        ) : <div className="tsz-home-state">No active examination profiles are available yet. <Link href="/admin">Open admin</Link></div>}
       </section>
-      <section className="home-reference-library">
-        <div><span className="home-reference-label">YOUR DAILY WORKSPACE</span><h2>Passages, practice and results — connected.</h2><p>Continue from the passage library, start a timed practice session or review your saved attempts.</p></div>
-        <div className="home-reference-library-actions"><a href="/library">Passage Library</a><a href="/dashboard">Exam Results</a></div>
+
+      <section className="tsz-home-features">
+        <div className="tsz-section-head"><div><span className="tsz-kicker">THE PRACTICE SYSTEM</span><h2>Everything organised around your exam.</h2><p>Simple navigation, clear passage access and useful feedback.</p></div></div>
+        <div className="tsz-home-feature-grid">{features.map((f) => <article key={f.number}><span>{f.number}</span><h3>{f.title}</h3><p>{f.text}</p></article>)}</div>
       </section>
+      <section className="tsz-home-bottom-cta"><div><span className="tsz-kicker">YOUR NEXT SESSION STARTS HERE</span><h2>Make every practice session count.</h2><p>Choose your examination and continue from its own dashboard.</p></div><Link href="/exams" className="tsz-primary-button">Choose an exam <span>↗</span></Link></section>
     </div>
   );
 }
