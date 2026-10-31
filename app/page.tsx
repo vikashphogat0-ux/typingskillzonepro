@@ -104,7 +104,7 @@ export default function Home() {
               <span className="tsz-exam-family">{group.family}</span><h3>{group.name}</h3>
               <p>{preferred.description || "Dedicated typing practice, exam-specific passages and performance tracking."}</p>
               <div className="tsz-home-exam-meta"><span>{languages.includes("en") ? "English" : ""}{languages.length > 1 ? " + " : ""}{languages.includes("hi") ? "Hindi" : ""}</span><span>{Math.round(preferred.duration_sec / 60)} min pattern</span></div>
-              <Link href={`/simulators/${preferred.slug}`} className="tsz-home-exam-link">Open simulator <span>→</span></Link>
+              <div className="tsz-home-exam-link-list">{group.exams.map((exam) => <Link href={`/simulators/${exam.slug}`} key={exam.slug} className="tsz-home-exam-link">{exam.language === "hi" ? "Hindi workspace" : "English workspace"} <span>→</span></Link>)}</div>
             </article>;
           })}</div>
         ) : <div className="tsz-home-state">No active examination profiles are available yet. <Link href="/admin">Open admin</Link></div>}
