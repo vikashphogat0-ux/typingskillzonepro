@@ -112,7 +112,7 @@ export default function SimulatorPage() {
       // rather than leaving the selector on an empty current month.
       const newestMonth = response.data?.months?.[0];
       if (!selectedMonth && tab === "monthly" && newestMonth) {
-        const newestParams = new URLSearchParams({ lang: sim.language, month: newestMonth });
+        const newestParams = new URLSearchParams({ lang: sim.language, month: newestMonth, template: sim.slug });
         response = await api(`/api/library?${newestParams.toString()}`);
         if (!response.ok) throw new Error(response.data?.error ?? "Monthly passage archive is unavailable.");
       }
