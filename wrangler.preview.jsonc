@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": ".open-next/worker.js",
+  "name": "typingskillzone-rebuild-preview",
+  "compatibility_date": "2026-10-21",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "nodejs_compat_populate_process_env"
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "typingskillzone-rebuild-preview"
+    }
+  ],
+  "images": {
+    "binding": "IMAGES"
+  },
+  "observability": { "enabled": true },
+  "vars": {
+    "NODE_ENV": "production",
+    "NEXT_PUBLIC_URL": "https://typingskillzone-rebuild-preview.workers.dev",
+    "CF_ENVIRONMENT": "sandbox",
+    "GROQ_MODEL": "openai/gpt-oss-120b",
+    "EMAIL_FROM": "TypingSkillZone <support@typingskillzone.in>",
+    "AUTH_EMAIL_FROM": "TypingSkillZone <support@typingskillzone.in>"
+  }
+}
