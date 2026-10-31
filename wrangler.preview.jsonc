@@ -23,7 +23,7 @@
   "observability": { "enabled": true },
   "vars": {
     "NODE_ENV": "production",
-    "NEXT_PUBLIC_URL": "https://typingskillzone-rebuild-preview.workers.dev",
+    "NEXT_PUBLIC_URL": "https://typingskillzone-rebuild-preview.vikashphogat0.workers.dev",
     "CF_ENVIRONMENT": "sandbox",
     "GROQ_MODEL": "openai/gpt-oss-120b",
     "EMAIL_FROM": "TypingSkillZone <support@typingskillzone.in>",
