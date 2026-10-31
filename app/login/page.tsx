@@ -134,7 +134,7 @@ export default function Login() {
     </div>;
   }
 
-  return <div className="page setup">
+  return <div className="page setup auth-page">
     <h1>{mode === "in" ? "Sign in" : mode === "up" ? "Create a new account" : mode === "verify" ? "Verify your email" : "Reset password"}</h1>
     <p className="hint">Secure sign-in powered by Neon Auth.</p>
     <form onSubmit={submit} className="form">
