@@ -106,8 +106,16 @@ export default function SimulatorPage() {
     try {
       const params = new URLSearchParams({ lang: sim.language });
       if (selectedMonth) params.set("month", selectedMonth);
-      const response = await api(`/api/library?${params.toString()}`);
+      let response = await api(`/api/library?${params.toString()}`);
       if (!response.ok) throw new Error(response.data?.error ?? "Passage library is unavailable.");
+      // On the first monthly visit, load the newest month that actually contains passages,
+      // rather than leaving the selector on an empty current month.
+      const newestMonth = response.data?.months?.[0];
+      if (!selectedMonth && tab === "monthly" && newestMonth) {
+        const newestParams = new URLSearchParams({ lang: sim.language, month: newestMonth });
+        response = await api(`/api/library?${newestParams.toString()}`);
+        if (!response.ok) throw new Error(response.data?.error ?? "Monthly passage archive is unavailable.");
+      }
       setLibrary(response.data);
       if (!selectedMonth && response.data?.months?.length) setMonth(response.data.months[0]);
       if (selectedMonth) setMonth(selectedMonth);
