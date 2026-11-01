@@ -36,11 +36,13 @@ export async function GET(req: Request) {
   const isAdmin = Boolean(adminId);
   const db = sql();
   if (isAdmin && new URL(req.url).searchParams.get("scope") === "platform") {
+    const requestedDays = Number(new URL(req.url).searchParams.get("days") ?? 30);
+    const periodDays = [7, 30, 90].includes(requestedDays) ? requestedDays : 30;
     const [totals] = await db`SELECT count(*)::int AS attempts, count(DISTINCT user_id)::int AS learners,
       round(avg(net_wpm)::numeric, 1) AS avg_net_wpm, round(avg(accuracy)::numeric, 1) AS avg_accuracy,
       count(*) FILTER (WHERE passed = true)::int AS passed,
       count(*) FILTER (WHERE passed = false)::int AS not_passed
-      FROM results WHERE created_at >= now() - interval '30 days'`;
+      FROM results WHERE created_at >= now() - ${periodDays} * interval '1 day'`;
     const [interventions] = await db`
       WITH learner_activity AS (
         SELECT user_id, count(*)::int AS attempts,
@@ -48,7 +50,7 @@ export async function GET(req: Request) {
           avg(accuracy)::numeric AS avg_accuracy,
           max(created_at) AS last_attempt
         FROM results
-        WHERE created_at >= now() - interval '30 days'
+        WHERE created_at >= now() - ${periodDays} * interval '1 day'
         GROUP BY user_id
       )
       SELECT count(*)::int AS active_learners,
@@ -65,7 +67,7 @@ export async function GET(req: Request) {
           round(avg(accuracy)::numeric, 1) AS avg_accuracy,
           max(created_at) AS last_attempt
         FROM results
-        WHERE created_at >= now() - interval '30 days'
+        WHERE created_at >= now() - ${periodDays} * interval '1 day'
         GROUP BY user_id
       ),
       flagged AS (
@@ -94,13 +96,13 @@ export async function GET(req: Request) {
     const simulators = await db`SELECT et.slug, et.name, count(r.id)::int AS attempts,
       round(avg(r.net_wpm)::numeric, 1) AS avg_net_wpm, round(avg(r.accuracy)::numeric, 1) AS avg_accuracy
       FROM results r JOIN exam_templates et ON et.id = r.template_id
-      WHERE r.created_at >= now() - interval '30 days'
+      WHERE r.created_at >= now() - ${periodDays} * interval '1 day'
       GROUP BY et.slug, et.name ORDER BY attempts DESC LIMIT 15`;
     const samples = await db`SELECT r.id, r.created_at, r.net_wpm, r.gross_wpm, r.accuracy, et.name AS simulator, r.keystrokes, r.reference_text
       FROM results r LEFT JOIN exam_templates et ON et.id = r.template_id
-      WHERE r.created_at >= now() - interval '30 days' AND r.keystrokes IS NOT NULL AND r.reference_text IS NOT NULL
+      WHERE r.created_at >= now() - ${periodDays} * interval '1 day' AND r.keystrokes IS NOT NULL AND r.reference_text IS NOT NULL
       ORDER BY r.created_at DESC LIMIT 300`;
-    return Response.json({ role: "admin", periodDays: 30, totals: totals ?? {}, interventions: interventions ?? {}, learnerQueue, simulators, patterns: insights(samples as Attempt[]), sampleAttempts: samples.length });
+    return Response.json({ role: "admin", periodDays, totals: totals ?? {}, interventions: interventions ?? {}, learnerQueue, simulators, patterns: insights(samples as Attempt[]), sampleAttempts: samples.length });
   }
   const rows = await db`SELECT r.id, r.created_at, r.net_wpm, r.gross_wpm, r.accuracy, et.name AS simulator, r.keystrokes, r.reference_text
     FROM results r LEFT JOIN exam_templates et ON et.id = r.template_id
