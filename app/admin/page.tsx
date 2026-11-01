@@ -133,7 +133,15 @@ export default function Admin() {
       for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
         const page = await pdf.getPage(pageNo);
         const content = await page.getTextContent();
-        const text = cleanBody(content.items.map((item: any) => typeof item.str === "string" ? item.str : "").join(" "));
+        let previousY: number | null = null;
+        const pageText = content.items.map((item: any) => {
+          if (typeof item.str !== "string" || !item.str.trim()) return "";
+          const y = Array.isArray(item.transform) ? Number(item.transform[5]) : null;
+          const lineBreak = previousY !== null && y !== null && Math.abs(previousY - y) > 2.5;
+          if (y !== null) previousY = y;
+          return (lineBreak ? "\n" : " ") + item.str;
+        }).join("");
+        const text = cleanBody(pageText);
         if (!text || countWords(text) < 30) continue;
         extracted.push({ title: `Passage ${String(extracted.length + 1).padStart(2, "0")}`, body: text });
       }
