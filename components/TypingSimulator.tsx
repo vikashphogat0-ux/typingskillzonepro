@@ -141,7 +141,11 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, prac
   const commitInput = (candidate: string, input: HTMLTextAreaElement) => {
     if (doneRef.current || phase === "break") return;
     const prev = valueRef.current;
-    const res = checkEdit(prev, candidate, backspace);
+    // Normalize committed IME output to the same NFC form used by passage
+    // comparison and scoring. This avoids logging decomposed equivalents as
+    // extra keystrokes when an input method emits canonically equivalent text.
+    const normalizedCandidate = candidate.normalize("NFC");
+    const res = checkEdit(prev, normalizedCandidate, backspace);
     if (!res.ok) { input.value = prev; setValue(prev); return; }
     // Enforce Enter/Tab rules at the committed-input boundary too. Keydown
     // handlers alone can be bypassed by IME, mobile keyboards or synthetic input.
