@@ -368,6 +368,7 @@ export default function SimulatorPage() {
       {tab === "practice" && <section className="exam-workspace-panel">
         <div className="exam-workspace-section-heading"><div><span className="exam-workspace-eyebrow">EXAM MODE</span><h2>Practice this exam pattern</h2><p>Choose a passage and launch the timed simulator with this examination’s configured rules.</p></div></div>
         <div className="exam-pattern-summary"><strong>{sim.name}:</strong> {Math.round(sim.duration_sec / 60)}-minute test · {MODE_LABELS[sim.display_mode] ?? sim.display_mode} · {BS_LABELS[sim.backspace] ?? sim.backspace}. Always verify current official recruitment instructions.</div>
+        {sim.formattingSettingsAvailable === false && <div className="exam-formatting-warning" role="status"><strong>Default passage formatting is active.</strong><span>{sim.formattingWarning ?? "Saved simulator formatting could not be loaded. Check the database connection and migration readiness before relying on custom passage settings."}</span></div>}
         {startErr && <p className="exam-workspace-error" role="alert">{startErr} {startErr.includes("Sign in") && <a href={`/login?next=/simulators/${slug}`}>Sign in</a>}{startErr.includes("Pro") && <a href="/pricing">Upgrade to Pro</a>}</p>}
         <div className="exam-passage-selector">
           <div className="exam-passage-selector-head"><h3>Exam passage collection</h3><a href="/library">Open full library ↗</a></div>
