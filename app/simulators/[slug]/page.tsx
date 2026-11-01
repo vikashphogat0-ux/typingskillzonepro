@@ -17,7 +17,7 @@ interface SimInfo {
 interface PassageItem { id: string; title: string; language?: string; word_count: number; preview?: string; date?: string; exam?: string; passage_number?: number; body?: string }
 interface LibraryData {
   today?: string;
-  daily?: Record<string, PassageItem>;
+  daily?: Record<string, PassageItem | null>;
   dailyItems?: PassageItem[];
   archive?: Record<string, PassageItem[]>;
   monthly?: PassageItem[];
@@ -330,7 +330,7 @@ export default function SimulatorPage() {
         <div className="exam-month-toolbar"><label>Select completed month<select value={month} onChange={e => { setMonth(e.target.value); setSelectedPreview(null); void loadLibrary(e.target.value); }}><option value="">Choose month</option>{(library?.months ?? []).map(m => <option key={m} value={m}>{new Date(m + "-01T00:00:00").toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</option>)}</select></label><span>{monthlyItems.length} passages in this monthly PDF</span></div>
         {libraryLoading && <div className="exam-workspace-state">Preparing monthly collection…</div>}
         {libraryError && <div className="exam-workspace-error">{libraryError}</div>}
-        {!libraryLoading && !libraryError && monthlyItems.length > 0 && <article className="exam-passage-row exam-passage-row-feature"><div className="exam-passage-row-main"><span className="exam-passage-row-exam">{sim.name} · MONTHLY COLLECTION</span><strong>{month ? new Date(month + "-01T00:00:00").toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : "Completed month"}</strong><small>{monthlyItems.length} passages · {monthlyItems.reduce((sum, item) => sum + Number(item.word_count || 0), 0)} total words · Numbered from 01 in upload order</small></div><div className="exam-passage-row-actions"><button className="exam-row-practice" onClick={printMonthlyBundle}>Download monthly PDF</button></div></article>}
+        {!libraryLoading && !libraryError && monthlyItems.length > 0 && <article className="exam-passage-row exam-passage-row-feature"><div className="exam-passage-row-main"><span className="exam-passage-row-exam">{sim.name} · MONTHLY COLLECTION</span><strong>{month ? new Date(month + "-01T00:00:00").toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : "Completed month"}</strong><small>{monthlyItems.length} passages · {monthlyItems.reduce((sum, item) => sum + Number(item.word_count || 0), 0)} total words · Numbered from 01 in upload order</small></div><div className="exam-passage-row-actions"><button className="exam-row-practice" onClick={printMonthlyBundle}>Print / Save monthly PDF</button></div></article>}
         {!libraryLoading && !libraryError && !monthlyItems.length && <div className="exam-workspace-state">No completed monthly PDF is available yet. This month’s passages remain in Daily passages until the month closes.</div>}
       </section>}
 
