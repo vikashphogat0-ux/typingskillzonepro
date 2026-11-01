@@ -31,14 +31,14 @@ export default function ResetPassword() {
   };
 
   if (done) return (
-    <div className="page setup">
+    <div className="page setup auth-page">
       <h1>Password reset</h1>
       <p>Your password has been changed. <a href="/login">Sign in</a></p>
     </div>
   );
 
   return (
-    <div className="page setup">
+    <div className="page setup auth-page">
       <h1>Set new password</h1>
       {!token && <p className="err">No reset token found. Use the link from your email.</p>}
       <form onSubmit={submit} className="form">
