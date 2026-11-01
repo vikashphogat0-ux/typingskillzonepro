@@ -18,6 +18,7 @@ interface PassageItem { id: string; title: string; language?: string; word_count
 interface LibraryData {
   today?: string;
   daily?: Record<string, PassageItem>;
+  dailyItems?: PassageItem[];
   archive?: Record<string, PassageItem[]>;
   monthly?: PassageItem[];
   months?: string[];
@@ -194,6 +195,22 @@ export default function SimulatorPage() {
     finally { setPreviewLoading(false); }
   };
 
+  const printMonthlyBundle = () => {
+    if (!monthlyItems.length) return;
+    const target = window.open("", "_blank");
+    if (!target) { window.alert("Allow pop-ups to create the monthly PDF."); return; }
+    const escapeHtml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    const monthLabel = month ? new Date(month + "-01T00:00:00").toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : "Monthly archive";
+    const sections = monthlyItems.map((item, index) => {
+      const text = formatRkcPassage(item.body ?? item.preview ?? "", getRkcPassageLayout(String(sim?.slug ?? "")));
+      return `<section class="passage"><h2>Passage ${String(index + 1).padStart(2, "0")} · ${escapeHtml(item.title)}</h2><p>${escapeHtml(text)}</p><small>${item.word_count} words · ${escapeHtml(item.date ?? "")}</small></section>`;
+    }).join("");
+    target.document.open();
+    target.document.write(`<!doctype html><html lang="${sim?.language ?? "en"}"><head><meta charset="utf-8"><title>${escapeHtml(sim?.name ?? "TypingSkillZone")} · ${escapeHtml(monthLabel)}</title><style>body{font-family:Arial,"Noto Sans Devanagari",sans-serif;color:#172033;max-width:850px;margin:28px auto;padding:0 24px;line-height:1.5}h1{font-size:20pt;margin-bottom:4px}h2{font-size:13pt;margin:0 0 10px}.passage{margin:0 0 24px;page-break-inside:avoid}.passage p{font-size:${Math.max(10,Math.min(18,sim?.font_size_pt ?? 12))}pt;white-space:${getRkcPassageLayout(String(sim?.slug ?? "")) === "continuous" ? "normal" : "pre-wrap"};margin:0 0 6px}.passage small{color:#64748b}@page{size:A4;margin:18mm}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${escapeHtml(sim?.name ?? "TypingSkillZone")}</h1><p>${escapeHtml(monthLabel)} · ${monthlyItems.length} passages</p>${sections}<script>window.onload=()=>window.print()<\/script></body></html>`);
+    target.document.close();
+    target.focus();
+  };
+
   const printPassage = async (passage: PassageItem) => {
     const target = window.open("", "_blank");
     if (!target) { window.alert("Allow pop-ups to print or save this passage as PDF."); return; }
@@ -237,7 +254,7 @@ export default function SimulatorPage() {
   const relevantResults = results.filter(r => !r.simulator || r.simulator.toLowerCase() === sim.name.toLowerCase());
   const bestNet = relevantResults.length ? Math.max(...relevantResults.map(r => Number(r.net_wpm) || 0)) : 0;
   const averageAccuracy = relevantResults.length ? relevantResults.reduce((sum, r) => sum + (Number(r.accuracy) || 0), 0) / relevantResults.length : 0;
-  const archiveItems = library?.archive?.[sim.language] ?? [];
+  const dailyItems = library?.dailyItems ?? [];
 
   return (
     <main className="exam-workspace">
@@ -302,23 +319,20 @@ export default function SimulatorPage() {
       </section>}
 
       {tab === "daily" && <section className="exam-workspace-panel">
-        <div className="exam-workspace-section-heading"><div><span className="exam-workspace-eyebrow">DAILY PRACTICE · {sim.language === "hi" ? "HINDI" : "ENGLISH"}</span><h2>Daily passages</h2><p>Open today’s selected passage or revisit recent daily practice passages for this language.</p></div><button className="exam-small-refresh" onClick={() => void loadLibrary()}>Refresh passages ↻</button></div>
-        {libraryLoading && <div className="exam-workspace-state">Loading daily passages…</div>}
+        <div className="exam-workspace-section-heading"><div><span className="exam-workspace-eyebrow">DAILY PRACTICE · {sim.language === "hi" ? "HINDI" : "ENGLISH"}</span><h2>Today’s passages</h2><p>Only passages uploaded today appear here. At month-end, they move into one combined monthly PDF.</p></div><button className="exam-small-refresh" onClick={() => void loadLibrary()}>Refresh passages ↻</button></div>
+        {libraryLoading && <div className="exam-workspace-state">Loading today’s passages…</div>}
         {libraryError && <div className="exam-workspace-error">{libraryError}</div>}
-        {!libraryLoading && todayPassage && <div className="exam-passage-row exam-passage-row-feature"><div className="exam-passage-row-main"><span className="exam-passage-row-exam">{sim.name}</span><strong>{todayPassage.title}</strong><small>TODAY · {todayPassage.word_count} words · ID {todayPassage.id}</small></div><div className="exam-passage-row-actions"><button onClick={() => void fetchPreview(todayPassage)}>View</button><button onClick={() => void printPassage(todayPassage)}>Print</button><button className="exam-row-practice" onClick={() => { setPassageSource("library"); setSelectedPassageId(todayPassage.id); setTab("practice"); }}>Practise</button></div></div>}
-        {!libraryLoading && !todayPassage && !libraryError && <div className="exam-workspace-state">No daily passage is available for this language today.</div>}
-        <div className="exam-workspace-subheading"><h3>Recent daily passages</h3><span>Last 14 days</span></div>
-        <div className="exam-passage-list">{archiveItems.map(item => <article className="exam-passage-row" key={item.date + item.id}><div className="exam-passage-row-main"><span className="exam-passage-row-exam">{sim.name}</span><strong>{item.title}</strong><small>{item.date} · {item.word_count} words · ID {item.id}</small></div><div className="exam-passage-row-actions"><button onClick={() => void fetchPreview(item)}>View</button><button onClick={() => void printPassage(item)}>Print</button><button className="exam-row-practice" onClick={() => { setSelectedPassageId(item.id); setPassageSource("library"); setTab("practice"); }}>Practise</button></div></article>)}{!archiveItems.length && !libraryLoading && <div className="exam-workspace-state">No recent passages are available.</div>}</div>
+        {!libraryLoading && !libraryError && <div className="exam-passage-list">{dailyItems.map(item => <article className="exam-passage-row" key={item.id}><div className="exam-passage-row-main"><span className="exam-passage-row-exam">{sim.name}</span><strong>{item.title}</strong><small>TODAY · {item.word_count} words · Passage {String(item.passage_number ?? 0).padStart(2, "0")} · ID {item.id}</small></div><div className="exam-passage-row-actions"><button onClick={() => void fetchPreview(item)}>View</button><button onClick={() => void printPassage(item)}>Print</button><button className="exam-row-practice" onClick={() => { setPassageSource("library"); setSelectedPassageId(item.id); setTab("practice"); }}>Practise</button></div></article>)}{!dailyItems.length && <div className="exam-workspace-state">No passages have been uploaded for this exam today.</div>}</div>}
         {selectedPreview && <div className="exam-passage-preview"><div><h3>{selectedPreview.title}</h3><div className="exam-passage-row-actions"><button onClick={() => void printPassage(selectedPreview)}>Print</button><button onClick={() => setSelectedPreview(null)}>Close ×</button></div></div>{previewLoading ? <p>Loading passage…</p> : <p>{selectedPreview.body ?? selectedPreview.preview}</p>}<button className="exam-action-primary" onClick={() => { setSelectedPassageId(selectedPreview.id); setPassageSource("library"); setTab("practice"); }}>Practise this passage →</button></div>}
       </section>}
 
       {tab === "monthly" && <section className="exam-workspace-panel">
-        <div className="exam-workspace-section-heading"><div><span className="exam-workspace-eyebrow">PASSAGE ARCHIVE · {sim.language === "hi" ? "HINDI" : "ENGLISH"}</span><h2>Monthly passage library</h2><p>Select a month to browse the full passage archive available for this exam’s language.</p></div></div>
-        <div className="exam-month-toolbar"><label>Select month<select value={month} onChange={e => { setMonth(e.target.value); setSelectedPreview(null); void loadLibrary(e.target.value); }}><option value="">Choose month</option>{(library?.months ?? []).map(m => <option key={m} value={m}>{new Date(m + "-01T00:00:00").toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</option>)}</select></label><span>{monthlyItems.length} passages in selected month</span></div>
-        {libraryLoading && <div className="exam-workspace-state">Loading monthly archive…</div>}
+        <div className="exam-workspace-section-heading"><div><span className="exam-workspace-eyebrow">COMPLETED MONTH ARCHIVE · {sim.language === "hi" ? "HINDI" : "ENGLISH"}</span><h2>Monthly passage PDFs</h2><p>Each completed month is presented as one combined PDF containing all passages uploaded to this exam’s daily library during that month.</p></div></div>
+        <div className="exam-month-toolbar"><label>Select completed month<select value={month} onChange={e => { setMonth(e.target.value); setSelectedPreview(null); void loadLibrary(e.target.value); }}><option value="">Choose month</option>{(library?.months ?? []).map(m => <option key={m} value={m}>{new Date(m + "-01T00:00:00").toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</option>)}</select></label><span>{monthlyItems.length} passages in this monthly PDF</span></div>
+        {libraryLoading && <div className="exam-workspace-state">Preparing monthly collection…</div>}
         {libraryError && <div className="exam-workspace-error">{libraryError}</div>}
-        {!libraryLoading && !libraryError && <div className="exam-passage-list">{monthlyItems.map(item => <article className="exam-passage-row" key={item.id}><div className="exam-passage-row-main"><span className="exam-passage-row-exam">{sim.name}</span><strong>{item.title}</strong><small>{item.date ?? "Archive"} · {item.word_count} words · Passage {item.passage_number ?? "—"} · ID {item.id}</small></div><div className="exam-passage-row-actions"><button onClick={() => void fetchPreview(item)}>View</button><button onClick={() => void printPassage(item)}>Print</button><button className="exam-row-practice" onClick={() => { setSelectedPassageId(item.id); setPassageSource("library"); setTab("practice"); }}>Practise</button></div></article>)}{!monthlyItems.length && <div className="exam-workspace-state">No passages found for this month and language.</div>}</div>}
-        {selectedPreview && <div className="exam-passage-preview"><div><h3>{selectedPreview.title}</h3><div className="exam-passage-row-actions"><button onClick={() => void printPassage(selectedPreview)}>Print</button><button onClick={() => setSelectedPreview(null)}>Close ×</button></div></div>{previewLoading ? <p>Loading passage…</p> : <p>{selectedPreview.body ?? selectedPreview.preview}</p>}<button className="exam-action-primary" onClick={() => { setSelectedPassageId(selectedPreview.id); setPassageSource("library"); setTab("practice"); }}>Practise this passage →</button></div>}
+        {!libraryLoading && !libraryError && monthlyItems.length > 0 && <article className="exam-passage-row exam-passage-row-feature"><div className="exam-passage-row-main"><span className="exam-passage-row-exam">{sim.name} · MONTHLY COLLECTION</span><strong>{month ? new Date(month + "-01T00:00:00").toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : "Completed month"}</strong><small>{monthlyItems.length} passages · {monthlyItems.reduce((sum, item) => sum + Number(item.word_count || 0), 0)} total words · Numbered from 01 in upload order</small></div><div className="exam-passage-row-actions"><button className="exam-row-practice" onClick={printMonthlyBundle}>Download monthly PDF</button></div></article>}
+        {!libraryLoading && !libraryError && !monthlyItems.length && <div className="exam-workspace-state">No completed monthly PDF is available yet. This month’s passages remain in Daily passages until the month closes.</div>}
       </section>}
 
       {tab === "performance" && <section className="exam-workspace-panel">
