@@ -14,7 +14,7 @@ function metrics(reference:string,typed:string,seconds:number){
 export default function TargetedDrillsPage(){
  const [data,setData]=useState<Payload|null>(null),[error,setError]=useState("");
  const [selected,setSelected]=useState(""),[typed,setTyped]=useState(""),[started,setStarted]=useState<number|null>(null),[elapsed,setElapsed]=useState(0),[lang,setLang]=useState<"en"|"hi">("en");
- useEffect(()=>{fetch("/api/coach/drills?lang="+lang).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error||"Could not load drills.");setData(d);setSelected(d.drills?.[0]?.id??"");}).catch(e=>setError(e.message));},[lang]);
+ useEffect(()=>{setData(null);setTyped("");setElapsed(0);setStarted(null);fetch("/api/coach/drills?lang="+lang).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error||"Could not load drills.");setData(d);setSelected(d.drills?.[0]?.id??"");}).catch(e=>setError(e.message));},[lang]);
  useEffect(()=>{if(started===null)return;const id=window.setInterval(()=>setElapsed(Math.floor((Date.now()-started)/1000)),250);return()=>window.clearInterval(id);},[started]);
  const drill=data?.drills.find(d=>d.id===selected)??data?.drills[0];
  const score=useMemo(()=>drill?metrics(drill.text,typed,elapsed):{accuracy:100,wpm:0,typed:0,correct:0},[drill,typed,elapsed]);
