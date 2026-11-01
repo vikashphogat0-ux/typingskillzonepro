@@ -70,6 +70,7 @@ export default function SimulatorPage() {
   const [startErr, setStartErr] = useState("");
   const [passageOptions, setPassageOptions] = useState<{ id: string; title: string; word_count: number }[]>([]);
   const [selectedPassageId, setSelectedPassageId] = useState("");
+  const [practiceMode, setPracticeMode] = useState<"highlighted" | "unhighlighted" | "exam">("exam");
   const [passageSearch, setPassageSearch] = useState("");
   const [passageSource, setPassageSource] = useState<"library" | "custom">("library");
   const [customPassage, setCustomPassage] = useState("");
@@ -154,7 +155,7 @@ export default function SimulatorPage() {
       const chosenPassage = passageId ?? selectedPassageId;
       const r = await api("/api/tests/start", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, ...(passageSource === "custom" ? { customPassage: customText } : chosenPassage ? { passageId: chosenPassage } : {}) }),
+        body: JSON.stringify({ slug, practiceMode, ...(passageSource === "custom" ? { customPassage: customText } : chosenPassage ? { passageId: chosenPassage } : {}) }),
       });
       if (!r.ok) {
         setTestState("idle");
@@ -282,6 +283,14 @@ export default function SimulatorPage() {
             <label className="exam-field">Select passage<select value={selectedPassageId} onChange={e => setSelectedPassageId(e.target.value)}><option value="">Random passage for this exam language</option>{visiblePassages.map(p => <option key={p.id} value={p.id}>{p.title} · {p.word_count} words · ID {p.id}</option>)}</select></label>
             <small>{visiblePassages.length} matching passages available. The selected simulator controls timing, scoring, layout and keyboard rules.</small>
           </>}
+        </div>
+        <div className="exam-mode-picker">
+          <div className="exam-mode-picker-heading"><h3>Choose typing practice mode</h3><p>Select how the passage should appear during typing. Exam-specific mode uses this simulator’s configured display and keyboard rules.</p></div>
+          <div className="exam-mode-options">
+            <button type="button" className={practiceMode === "highlighted" ? "selected" : ""} aria-pressed={practiceMode === "highlighted"} onClick={() => setPracticeMode("highlighted")}><span className="exam-mode-number">01</span><strong>Highlight mode</strong><small>Passage stays visible; typed characters highlight as you type.</small><em>Live character feedback</em></button>
+            <button type="button" className={practiceMode === "unhighlighted" ? "selected" : ""} aria-pressed={practiceMode === "unhighlighted"} onClick={() => setPracticeMode("unhighlighted")}><span className="exam-mode-number">02</span><strong>Screen-to-screen mode</strong><small>Passage and typing area stay on screen without character highlighting.</small><em>Visible reference text</em></button>
+            <button type="button" className={practiceMode === "exam" ? "selected" : ""} aria-pressed={practiceMode === "exam"} onClick={() => setPracticeMode("exam")}><span className="exam-mode-number">03</span><strong>Exam-specific mode</strong><small>Uses the display mode and typing rules configured for {sim.name}.</small><em>{MODE_LABELS[sim.display_mode] ?? sim.display_mode}</em></button>
+          </div>
         </div>
         <div className="exam-rules-grid"><div><span>DURATION</span><strong>{Math.round(sim.duration_sec / 60)} minutes</strong></div><div><span>DISPLAY</span><strong>{sim.display_mode}</strong></div><div><span>BACKSPACE</span><strong>{sim.backspace}</strong></div><div><span>SCORING</span><strong>{scoring.unit === "keystrokes" ? "Key depressions" : scoring.netMethod ?? "Standard WPM"}</strong></div><div><span>PASSAGE FORMAT</span><strong>{sim.passage_layout === "continuous" ? "Continuous" : "Paragraphs"}</strong></div><div><span>ENTER KEY</span><strong>{sim.enter_key_policy === "blocked" ? "Blocked" : "New line"}</strong></div><div><span>TAB KEY</span><strong>{sim.tab_key_policy === "insert" ? "Insert tab" : "Blocked"}</strong></div></div>
         <div className="exam-practice-actions"><button className="exam-action-primary" disabled={testState === "starting"} onClick={() => startTest()}>{testState === "starting" ? "Preparing test…" : "Start typing test →"}</button><button className="exam-action-secondary" onClick={() => { setTab("daily"); }}>Explore daily passages</button></div>
