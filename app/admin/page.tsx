@@ -35,10 +35,10 @@ export default function Admin() {
 
   const runGeneration = async (slot: "morning" | "afternoon" | "live") => {
     const label = slot === "morning" ? "7 AM batch (5 passages)" : slot === "afternoon" ? "1 PM batch (5 passages)" : "7 PM live batch (2 passages)";
-    if (!confirm(`Generate ${label}? This uses the configured AI provider and saves new passages to the shared library.`)) return;
+    if (!confirm(`Generate ${label} for ${selectedExamSlug || "the selected simulator"}? This uses the configured AI provider and saves passages only to that simulator folder.`)) return;
     setGenerationBusy(slot); setGenerationMsg("");
     try {
-      const r = await post("/api/admin/passages/generate", { slot });
+      const r = await post("/api/admin/passages/generate", { slot, templateSlug: selectedExamSlug });
       if (!r.ok) setGenerationMsg(r.data.error ?? "Generation failed. Check provider configuration and database migration.");
       else { setGenerationMsg(`Generated ${r.data.generatedThisRun ?? 0} this run; ${r.data.generatedTotal ?? 0} total for ${r.data.date} (${slot}). ${r.data.failures?.length ? r.data.failures.join(" · ") : "Generation complete."}`); await load(); }
     } catch { setGenerationMsg("Network error while generating passages."); }
@@ -49,13 +49,13 @@ export default function Admin() {
     const [a, b] = await Promise.all([api("/api/admin/templates"), api("/api/admin/passages")]);
     if (a.status === 403 || b.status === 403 || a.status === 500) { setDenied(true); return; }
     setTpls(a.data); setRows(b.data);
-    setSelectedExamSlugs((current) => current.length ? current : a.data.filter((x: Tpl) => x.language === "en" && x.is_active).map((x: Tpl) => x.slug));
+    setSelectedExamSlug((current) => current && a.data.some((x: Tpl) => x.slug === current && x.is_active) ? current : (a.data.find((x: Tpl) => x.language === "en" && x.is_active)?.slug ?? ""));
   }, []);
   useEffect(() => { load(); }, [load]);
 
   /* ---------- passages ---------- */
-  const [title, setTitle] = useState(""); const [lang, setLang] = useState<Lang>("en"); const [body, setBody] = useState(""); const [selectedExamSlugs, setSelectedExamSlugs] = useState<string[]>([]);
-  useEffect(() => { if (tpls.length && selectedExamSlugs.length === 0) setSelectedExamSlugs(tpls.filter((x) => x.language === "en" && x.is_active).map((x) => x.slug)); }, [tpls, selectedExamSlugs]);
+  const [title, setTitle] = useState(""); const [lang, setLang] = useState<Lang>("en"); const [body, setBody] = useState(""); const [selectedExamSlug, setSelectedExamSlug] = useState("");
+  useEffect(() => { if (tpls.length && !tpls.some((x) => x.slug === selectedExamSlug && x.is_active)) setSelectedExamSlug(tpls.find((x) => x.language === lang && x.is_active)?.slug ?? ""); }, [tpls, selectedExamSlug, lang]);
   const check = useMemo(() => validatePassage({ title, language: lang, body }), [title, lang, body]);
   const [bulk, setBulk] = useState<{ title: string; body: string }[]>([]);
   const bulkChecks = useMemo(() => bulk.map((b) => validatePassage({ ...b, language: lang })), [bulk, lang]);
@@ -72,7 +72,7 @@ export default function Admin() {
       let chunk: typeof items = [];
       for (const item of items) {
         const candidate = [...chunk, item];
-        const bytes = new TextEncoder().encode(JSON.stringify({ items: candidate, templateSlugs: selectedExamSlugs })).byteLength;
+        const bytes = new TextEncoder().encode(JSON.stringify({ items: candidate, templateSlug: selectedExamSlug })).byteLength;
         if (chunk.length && (bytes > maxChunkBytes || candidate.length > 10)) {
           chunks.push(chunk);
           chunk = [item];
@@ -85,7 +85,7 @@ export default function Admin() {
       for (let index = 0; index < chunks.length; index++) {
         const batch = chunks[index];
         setMsg(`Saving passages: ${saved} of ${items.length} complete (batch ${index + 1}/${chunks.length})…`);
-        const r = await post("/api/admin/passages", { items: batch, templateSlugs: selectedExamSlugs });
+        const r = await post("/api/admin/passages", { items: batch, templateSlug: selectedExamSlug });
         if (!r.ok || Number(r.data.saved) !== batch.length) {
           const details = Array.isArray(r.data.problems)
             ? r.data.problems.map((p: any) => `Passage ${p.index + 1}: ${(p.errors ?? []).join(" ")}`).join(" | ")
@@ -165,7 +165,7 @@ export default function Admin() {
       <nav className="admin-management-nav" aria-label="Administration"><a href="/admin/users">Users &amp; roles</a> · <a href="/admin/institutions">Institutes</a> · <a href="/admin/subscribers">Subscriptions</a> · <a href="/admin/payments">Payments</a> · <a href="/admin">Passages &amp; simulators</a></nav>
       <section className="admin-generation-panel">
         <h2>Daily Passage Automation</h2>
-        <p className="hint">Each batch generates original passages of at least 500 words and stores them as shared library content. Simulator templates control only presentation and exam rules.</p>
+        <p className="hint">Generate passages for one selected simulator at a time. Each generated passage is saved directly into that simulator folder and uses its language.</p>
         <div className="cta-group">
           <button className="go" disabled={!!generationBusy} onClick={() => runGeneration("morning")}>{generationBusy === "morning" ? "Generating…" : "Generate 7 AM · 5 passages"}</button>
           <button className="go" disabled={!!generationBusy} onClick={() => runGeneration("afternoon")}>{generationBusy === "afternoon" ? "Generating…" : "Generate 1 PM · 5 passages"}</button>
@@ -186,7 +186,7 @@ export default function Admin() {
           <div className="form">
             <label>Title<input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} /></label>
             <label>Language<select value={lang} onChange={(e) => setLang(e.target.value as Lang)}><option value="en">English</option><option value="hi">Hindi</option></select></label>
-            <label>Publish to exam directories <select multiple value={selectedExamSlugs} onChange={(e) => setSelectedExamSlugs(Array.from(e.target.selectedOptions, option => option.value))} size={Math.min(7, Math.max(3, tpls.filter(x => x.language === lang && x.is_active).length))}>{tpls.filter(x => x.language === lang && x.is_active).map(x => <option key={x.slug} value={x.slug}>{x.name} · {x.slug}</option>)}</select><small className="hint">Hold Ctrl (Windows) to select multiple exams. Each selected simulator receives its own passage copy. Leave empty to publish to the general library only.</small></label>
+            <label>Destination simulator <select value={selectedExamSlug} onChange={(e) => setSelectedExamSlug(e.target.value)}>{tpls.filter(x => x.language === lang && x.is_active).map(x => <option key={x.slug} value={x.slug}>{x.name} · {x.slug}</option>)}</select><small className="hint">This upload is saved only in the selected simulator folder. Change the destination to publish a separate exam-specific copy.</small></label>
             <label>Passage text<textarea rows={8} lang={lang} value={body} onChange={(e) => setBody(e.target.value)} onBlur={() => setBody(cleanBody(body))} /></label>
             <p className="hint">{countWords(body)} words</p>
             {check.errors.map((e) => <p key={e} className="err">{e}</p>)}
