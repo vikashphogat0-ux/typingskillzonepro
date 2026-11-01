@@ -208,11 +208,10 @@ export default function SimulatorPage() {
       const escapeHtml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
       const title = escapeHtml(full.title || "Exam passage");
       const exam = escapeHtml(sim?.name || "TypingSkillZone");
-      const isBsfPassage = /^bsf-hcm-/.test(String(sim?.slug ?? ""));
       const rawBody = full.body ?? full.preview ?? "";
-      // BSF HCM passage handouts are presented as one continuous passage: collapse
-      // paragraph/newline/extra-space characters to a single normal word space.
-      const formattedBody = isBsfPassage ? rawBody.replace(/\\s+/gu, " ").trim() : rawBody;
+      // Match the RKC-referenced exam-specific layout in previews and downloaded PDFs.
+      const layout = getRkcPassageLayout(String(sim?.slug ?? ""));
+      const formattedBody = formatRkcPassage(rawBody, layout);
       const body = escapeHtml(formattedBody);
       target.document.open();
       target.document.write(`<!doctype html><html lang="${sim?.language ?? "en"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${exam} — ${title}</title><style>body{font-family:Arial,"Noto Sans Devanagari",sans-serif;max-width:850px;margin:32px auto;padding:0 24px;color:#172033;line-height:1.5}h1{font-size:18pt;margin:0 0 5px}h2{font-size:13pt;font-weight:500;margin:0 0 22px;color:#526176}.passage{font-size:${Math.max(10,Math.min(18,sim?.font_size_pt ?? 12))}pt;white-space:${layout === "continuous" ? "normal" : "pre-wrap"};overflow-wrap:anywhere;line-height:1.5}@page{size:A4;margin:20mm}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${exam}</h1><h2>${title} · ID ${escapeHtml(full.id)}</h2><div class="passage">${body}</div><script>window.onload=()=>window.print()<\/script></body></html>`);
