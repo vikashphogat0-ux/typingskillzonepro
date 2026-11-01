@@ -343,6 +343,20 @@ test("Unicode code points are counted consistently for Hindi", () => {
   assert.equal(r.accuracy, 100);
 });
 
+test("batched deletion events count actual backspace presses", () => {
+  const events: KeyEvent[] = [
+    { t: 1, type: "ins", ch: "a" },
+    { t: 2, type: "ins", ch: "b" },
+    { t: 3, type: "ins", ch: "c" },
+    { t: 4, type: "del", n: 3 },
+  ];
+  const result = analyzeKeyLog(events, "abc");
+  assert.equal(result.backspaces, 3);
+  assert.equal(result.keystrokes, 6);
+  assert.equal(result.fixed, 0);
+  assert.equal(result.ignored, 0);
+});
+
 test("key log rejects invalid event order and malformed deletion lengths", () => {
   assert.throws(() => analyzeKeyLog([{ t: 5, type: "ins", ch: "a" }, { t: 4, type: "ins", ch: "b" }], "ab"), /non-decreasing/);
   assert.throws(() => analyzeKeyLog([{ t: 1, type: "del", n: 0 }], "a"), /positive integer/);
