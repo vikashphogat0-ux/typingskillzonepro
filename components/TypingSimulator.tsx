@@ -184,7 +184,10 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, prac
       return;
     }
     const escaped = reference.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const printSize = Math.max(8, Math.min(24, fontSizePt));\n    const fontFamily = passageFontFamily === "serif" ? "Georgia, serif" : passageFontFamily === "mono" ? "monospace" : "Arial, \\"Noto Sans Devanagari\\", sans-serif";\n    const alignment = passageAlignment === "justify" ? "justify" : passageAlignment === "center" ? "center" : "left";\n    const pageSize = printPageSize === "Letter" ? "Letter" : printPageSize === "Legal" ? "Legal" : "A4";
+    const printSize = Math.max(8, Math.min(24, fontSizePt));
+    const fontFamily = passageFontFamily === "serif" ? "Georgia, serif" : passageFontFamily === "mono" ? "monospace" : "Arial, sans-serif";
+    const alignment = passageAlignment === "justify" ? "justify" : passageAlignment === "center" ? "center" : "left";
+    const pageSize = printPageSize === "Letter" ? "Letter" : printPageSize === "Legal" ? "Legal" : "A4";
     target.document.open();
     target.document.write(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${examName.replace(/</g, "&lt;").replace(/>/g, "&gt;")} passage</title><style>body{font-family:${fontFamily};max-width:850px;margin:36px auto;padding:0 24px;color:#172033;line-height:${passageLineSpacing};text-align:${alignment}}h1{font-size:16pt;margin-bottom:8px}p{white-space:${passageLayout === "continuous" ? "normal" : "pre-wrap"};font-size:${printSize}pt}@page{size:${pageSize};margin:20mm}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${examName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</h1><p>${escaped}</p></body></html>`);
     target.document.close();
