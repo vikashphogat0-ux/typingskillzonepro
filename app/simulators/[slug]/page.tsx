@@ -68,7 +68,7 @@ export default function SimulatorPage() {
   const [testState, setTestState] = useState<"idle" | "starting" | "running" | "done">("idle");
   const [testData, setTestData] = useState<any>(null);
   const [startErr, setStartErr] = useState("");
-  const [passageOptions, setPassageOptions] = useState<{ id: string; title: string; word_count: number }[]>([]);
+  const [passageOptions, setPassageOptions] = useState<{ id: string; title: string; word_count: number; passage_number?: number }[]>([]);
   const [selectedPassageId, setSelectedPassageId] = useState("");
   const [practiceMode, setPracticeMode] = useState<"highlighted" | "unhighlighted" | "exam">("exam");
   const [passageSearch, setPassageSearch] = useState("");
@@ -226,7 +226,7 @@ export default function SimulatorPage() {
 
   const identity = examIdentity(sim.slug);
   const scoring = sim.scoring ?? {};
-  const visiblePassages = passageOptions.filter(p => !passageSearch.trim() || p.id.toLowerCase().includes(passageSearch.trim().toLowerCase()) || p.title.toLowerCase().includes(passageSearch.trim().toLowerCase()));
+  const visiblePassages = passageOptions.filter(p => !passageSearch.trim() || p.id.toLowerCase().includes(passageSearch.trim().toLowerCase()) || String(p.passage_number ?? "").padStart(2, "0").includes(passageSearch.trim().toLowerCase()) || p.title.toLowerCase().includes(passageSearch.trim().toLowerCase()));
   const todayPassage = library?.daily?.[sim.language];
   const monthlyItems = library?.monthly ?? [];
   const relevantResults = results.filter(r => !r.simulator || r.simulator.toLowerCase() === sim.name.toLowerCase());
@@ -280,7 +280,7 @@ export default function SimulatorPage() {
           <div className="exam-source-toggle"><button type="button" className={passageSource === "library" ? "selected" : ""} onClick={() => setPassageSource("library")}>Choose library passage</button><button type="button" className={passageSource === "custom" ? "selected" : ""} onClick={() => setPassageSource("custom")}>Use a custom passage</button></div>
           {passageSource === "custom" ? <label className="exam-field">Paste your own passage (minimum {customMinimumWords(slug)} words)<textarea rows={7} maxLength={50000} value={customPassage} onChange={e => setCustomPassage(e.target.value)} placeholder="Paste your own passage here…" spellCheck={false}/></label> : <>
             <label className="exam-field">Find passage by title or unique ID<input value={passageSearch} onChange={e => setPassageSearch(e.target.value)} placeholder="Search by passage ID or title…"/></label>
-            <label className="exam-field">Select passage<select value={selectedPassageId} onChange={e => setSelectedPassageId(e.target.value)}><option value="">Random passage for this exam language</option>{visiblePassages.map(p => <option key={p.id} value={p.id}>{p.title} · {p.word_count} words · ID {p.id}</option>)}</select></label>
+            <label className="exam-field">Select passage<select value={selectedPassageId} onChange={e => setSelectedPassageId(e.target.value)}><option value="">Random passage for this exam language</option>{visiblePassages.map(p => <option key={p.id} value={p.id}>Passage {String(p.passage_number ?? 0).padStart(2, "0")} · {p.title} · {p.word_count} words</option>)}</select></label>
             <small>{visiblePassages.length} matching passages available. The selected simulator controls timing, scoring, layout and keyboard rules.</small>
           </>}
         </div>
