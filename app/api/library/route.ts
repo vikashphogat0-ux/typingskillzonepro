@@ -117,6 +117,57 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     console.error("GET /api/library failed:", error);
-    return Response.json({ error: "Passage library is temporarily unavailable. Please try again shortly." }, { status: 503 });
+    // Keep existing simulator libraries readable if the additive passage-intelligence
+    // migration has not yet been applied. The legacy query reads existing passage rows
+    // only; it does not write data or bypass language/template filters.
+    const db = sql();
+    const code = error && typeof error === "object" && "code" in error
+      ? String((error as { code?: unknown }).code ?? "") : "";
+    if (code === "42P01" || code === "42703") {
+      try {
+        const one = u.searchParams.get("id");
+        if (one) {
+          if (!/^[0-9a-f-]{36}$/i.test(one)) return Response.json({ error: "Not found." }, { status: 404 });
+          const [passage] = await db`SELECT p.id, p.title, p.language, p.word_count, p.body, 1 AS passage_number
+            FROM passages p LEFT JOIN exam_templates et ON et.id = p.template_id
+            WHERE p.id = ${one}
+              AND (${lang}::text IS NULL OR p.language = ${lang})
+              AND (${tpl} = '' OR et.slug = ${tpl})`;
+          return passage ? Response.json(passage) : Response.json({ error: "Not found." }, { status: 404 });
+        }
+        const today = istDate();
+        const month = today.slice(0, 7);
+        const like = `%${q.replace(/[%_]/g, "")}%`;
+        const base = await db`SELECT p.id, p.title, p.language, p.word_count,
+            left(p.body, 140) AS preview, p.body,
+            row_number() OVER (PARTITION BY p.template_id, p.language,
+              date_trunc('month', p.created_at AT TIME ZONE 'Asia/Kolkata')
+              ORDER BY p.created_at ASC, p.id ASC) AS passage_number,
+            (p.created_at AT TIME ZONE 'Asia/Kolkata')::date::text AS date,
+            et.name AS exam, et.slug AS template_slug,
+            to_char(p.created_at AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM') AS month
+          FROM passages p LEFT JOIN exam_templates et ON et.id = p.template_id
+          WHERE (${lang}::text IS NULL OR p.language = ${lang})
+            AND (${tpl} = '' OR et.slug = ${tpl})
+          ORDER BY p.created_at ASC, p.id ASC`;
+        const list = base.filter((p: any) => !q || String(p.title).toLowerCase().includes(q.toLowerCase())
+          || String(p.id).includes(q) || String(p.body).toLowerCase().includes(q.toLowerCase()))
+          .map(({ body, template_slug, month: _month, ...p }: any) => p);
+        const dailyItems = base.filter((p: any) => p.month === month && p.date <= today)
+          .map(({ body, template_slug, month: _month, ...p }: any) => p);
+        const months = [...new Set(base.map((p: any) => p.month).filter((m: string) => m < month))].sort().reverse();
+        const requestedMonth = u.searchParams.get("month") ?? "";
+        const selectedMonth = /^\\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth) && months.includes(requestedMonth)
+          ? requestedMonth : (months[0] ?? "");
+        const monthly = base.filter((p: any) => p.month === selectedMonth)
+          .map(({ body, template_slug, month: _month, ...p }: any) => ({ ...p, body }));
+        return Response.json({ today, daily: { [lang ?? "en"]: dailyItems[0] ?? null },
+          dailyItems, archive: {}, list, monthly, months, selectedMonth: selectedMonth || null,
+          compatibilityMode: true });
+      } catch (fallbackError) {
+        console.error("GET /api/library legacy compatibility query failed:", fallbackError);
+      }
+    }
+    return Response.json({ error: "Passage library is temporarily unavailable. Please verify the passage-intelligence database migration and retry." }, { status: 503 });
   }
 }
