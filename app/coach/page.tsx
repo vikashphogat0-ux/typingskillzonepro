@@ -99,7 +99,7 @@ export default function CoachPage() {
       <p className="hint">Generated from your recent speed, accuracy and weak-key patterns. This is a practice schedule only; simulator exam settings remain unchanged. Check off each session as you complete it.</p>
       <div className="tiles"><div><b>{completedPlan}/7</b><span>Days completed</span></div><div><b>{needsAccuracy?"Accuracy":weakKey?"Weak key":weakPair?"Letter pair":needsSpeed?"Speed":"Consistency"}</b><span>Primary training priority</span></div><div><b>{goals.sessions}</b><span>Daily session goal</span></div><div><b>{goals.targetAccuracy}%</b><span>Accuracy target</span></div></div>
       <div style={{display:"grid",gap:".75rem",marginTop:"1rem"}}>
-        {weeklyPlan.map((item,i)=><article key={planWeek+"-"+i} style={{border:"1px solid var(--border, #888)",borderRadius:"12px",padding:"1rem",opacity:planChecks[planWeek+"-"+i]?.65:1}}>
+        {weeklyPlan.map((item,i)=><article key={planWeek+"-"+i} style={{border:"1px solid var(--border, #888)",borderRadius:"12px",padding:"1rem",opacity:planChecks[planWeek+"-"+i] ? 0.65 : 1}}>
           <label style={{display:"flex",alignItems:"flex-start",gap:".75rem",cursor:"pointer"}}>
             <input type="checkbox" checked={!!planChecks[planWeek+"-"+i]} onChange={e=>setPlanChecks(old=>({...old,[planWeek+"-"+i]:e.target.checked}))} />
             <span style={{flex:1}}><b>{item.day} · {item.focus}</b><br/><span>{item.task}</span><br/><span className="hint">Suggested time: {item.duration}</span><br/><a className="go alt" href={item.href}>Open practice</a></span>
