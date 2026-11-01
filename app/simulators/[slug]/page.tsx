@@ -71,6 +71,8 @@ export default function SimulatorPage() {
   const [testData, setTestData] = useState<any>(null);
   const [startErr, setStartErr] = useState("");
   const [passageOptions, setPassageOptions] = useState<{ id: string; title: string; word_count: number; passage_number?: number }[]>([]);
+  const [passageOptionsLoading, setPassageOptionsLoading] = useState(false);
+  const [passageOptionsError, setPassageOptionsError] = useState("");
   const [selectedPassageId, setSelectedPassageId] = useState("");
   const [practiceMode, setPracticeMode] = useState<"highlighted" | "unhighlighted" | "exam">("exam");
   const [passageSearch, setPassageSearch] = useState("");
@@ -91,20 +93,43 @@ export default function SimulatorPage() {
   useEffect(() => {
     let active = true;
     if (!slug) return;
-    setLoading(true); setError("");
+    setLoading(true); setError(""); setPassageOptions([]); setSelectedPassageId("");
+    setPassageOptionsLoading(true); setPassageOptionsError("");
     api(`/api/simulators/${slug}`)
       .then(async r => {
         if (!active) return;
-        if (!r.ok) { setError(r.data?.error ?? "Simulator not found."); return; }
+        if (!r.ok) { setError(r.data?.error ?? "Simulator not found."); setPassageOptionsLoading(false); return; }
         setSim(r.data);
-        const passages = await api(`/api/library?lang=${r.data.language}&template=${encodeURIComponent(r.data.slug)}`);
-        if (!active) return;
-        if (passages.ok && Array.isArray(passages.data?.list)) setPassageOptions(passages.data.list);
+        try {
+          const passages = await api(`/api/library?lang=${r.data.language}&template=${encodeURIComponent(r.data.slug)}`);
+          if (!active) return;
+          if (passages.ok && Array.isArray(passages.data?.list)) setPassageOptions(passages.data.list);
+          else setPassageOptionsError(passages.data?.error ?? "Exam passages could not be loaded.");
+        } catch {
+          if (active) setPassageOptionsError("Connection issue while loading exam passages.");
+        } finally {
+          if (active) setPassageOptionsLoading(false);
+        }
       })
-      .catch(() => { if (active) setError("Network error. Please refresh."); })
+      .catch(() => { if (active) { setError("Network error. Please refresh."); setPassageOptionsLoading(false); } })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [slug]);
+
+  const retryPassageOptions = async () => {
+    if (!sim) return;
+    setPassageOptionsLoading(true);
+    setPassageOptionsError("");
+    try {
+      const response = await api(`/api/library?lang=${sim.language}&template=${encodeURIComponent(sim.slug)}`);
+      if (response.ok && Array.isArray(response.data?.list)) setPassageOptions(response.data.list);
+      else setPassageOptionsError(response.data?.error ?? "Exam passages could not be loaded.");
+    } catch {
+      setPassageOptionsError("Connection issue while loading exam passages.");
+    } finally {
+      setPassageOptionsLoading(false);
+    }
+  };
 
   const loadLibrary = useCallback(async (selectedMonth?: string) => {
     if (!sim) return;
@@ -309,8 +334,9 @@ export default function SimulatorPage() {
           <div className="exam-source-toggle"><button type="button" className={passageSource === "library" ? "selected" : ""} onClick={() => setPassageSource("library")}>Choose library passage</button><button type="button" className={passageSource === "custom" ? "selected" : ""} onClick={() => setPassageSource("custom")}>Use a custom passage</button></div>
           {passageSource === "custom" ? <label className="exam-field">Paste your own passage (minimum {customMinimumWords(slug)} words)<textarea rows={7} maxLength={50000} value={customPassage} onChange={e => setCustomPassage(e.target.value)} placeholder="Paste your own passage here…" spellCheck={false}/></label> : <>
             <label className="exam-field">Find passage by title or unique ID<input value={passageSearch} onChange={e => setPassageSearch(e.target.value)} placeholder="Search by passage ID or title…"/></label>
-            <label className="exam-field">Select passage<select value={selectedPassageId} onChange={e => setSelectedPassageId(e.target.value)}><option value="">Random passage for this exam language</option>{visiblePassages.map(p => <option key={p.id} value={p.id}>Passage ID: {String(p.passage_number ?? 1).padStart(2, "0")} · {p.title} · {p.word_count} words</option>)}</select></label>
-            <small>{visiblePassages.length} matching passages available. The selected simulator controls timing, scoring, layout and keyboard rules.</small>
+            <label className="exam-field">Select passage<select value={selectedPassageId} onChange={e => setSelectedPassageId(e.target.value)} disabled={passageOptionsLoading || !!passageOptionsError || visiblePassages.length === 0}><option value="">Random passage for this exam language</option>{visiblePassages.map(p => <option key={p.id} value={p.id}>Passage ID: {String(p.passage_number ?? 1).padStart(2, "0")} · {p.title} · {p.word_count} words</option>)}</select></label>
+            {passageOptionsLoading ? <small role="status">Loading passages for {sim.name}…</small> : passageOptionsError ? <p className="exam-workspace-error" role="alert">{passageOptionsError} <button type="button" onClick={() => void retryPassageOptions()}>Retry</button></p> : <small>{visiblePassages.length} matching passages available{passageSearch.trim() ? ` out of ${passageOptions.length}` : ""}. The selected simulator controls timing, scoring, layout and keyboard rules.</small>}
+            {!passageOptionsLoading && !passageOptionsError && passageSearch.trim() && visiblePassages.length === 0 && <small>No passages match that search. Try a different ID or title.</small>}
           </>}
         </div>
         <div className="exam-mode-picker">
