@@ -10,7 +10,7 @@ export default function CoachPage() {
   if(!data)return <main className="page"><p>Analysing your recent typing history…</p></main>;
   const s=data.summary;
   return <main className="page">
-    <header><p className="hint">TYPINGSKILLZONE · PERSONAL PERFORMANCE</p><h1>Intelligent Typing Coach</h1><p>Evidence-based coaching from your saved attempts. Your exam settings and scoring rules are not modified.</p></header>
+    <header><p className="hint">TYPINGSKILLZONE · PERSONAL PERFORMANCE</p><h1>Intelligent Typing Coach</h1><p>Evidence-based coaching from your saved attempts. Your exam settings and scoring rules are not modified.</p><p><a className="go" href="/coach/drills">Start targeted typing drills →</a></p></header>
     <section className="tiles">
       <div><b>{s?.tests??0}</b><span>Recent attempts</span></div><div><b>{s?.avgNetWpm??0}</b><span>Average net WPM</span></div><div><b>{s?.avgAccuracy??0}%</b><span>Average accuracy</span></div><div><b>{s?.bestNetWpm??0}</b><span>Best net WPM</span></div>
     </section>
