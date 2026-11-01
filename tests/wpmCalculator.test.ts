@@ -17,19 +17,20 @@ test("simulator passage layout profiles remain exam-specific", () => {
 });
 
 test("continuous passage formatting collapses all source whitespace without changing words", () => {
-  const source = "  First   line\\n\\nSecond\\tline  ";
+  const source = "  First   line\n\nSecond\tline  ";
   assert.equal(formatRkcPassage(source, "continuous"), "First line Second line");
 });
 
 test("source-preserved formatting normalizes line endings and trims trailing line spaces", () => {
-  const source = "  First line  \\r\\nSecond line\\t\\r\\n\\r\\nThird line  ";
-  assert.equal(formatRkcPassage(source, "source-preserved"), "First line\\nSecond line\\n\\nThird line");
+  const source = "  First line  \r\nSecond line\t\r\n\r\nThird line  ";
+  assert.equal(formatRkcPassage(source, "source-preserved"), "First line\nSecond line\n\nThird line");
 });
 
 test("paragraph-tab formatting retains paragraph boundaries for simulator rendering", () => {
-  const source = "First paragraph\\r\\n\\r\\nSecond paragraph";
-  assert.equal(formatRkcPassage(source, "paragraph-tab"), "First paragraph\\n\\nSecond paragraph");
+  const source = "First paragraph\r\n\r\nSecond paragraph";
+  assert.equal(formatRkcPassage(source, "paragraph-tab"), "First paragraph\n\nSecond paragraph");
 });
+
 const ref = "the quick brown fox jumps over the lazy dog";
 const run = (typed: string, sec = 60) => calculateScore({ reference: ref, typed, elapsedSec: sec, durationSec: 600, profile: P });
 
