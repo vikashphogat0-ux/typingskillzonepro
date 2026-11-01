@@ -19,7 +19,7 @@ export default function ResultPage() {
       <h1>{s.passed === null ? "Your result" : s.passed ? "Qualified on this run" : "Below the qualifying mark"}</h1>
       {d.flagged && <p className="err" role="alert">This attempt is kept off the leaderboards because its timing or speed looked unusual.</p>}
       {d.rank && <p className="rankline">Rank <b>#{d.rank}</b> of {d.participants} students on this simulator. <a href={`/simulators/${d.simulator.slug}`}>See the leaderboard</a></p>}
-      <ResultAnalysis reference={d.reference} events={d.events} score={s} />
+      <ResultAnalysis reference={d.reference} events={d.events} score={s} evaluation={d.evaluation} />
       <p><a className="go" href={d.simulator ? `/simulators/${d.simulator.slug}` : "/simulators"}>Try again</a></p>
     </div>
   );
