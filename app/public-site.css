@@ -1561,3 +1561,40 @@ body:has(.home-reference){background:#071225!important;color:#edf5ff!important}
 .help-page button:focus-visible,.help-page a:focus-visible,.help-page input:focus-visible{outline:3px solid rgba(36,89,196,.35);outline-offset:3px}
 @media(max-width:680px){.help-page{width:calc(100% - 36px);padding:32px 0 52px}.help-hero{padding:28px 19px 23px}.help-hero h1{font-size:36px}.help-hero>p{font-size:13px}.help-search{min-height:48px}.help-category-row{gap:7px}.help-category{font-size:10px;padding:8px 10px}.help-results-heading{align-items:center}.help-question-toggle{min-height:70px;padding:13px 14px;gap:12px}.help-question-toggle strong{font-size:13px}.help-answer{padding:0 48px 16px 14px}.help-answer p{font-size:12px}.help-contact-panel{align-items:flex-start;flex-direction:column;padding:22px;margin-top:30px}.help-contact-panel .site-button{width:100%}}
 @media(prefers-reduced-motion:reduce){.help-category,.help-question{transition:none}}
+
+
+/* Improvement 20 — clearer student plan selection */
+.pricing-v2{max-width:1120px!important;padding-top:38px!important;padding-bottom:72px!important}
+.pricing-v2-header{padding:clamp(24px,4vw,42px)!important;border:1px solid rgba(77,145,225,.22);border-radius:16px;background:radial-gradient(ellipse at 0 0,rgba(43,117,202,.18),transparent 54%),linear-gradient(125deg,#142746,#101c32)!important;box-shadow:0 18px 42px rgba(13,30,58,.12)}
+.pricing-v2-header .plans-eyebrow{color:#8fc9ff!important;font-size:10px;letter-spacing:1.7px}
+.pricing-v2-header h1{color:#f4f8ff!important;font-size:clamp(31px,4.5vw,48px)!important;letter-spacing:-1.5px!important}
+.pricing-v2-header>p:last-of-type{max-width:690px;color:#b8c8dd!important;font-size:14px;line-height:1.8}
+.pricing-value-points{display:flex;gap:9px 20px;flex-wrap:wrap;margin-top:23px;padding-top:17px;border-top:1px solid rgba(202,222,249,.16)}
+.pricing-value-points span{color:#c1d0e3;font-size:10px}
+.pricing-value-points strong{display:inline-grid;width:22px;height:22px;margin-right:6px;place-items:center;border-radius:5px;background:rgba(93,163,241,.16);color:#a8d6ff;font-size:9px}
+.pricing-v2-status,.pricing-v2 .subscription-notice,.pricing-v2 .pricing-message{border-radius:10px}
+.pricing-v2-phone{display:grid;grid-template-columns:minmax(180px,.7fr) minmax(220px,1fr);align-items:center;gap:8px 16px;margin:22px 0;padding:18px 20px;border:1px solid var(--tsz-line,#dce5f1);border-radius:10px;background:rgba(255,255,255,.035)}
+.pricing-v2-phone label{color:var(--tsz-text,#eaf2ff);font-size:12px;font-weight:750}
+.pricing-v2-phone input{width:100%;min-width:0;min-height:42px;padding:10px 12px;border:1px solid var(--tsz-line,#dce5f1);border-radius:7px;background:rgba(255,255,255,.04);color:var(--tsz-text,#eaf2ff);font:inherit;font-size:13px}
+.pricing-v2-phone p{grid-column:2;margin:0;color:var(--tsz-muted,#9aaac0);font-size:10px;line-height:1.6}
+.pricing-plan-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;margin:34px 0 17px}
+.pricing-plan-intro h2{margin:7px 0 0;color:var(--tsz-text,#eaf2ff);font-size:clamp(20px,3vw,27px);letter-spacing:-.7px}
+.pricing-plan-intro>p{max-width:380px;margin:0;color:var(--tsz-muted,#9aaac0);font-size:11px;line-height:1.7}
+.pricing-v2-grid{align-items:stretch}
+.pricing-v2-card{position:relative;display:flex;flex-direction:column;min-width:0;min-height:100%;padding:22px!important;border-radius:13px!important;transition:transform .18s,border-color .18s,box-shadow .18s}
+.pricing-v2-card:hover{transform:translateY(-3px);border-color:rgba(90,177,240,.42);box-shadow:0 18px 38px rgba(0,0,0,.2)}
+.pricing-v2-card h2{font-size:17px;line-height:1.4}
+.pricing-v2-price{margin:14px 0 4px!important}
+.pricing-v2-price strong{font-size:clamp(26px,3vw,34px);letter-spacing:-1px}
+.pricing-v2-card .plan-billing,.pricing-v2-card .plan-duration{font-size:11px;line-height:1.6}
+.pricing-v2-features{flex:1;margin:17px 0!important;padding-top:14px!important;border-top:1px solid var(--tsz-line,rgba(140,170,210,.18))}
+.pricing-v2-features li{padding:5px 0;font-size:11px;line-height:1.55}
+.pricing-v2-action{width:100%;min-height:43px;margin-top:auto;border-radius:7px!important;font-size:12px;font-weight:800}
+.pricing-v2-card.plan-card-featured{border-color:rgba(68,190,231,.55)!important;box-shadow:0 12px 35px rgba(15,111,155,.13)}
+.pricing-v2-card .plan-badge{display:inline-flex;align-self:flex-start;padding:6px 9px;border-radius:5px;background:rgba(40,157,211,.15);color:#83d9f5;font-size:9px;font-weight:850;letter-spacing:.7px;text-transform:uppercase}
+.pricing-v2-notes{margin-top:30px;padding:20px 22px;border:1px solid var(--tsz-line,rgba(140,170,210,.18));border-radius:10px;background:rgba(255,255,255,.025)}
+.pricing-v2-notes h2{margin:0 0 10px;color:var(--tsz-text,#eaf2ff);font-size:15px}
+.pricing-v2-notes li{margin:6px 0;color:var(--tsz-muted,#9aaac0);font-size:11px;line-height:1.7}
+.pricing-v2 button:focus-visible,.pricing-v2 input:focus-visible{outline:2px solid #43d9ed;outline-offset:3px}
+@media(max-width:720px){.pricing-v2{padding-top:22px!important}.pricing-v2-header{padding:24px 19px!important}.pricing-value-points{display:grid;grid-template-columns:1fr;gap:9px}.pricing-v2-phone{grid-template-columns:1fr;padding:15px}.pricing-v2-phone p{grid-column:1}.pricing-plan-intro{align-items:flex-start;flex-direction:column;gap:8px;margin-top:28px}.pricing-v2-grid{grid-template-columns:1fr!important}.pricing-v2-card{min-height:0}.pricing-v2-features{flex:none}}
+@media(prefers-reduced-motion:reduce){.pricing-v2-card{transition:none}.pricing-v2-card:hover{transform:none}}
