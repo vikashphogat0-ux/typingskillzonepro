@@ -234,7 +234,7 @@ test("every lesson drill uses only its own keys and every key has a finger", () 
   }
 });
 
-import { validatePassage, parseBulk, validateTemplate, validateScoring, defaultScoring, countWords } from "../lib/adminValidation.ts";
+import { validatePassage, parseBulk, validateTemplate, validateScoring, defaultScoring, countWords, validatePresentationSettings } from "../lib/adminValidation.ts";
 const en30 = Array.from({ length: 35 }, (_, i) => "word" + i).join(" ");
 test("passage validation: length, script and warnings", () => {
   assert.equal(validatePassage({ title: "A", language: "en", body: en30 }).ok, true);
@@ -265,6 +265,22 @@ test("admin scoring validation preserves RRB-specific settings", () => {
   assert.equal(checked.scoring?.durationSec, 600);
   assert.equal(checked.scoring?.errorAllowancePercent, 5);
   assert.equal(checked.scoring?.minWords, 300);
+});
+
+test("simulator presentation settings enforce supported values and numeric bounds", () => {
+  assert.deepEqual(validatePresentationSettings({
+    passageLayout: "continuous", fontSizePt: 12, passageFontFamily: "system",
+    passageAlignment: "left", passageLineSpacing: 1.5,
+    passageParagraphSpacing: 8, printPageSize: "A4",
+  }), []);
+  assert.ok(validatePresentationSettings({ fontSizePt: 7 }).length > 0);
+  assert.ok(validatePresentationSettings({ fontSizePt: Number.NaN }).length > 0);
+  assert.ok(validatePresentationSettings({ passageLineSpacing: 3 }).length > 0);
+  assert.ok(validatePresentationSettings({ passageParagraphSpacing: -1 }).length > 0);
+  assert.ok(validatePresentationSettings({ passageLayout: "unknown" as never }).length > 0);
+  assert.ok(validatePresentationSettings({ passageFontFamily: "comic" as never }).length > 0);
+  assert.ok(validatePresentationSettings({ passageAlignment: "diagonal" as never }).length > 0);
+  assert.ok(validatePresentationSettings({ printPageSize: "A3" as never }).length > 0);
 });
 
 test("template validation", () => {
