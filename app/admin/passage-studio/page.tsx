@@ -78,7 +78,7 @@ export default function PassageStudioPage() {
           const y = Array.isArray(item.transform) ? Number(item.transform[5]) : null;
           const lineBreak = previousY !== null && y !== null && Math.abs(previousY - y) > 2.5;
           if (y !== null) previousY = y;
-          return (lineBreak ? "\\n" : " ") + item.str;
+          return (lineBreak ? "\n" : " ") + item.str;
         }).join("");
         const cleaned = cleanBody(raw);
         if (countWords(cleaned) >= 30) pages.push({ title: "Passage " + String(pages.length + 1).padStart(2, "0"), body: cleaned });
