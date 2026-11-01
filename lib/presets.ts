@@ -86,6 +86,11 @@ export function validatePresetCatalog(presets: ExamPreset[] = PRESETS): string[]
   return issues;
 }
 
+/** RRB CBTST alone uses the one-minute warm-up and one-minute break sequence. */
+export function usesRrbCbtstPhases(profileId: string): boolean {
+  return profileId === "rrb-ntpc-en" || profileId === "rrb-ntpc-hi";
+}
+
 export function getBuiltInPreset(slug: string): ExamPreset | undefined {
   return PRESETS.find((p) => p.slug === slug);
 }
