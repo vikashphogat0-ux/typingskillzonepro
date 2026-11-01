@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 type Report = {error?:string;role?:string;periodDays?:number;totals?:Record<string,number|string>;interventions?:{active_learners:number;accuracy_support:number;speed_support:number;low_engagement:number;inactive_14_days:number};learnerQueue?:{learner_ref:string;attempts:number;avg_net_wpm:number;avg_accuracy:number;last_attempt:string;flags:string[];suggested_action:string}[];simulators?:{slug:string;name:string;attempts:number;avg_net_wpm:number;avg_accuracy:number}[];patterns?:{weakKeys:{label:string;attempts:number;errors:number;errorRate:number}[];weakPairs:{label:string;attempts:number;errors:number;errorRate:number}[]};sampleAttempts?:number};
 export default function IntelligenceAdminPage(){
- const [data,setData]=useState<Report|null>(null);const [error,setError]=useState("");const [queueFilter,setQueueFilter]=useState("all");const [queueSearch,setQueueSearch]=useState("");const [caseStatusFilter,setCaseStatusFilter]=useState("all");
+ const [data,setData]=useState<Report|null>(null);const [error,setError]=useState("");const [periodDays,setPeriodDays]=useState(30);const [refreshKey,setRefreshKey]=useState(0);const [queueFilter,setQueueFilter]=useState("all");const [queueSearch,setQueueSearch]=useState("");const [caseStatusFilter,setCaseStatusFilter]=useState("all");
  const [caseNotes,setCaseNotes]=useState<Record<string,{status:"new"|"contacted"|"resolved";note:string;updatedAt:string}>>({});
  const [caseReady,setCaseReady]=useState(false);
  useEffect(()=>{try{const raw=localStorage.getItem("tsz-admin-support-cases-v1");if(raw){const parsed=JSON.parse(raw);if(parsed&&typeof parsed==="object")setCaseNotes(parsed);}}catch{/* Start with an empty local support log. */}setCaseReady(true);},[]);
@@ -19,14 +19,14 @@ export default function IntelligenceAdminPage(){
  };
 
 
- useEffect(()=>{fetch("/api/coach/insights?scope=platform").then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error||"Unable to load platform insights.");setData(d);}).catch(e=>setError(e.message));},[]);
+ useEffect(()=>{let active=true;setError("");setData(null);fetch("/api/coach/insights?scope=platform&days="+periodDays).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error||"Unable to load platform insights.");if(active)setData(d);}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[periodDays,refreshKey]);
  if(error)return <main className="page"><h1>Intelligence Centre</h1><p>{error}</p><a href="/admin">Back to admin</a></main>;
  if(!data)return <main className="page"><p>Preparing platform insights…</p></main>;
  const t=data.totals??{};
- return <main className="page admin"><nav><a href="/admin">Administration</a> · <a href="/admin/passage-studio">Passage Studio</a></nav><header className="admin-generation-panel"><p className="hint">TYPINGSKILLZONE · ADMIN INTELLIGENCE</p><h1>Intelligence Centre</h1><p>Aggregated, privacy-conscious learning and content insights for the last {data.periodDays} days. No student names, emails or individual records are exposed here.</p></header>
+ return <main className="page admin"><nav><a href="/admin">Administration</a> · <a href="/admin/passage-studio">Passage Studio</a></nav><header className="admin-generation-panel"><p className="hint">TYPINGSKILLZONE · ADMIN INTELLIGENCE</p><h1>Intelligence Centre</h1><p>Aggregated, privacy-conscious learning and content insights for the selected reporting period. No student names, emails or individual records are exposed here.</p><div className="form"><label>Reporting period<select value={periodDays} onChange={e=>setPeriodDays(Number(e.target.value))}><option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={90}>Last 90 days</option></select></label><button type="button" className="go alt" onClick={()=>setRefreshKey(x=>x+1)}>Refresh report</button></div></header>
  <section className="tiles"><div><b>{t.attempts??0}</b><span>Attempts</span></div><div><b>{t.learners??0}</b><span>Active learners</span></div><div><b>{t.avg_net_wpm??0}</b><span>Average net WPM</span></div><div><b>{t.avg_accuracy??0}%</b><span>Average accuracy</span></div><div><b>{t.passed??0}</b><span>Passed by saved profile</span></div><div><b>{t.not_passed??0}</b><span>Not passed by saved profile</span></div></section>
  <section className="admin-generation-panel"><h2>Student progress · intervention indicators</h2>
- <p className="hint">Aggregated counts for learners with saved attempts in the last 30 days. These are coaching signals, not diagnoses or disciplinary labels. No student identities or individual records are shown.</p>
+ <p className="hint">Aggregated counts for learners with saved attempts in the last {data.periodDays} days. These are coaching signals, not diagnoses or disciplinary labels. No student identities or individual records are shown.</p>
  <div className="tiles">
  <div><b>{data.interventions?.active_learners??t.learners??0}</b><span>Active learners</span></div>
  <div><b>{data.interventions?.accuracy_support??0}</b><span>Average accuracy below 90%</span></div>
@@ -36,7 +36,7 @@ export default function IntelligenceAdminPage(){
  </div>
  <p className="hint">Thresholds are configurable coaching heuristics, not official exam pass criteria. Learners can appear in more than one category.</p></section>
  <section className="admin-generation-panel"><h2>Learner support queue</h2>
- <p className="hint">Prioritised coaching follow-ups from the last 30 days. Learners are represented by pseudonymous references. No names, email addresses or contact details are exposed.</p>
+ <p className="hint">Prioritised coaching follow-ups from the last {data.periodDays} days. Learners are represented by pseudonymous references. No names, email addresses or contact details are exposed.</p>
  <div className="form">
  <label>Filter by support need<select value={queueFilter} onChange={e=>setQueueFilter(e.target.value)}><option value="all">All flagged learners</option><option value="accuracy">Accuracy support</option><option value="speed">Speed support</option><option value="engagement">Low engagement</option><option value="inactive">Inactive 14+ days</option></select></label>
  <label>Find learner reference<input value={queueSearch} onChange={e=>setQueueSearch(e.target.value)} placeholder="Search pseudonymous reference" /></label>
