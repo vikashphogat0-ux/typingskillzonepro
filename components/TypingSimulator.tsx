@@ -3,6 +3,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { calculateScore, norm, type KeyEvent, type Lang, type ScoreResult, type ScoringProfile } from "@/lib/wpmCalculator";
 import { checkEdit, type BackspaceMode } from "@/lib/backspacePolicy";
 import type { DisplayMode } from "@/lib/presets";
+import { formatRkcPassage } from "@/lib/rkc-passage-format";
 
 export interface SimResult {
   reference: string;
@@ -50,7 +51,7 @@ const Word = memo(function Word({ text, typed, active }: { text: string; typed: 
 export default function TypingSimulator({ passage, lang, durationSec, mode, practiceMode = "exam", backspace, profile, fontSizePt = 12, passageLayout = "continuous", examName = "Typing practice", enterKeyPolicy = "newline", tabKeyPolicy = "blocked", onFinish }: Props) {
   // Practice mode is a presentation override only. The exam preset remains authoritative for all rules.
   const displayMode: DisplayMode = practiceMode === "exam" ? mode : practiceMode;
-  const reference = useMemo(() => norm(passage), [passage]);
+  const reference = useMemo(() => norm(formatRkcPassage(passage, passageLayout)), [passage, passageLayout]);
   const refChars = useMemo(() => Array.from(reference), [reference]);
   const tokens = useMemo(() => {
     let pos = 0;
@@ -180,7 +181,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, prac
     const escaped = reference.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const printSize = Math.max(8, Math.min(24, fontSizePt));
     target.document.open();
-    target.document.write(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${examName.replace(/</g, "&lt;").replace(/>/g, "&gt;")} passage</title><style>body{font-family:Arial,"Noto Sans Devanagari",sans-serif;max-width:850px;margin:36px auto;padding:0 24px;color:#172033;line-height:1.65}h1{font-size:16pt;margin-bottom:8px}p{white-space:pre-wrap;font-size:${printSize}pt}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${examName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</h1><p>${escaped}</p></body></html>`);
+    target.document.write(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${examName.replace(/</g, "&lt;").replace(/>/g, "&gt;")} passage</title><style>body{font-family:Arial,"Noto Sans Devanagari",sans-serif;max-width:850px;margin:36px auto;padding:0 24px;color:#172033;line-height:1.65}h1{font-size:16pt;margin-bottom:8px}p{white-space:${passageLayout === "continuous" ? "normal" : "pre-wrap"};font-size:${printSize}pt}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${examName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</h1><p>${escaped}</p></body></html>`);
     target.document.close();
     target.focus();
     target.print();
