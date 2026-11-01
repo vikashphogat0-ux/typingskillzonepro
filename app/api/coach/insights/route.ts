@@ -100,11 +100,18 @@ export async function GET(req: Request) {
       ORDER BY cardinality(flags) DESC, last_attempt ASC
       LIMIT 100
     `;
-    const simulators = await db`SELECT et.slug, et.name, count(r.id)::int AS attempts,
-      round(avg(r.net_wpm)::numeric, 1) AS avg_net_wpm, round(avg(r.accuracy)::numeric, 1) AS avg_accuracy
-      FROM results r JOIN exam_templates et ON et.id = r.template_id
-      WHERE r.created_at >= now() - ${periodDays} * interval '1 day'
-      GROUP BY et.slug, et.name ORDER BY attempts DESC LIMIT 15`;
+    const simulators = await db`SELECT et.slug, et.name,
+      count(r.id) FILTER (WHERE r.created_at >= now() - ${periodDays} * interval '1 day')::int AS attempts,
+      round(avg(r.net_wpm) FILTER (WHERE r.created_at >= now() - ${periodDays} * interval '1 day')::numeric, 1) AS avg_net_wpm,
+      round(avg(r.accuracy) FILTER (WHERE r.created_at >= now() - ${periodDays} * interval '1 day')::numeric, 1) AS avg_accuracy,
+      count(r.id) FILTER (WHERE r.created_at >= now() - ${periodDays * 2} * interval '1 day' AND r.created_at < now() - ${periodDays} * interval '1 day')::int AS previous_attempts,
+      round(avg(r.net_wpm) FILTER (WHERE r.created_at >= now() - ${periodDays * 2} * interval '1 day' AND r.created_at < now() - ${periodDays} * interval '1 day')::numeric, 1) AS previous_avg_net_wpm,
+      round(avg(r.accuracy) FILTER (WHERE r.created_at >= now() - ${periodDays * 2} * interval '1 day' AND r.created_at < now() - ${periodDays} * interval '1 day')::numeric, 1) AS previous_avg_accuracy
+      FROM exam_templates et LEFT JOIN results r ON r.template_id = et.id
+        AND r.created_at >= now() - ${periodDays * 2} * interval '1 day'
+      GROUP BY et.slug, et.name
+      HAVING count(r.id) FILTER (WHERE r.created_at >= now() - ${periodDays * 2} * interval '1 day') > 0
+      ORDER BY attempts DESC LIMIT 15`;
     const samples = await db`SELECT r.id, r.created_at, r.net_wpm, r.gross_wpm, r.accuracy, et.name AS simulator, r.keystrokes, r.reference_text
       FROM results r LEFT JOIN exam_templates et ON et.id = r.template_id
       WHERE r.created_at >= now() - ${periodDays} * interval '1 day' AND r.keystrokes IS NOT NULL AND r.reference_text IS NOT NULL
