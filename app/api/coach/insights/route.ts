@@ -43,6 +43,13 @@ export async function GET(req: Request) {
       count(*) FILTER (WHERE passed = true)::int AS passed,
       count(*) FILTER (WHERE passed = false)::int AS not_passed
       FROM results WHERE created_at >= now() - ${periodDays} * interval '1 day'`;
+    const [previousTotals] = await db`SELECT count(*)::int AS attempts, count(DISTINCT user_id)::int AS learners,
+      round(avg(net_wpm)::numeric, 1) AS avg_net_wpm, round(avg(accuracy)::numeric, 1) AS avg_accuracy,
+      count(*) FILTER (WHERE passed = true)::int AS passed,
+      count(*) FILTER (WHERE passed = false)::int AS not_passed
+      FROM results
+      WHERE created_at >= now() - ${periodDays * 2} * interval '1 day'
+        AND created_at < now() - ${periodDays} * interval '1 day'`;
     const [interventions] = await db`
       WITH learner_activity AS (
         SELECT user_id, count(*)::int AS attempts,
@@ -102,7 +109,7 @@ export async function GET(req: Request) {
       FROM results r LEFT JOIN exam_templates et ON et.id = r.template_id
       WHERE r.created_at >= now() - ${periodDays} * interval '1 day' AND r.keystrokes IS NOT NULL AND r.reference_text IS NOT NULL
       ORDER BY r.created_at DESC LIMIT 300`;
-    return Response.json({ role: "admin", periodDays, totals: totals ?? {}, interventions: interventions ?? {}, learnerQueue, simulators, patterns: insights(samples as Attempt[]), sampleAttempts: samples.length });
+    return Response.json({ role: "admin", periodDays, totals: totals ?? {}, previousTotals: previousTotals ?? {}, interventions: interventions ?? {}, learnerQueue, simulators, patterns: insights(samples as Attempt[]), sampleAttempts: samples.length });
   }
   const rows = await db`SELECT r.id, r.created_at, r.net_wpm, r.gross_wpm, r.accuracy, et.name AS simulator, r.keystrokes, r.reference_text
     FROM results r LEFT JOIN exam_templates et ON et.id = r.template_id
