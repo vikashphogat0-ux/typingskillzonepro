@@ -41,6 +41,23 @@ export async function GET(req: Request) {
       count(*) FILTER (WHERE passed = true)::int AS passed,
       count(*) FILTER (WHERE passed = false)::int AS not_passed
       FROM results WHERE created_at >= now() - interval '30 days'`;
+    const [interventions] = await db`
+      WITH learner_activity AS (
+        SELECT user_id, count(*)::int AS attempts,
+          avg(net_wpm)::numeric AS avg_net_wpm,
+          avg(accuracy)::numeric AS avg_accuracy,
+          max(created_at) AS last_attempt
+        FROM results
+        WHERE created_at >= now() - interval '30 days'
+        GROUP BY user_id
+      )
+      SELECT count(*)::int AS active_learners,
+        count(*) FILTER (WHERE avg_accuracy < 90)::int AS accuracy_support,
+        count(*) FILTER (WHERE avg_net_wpm < 25)::int AS speed_support,
+        count(*) FILTER (WHERE attempts <= 1)::int AS low_engagement,
+        count(*) FILTER (WHERE last_attempt < now() - interval '14 days')::int AS inactive_14_days
+      FROM learner_activity
+    `;
     const simulators = await db`SELECT et.slug, et.name, count(r.id)::int AS attempts,
       round(avg(r.net_wpm)::numeric, 1) AS avg_net_wpm, round(avg(r.accuracy)::numeric, 1) AS avg_accuracy
       FROM results r JOIN exam_templates et ON et.id = r.template_id
@@ -50,7 +67,7 @@ export async function GET(req: Request) {
       FROM results r LEFT JOIN exam_templates et ON et.id = r.template_id
       WHERE r.created_at >= now() - interval '30 days' AND r.keystrokes IS NOT NULL AND r.reference_text IS NOT NULL
       ORDER BY r.created_at DESC LIMIT 300`;
-    return Response.json({ role: "admin", periodDays: 30, totals: totals ?? {}, simulators, patterns: insights(samples as Attempt[]), sampleAttempts: samples.length });
+    return Response.json({ role: "admin", periodDays: 30, totals: totals ?? {}, interventions: interventions ?? {}, simulators, patterns: insights(samples as Attempt[]), sampleAttempts: samples.length });
   }
   const rows = await db`SELECT r.id, r.created_at, r.net_wpm, r.gross_wpm, r.accuracy, et.name AS simulator, r.keystrokes, r.reference_text
     FROM results r LEFT JOIN exam_templates et ON et.id = r.template_id
