@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { cleanBody, countWords, parseBulk, validatePassage } from "@/lib/adminValidation";
 import type { Lang } from "@/lib/wpmCalculator";
 
-type Template = { slug: string; name: string; language: Lang; is_active: boolean };
+type Template = { slug:string; name:string; language:Lang; is_active:boolean; duration_sec:number; display_mode:"highlighted"|"unhighlighted"|"offscreen"; backspace:"full"|"word"|"disabled"; scoring:unknown; passage_layout:"continuous"|"paragraph-tab"|"source-preserved"|null; font_size_pt:number|null; passage_font_family:"system"|"serif"|"mono"|null; passage_alignment:"left"|"center"|"justify"|null; passage_line_spacing:number|null; passage_paragraph_spacing:number|null; print_page_size:"A4"|"Letter"|"Legal"|null };
 type Distribution = { slug: string; name: string; status: string; passageId: string | null };
 type Source = {
   id: string; title: string; language: Lang; body: string; word_count: number;
@@ -38,6 +38,8 @@ export default function PassageStudioPage() {
   const [repositoryDestination, setRepositoryDestination] = useState("all");
   const [editing, setEditing] = useState<Source | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [formatSlug,setFormatSlug]=useState("");
+  const [formatSettings,setFormatSettings]=useState({passageLayout:"source-preserved" as "continuous"|"paragraph-tab"|"source-preserved",fontSizePt:12,passageFontFamily:"system" as "system"|"serif"|"mono",passageAlignment:"left" as "left"|"center"|"justify",passageLineSpacing:1.5,passageParagraphSpacing:8,printPageSize:"A4" as "A4"|"Letter"|"Legal"});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -57,6 +59,9 @@ export default function PassageStudioPage() {
   useEffect(() => { void load(); }, [load]);
 
   const availableTemplates = templates.filter(t => t.is_active && t.language === language);
+  const formatTemplate=templates.find(template=>template.slug===formatSlug)??null;
+  useEffect(()=>{if(!formatTemplate)return;setFormatSettings({passageLayout:formatTemplate.passage_layout??"source-preserved",fontSizePt:formatTemplate.font_size_pt??12,passageFontFamily:formatTemplate.passage_font_family??"system",passageAlignment:formatTemplate.passage_alignment??"left",passageLineSpacing:formatTemplate.passage_line_spacing??1.5,passageParagraphSpacing:formatTemplate.passage_paragraph_spacing??8,printPageSize:formatTemplate.print_page_size??"A4"});},[formatSlug,formatTemplate?.slug]);
+  const saveFormatting=async()=>{if(!formatTemplate||busy)return;setBusy(true);setMessage("");try{const result=await send("/api/admin/templates",{slug:formatTemplate.slug,name:formatTemplate.name,language:formatTemplate.language,durationSec:formatTemplate.duration_sec,displayMode:formatTemplate.display_mode,backspace:formatTemplate.backspace,scoring:formatTemplate.scoring,isActive:formatTemplate.is_active,presentationOnly:true,...formatSettings});if(!result.ok)throw new Error(result.data.error??"Could not save simulator formatting.");setMessage("Presentation settings saved for "+formatTemplate.name+". Exam scoring and key rules were not changed.");await load();}catch(error){setMessage(error instanceof Error?error.message:"Could not save formatting.");}finally{setBusy(false);}};
   const filtered = useMemo(() => sources.filter(s => {
     const searchMatch = (s.title + " " + s.id + " " + s.body).toLowerCase().includes(query.trim().toLowerCase());
     const languageMatch = repositoryLanguage === "all" || s.language === repositoryLanguage;
@@ -247,6 +252,25 @@ export default function PassageStudioPage() {
         </>}
       </section>
 
+
+      <section className="admin-generation-panel passage-format-studio">
+        <h2>Simulator passage formatting</h2>
+        <p className="hint">Settings are saved per simulator. Master passage text, exam scoring, key rules and historical test records remain unchanged.</p>
+        <label>Choose simulator<select value={formatSlug} onChange={event=>setFormatSlug(event.target.value)}><option value="">Select an exam simulator…</option>{templates.map(t=><option key={t.slug} value={t.slug}>{t.name} · {t.language==="hi"?"Hindi":"English"}</option>)}</select></label>
+        {formatTemplate&&<>
+          <div className="passage-format-controls">
+            <label>Passage layout<select value={formatSettings.passageLayout} onChange={e=>setFormatSettings(v=>({...v,passageLayout:e.target.value as typeof v.passageLayout}))}><option value="continuous">Continuous text</option><option value="paragraph-tab">Paragraph / tab layout</option><option value="source-preserved">Preserve source line breaks</option></select></label>
+            <label>Font size (pt)<input type="number" min="8" max="24" step="1" value={formatSettings.fontSizePt} onChange={e=>setFormatSettings(v=>({...v,fontSizePt:Number(e.target.value)}))}/></label>
+            <label>Font family<select value={formatSettings.passageFontFamily} onChange={e=>setFormatSettings(v=>({...v,passageFontFamily:e.target.value as typeof v.passageFontFamily}))}><option value="system">System sans</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></label>
+            <label>Text alignment<select value={formatSettings.passageAlignment} onChange={e=>setFormatSettings(v=>({...v,passageAlignment:e.target.value as typeof v.passageAlignment}))}><option value="left">Left</option><option value="justify">Justified</option><option value="center">Centered</option></select></label>
+            <label>Line spacing<input type="number" min="1.1" max="2.5" step="0.1" value={formatSettings.passageLineSpacing} onChange={e=>setFormatSettings(v=>({...v,passageLineSpacing:Number(e.target.value)}))}/></label>
+            <label>Paragraph spacing (pt)<input type="number" min="0" max="32" step="1" value={formatSettings.passageParagraphSpacing} onChange={e=>setFormatSettings(v=>({...v,passageParagraphSpacing:Number(e.target.value)}))}/></label>
+            <label>Print page size<select value={formatSettings.printPageSize} onChange={e=>setFormatSettings(v=>({...v,printPageSize:e.target.value as typeof v.printPageSize}))}><option value="A4">A4</option><option value="Letter">Letter</option><option value="Legal">Legal</option></select></label>
+          </div>
+          <div className="passage-format-preview-wrap"><div className="passage-format-preview-heading"><strong>Live preview</strong><span>{formatSettings.printPageSize} · {formatSettings.fontSizePt} pt</span></div><article className="passage-format-preview" lang={formatTemplate.language} style={{fontFamily:formatSettings.passageFontFamily==="serif"?"Georgia,serif":formatSettings.passageFontFamily==="mono"?"monospace":"Arial,sans-serif",fontSize:formatSettings.fontSizePt+"pt",textAlign:formatSettings.passageAlignment,lineHeight:formatSettings.passageLineSpacing}}><h3>{title.trim()||"Sample passage title"}</h3><p>{(body.trim()||(formatTemplate.language==="hi"?"यह एक नमूना अनुच्छेद है। ऊपर पाठ लिखकर प्रारूप देखें।":"This is a sample passage preview. Enter text above to inspect the selected simulator's presentation.")).split(/\n\s*\n/).map((v,i)=><span key={i} style={{display:"block",marginBottom:formatSettings.passageParagraphSpacing+"pt"}}>{v}</span>)}</p></article></div>
+          <button type="button" className="go" disabled={busy||!Number.isFinite(formatSettings.fontSizePt)||formatSettings.fontSizePt<8||formatSettings.fontSizePt>24||!Number.isFinite(formatSettings.passageLineSpacing)||formatSettings.passageLineSpacing<1.1||formatSettings.passageLineSpacing>2.5||!Number.isFinite(formatSettings.passageParagraphSpacing)||formatSettings.passageParagraphSpacing<0||formatSettings.passageParagraphSpacing>32} onClick={()=>void saveFormatting()}>{busy?"Saving…":"Save simulator formatting"}</button>
+        </>}
+      </section>
       <section className="admin-generation-panel">
         <div className="exam-workspace-section-heading">
           <div><h2>Master repository</h2><p className="hint">Edit a source to create a new version. Published simulator copies are refreshed without changing passages attached to historical tests.</p></div>
