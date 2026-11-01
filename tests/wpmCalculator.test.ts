@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { calculateScore, PROFILES, analyzeKeyLog, type KeyEvent } from "../lib/wpmCalculator.ts";
 import { checkEdit } from "../lib/backspacePolicy.ts";
-import { PRESETS, getVerifiedPreset, validatePresetCatalog } from "../lib/presets.ts";
+import { PRESETS, getVerifiedPreset, validatePresetCatalog, usesRrbCbtstPhases } from "../lib/presets.ts";
 
 const P = { ...PROFILES.practice };
 const ref = "the quick brown fox jumps over the lazy dog";
@@ -467,10 +467,9 @@ test("preset catalog validation catches duplicate slugs and rule mismatches", ()
 
 
 test("only RRB NTPC CBTST profiles receive the warm-up and break protocol", () => {
-  const requiresRrbPhases = (profileId: string) => profileId === "rrb-ntpc-en" || profileId === "rrb-ntpc-hi";
-  assert.equal(requiresRrbPhases(PROFILES["rrb-ntpc-en"].id), true);
-  assert.equal(requiresRrbPhases(PROFILES["rrb-ntpc-hi"].id), true);
-  assert.equal(requiresRrbPhases(PROFILES["crpf-hcm-en"].id), false);
-  assert.equal(requiresRrbPhases(PROFILES["cisf-hcm-en"].id), false);
-  assert.equal(requiresRrbPhases(PROFILES["bsf-typing-en"].id), false);
+  assert.equal(usesRrbCbtstPhases(PROFILES["rrb-ntpc-en"].id), true);
+  assert.equal(usesRrbCbtstPhases(PROFILES["rrb-ntpc-hi"].id), true);
+  assert.equal(usesRrbCbtstPhases(PROFILES["crpf-hcm-en"].id), false);
+  assert.equal(usesRrbCbtstPhases(PROFILES["cisf-hcm-en"].id), false);
+  assert.equal(usesRrbCbtstPhases(PROFILES["bsf-typing-en"].id), false);
 });
