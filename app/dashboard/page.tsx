@@ -13,7 +13,7 @@ export default function Dashboard() {
   useEffect(() => { try { const raw = sessionStorage.getItem("tsz:last"); if (raw) setLast(JSON.parse(raw)); } catch {} }, []);
   useEffect(() => { api("/api/results").then((r) => (r.ok ? setHist(r.data) : setMsg(r.status === 401 ? "Sign in to see your progress." : r.data.error ?? "Could not load results."))); }, []);
 
-  if (msg) return <div className="page"><h1>My results</h1><p><a href="/coach">Open Intelligent Typing Coach →</a></p><p>{msg} {msg.startsWith("Sign in") && <a href="/login">Sign in</a>}</p>{last && <><h2>Your last practice test</h2><ResultAnalysis reference={last.reference} events={last.events} score={last.score} /></>}</div>;
+  if (msg) return <div className="page"><h1>My results</h1><p><a href="/coach">Open Intelligent Typing Coach →</a></p><p><a href="/coach">Open Intelligent Typing Coach →</a></p><p>{msg} {msg.startsWith("Sign in") && <a href="/login">Sign in</a>}</p>{last && <><h2>Your last practice test</h2><ResultAnalysis reference={last.reference} events={last.events} score={last.score} /></>}</div>;
   if (!hist) return <div className="page"><p>Loading…</p></div>;
   const old = [...hist].reverse();
   return (
