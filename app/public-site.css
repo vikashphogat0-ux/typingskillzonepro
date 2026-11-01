@@ -1438,3 +1438,34 @@ body:has(.home-reference){background:#071225!important;color:#edf5ff!important}
 .exam-start-link{white-space:nowrap}
 @media(max-width:700px){.exam-catalogue-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.exam-catalogue-stats>div{padding:11px 12px}.exam-catalogue-card-actions{align-items:stretch}.exam-catalogue-card-actions>*{flex:1;justify-content:center;text-align:center}}
 @media(prefers-reduced-motion:reduce){.exam-catalogue-card{transition:none}.exam-catalogue-card:hover{transform:none}}
+
+
+
+/* Improvement 17: contact and support workspace */
+.contact-page{max-width:1080px!important;padding-top:34px!important;padding-bottom:70px!important}
+.contact-hero{position:relative;overflow:hidden;margin-bottom:18px;padding:clamp(23px,3.4vw,38px);border:1px solid rgba(76,151,235,.24);border-radius:21px;background:radial-gradient(ellipse at 0 0,rgba(26,113,201,.2),transparent 52%),linear-gradient(125deg,rgba(19,37,66,.97),rgba(13,23,42,.95));box-shadow:var(--tsz-shadow)}
+.contact-hero h1{margin:9px 0;color:#f1f7ff;font-size:clamp(30px,4vw,43px);letter-spacing:-.055em}
+.contact-hero p{max-width:680px;margin:0;color:#a7bad4;font-size:12px;line-height:1.75}
+.contact-panel{padding:clamp(17px,2.5vw,25px);border:1px solid var(--tsz-line);border-radius:18px;background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.012));box-shadow:var(--tsz-shadow)}
+.contact-panel>h2,.contact-section-heading h2{margin:0 0 7px;color:var(--tsz-text);font-size:20px;letter-spacing:-.035em}
+.contact-panel>p{margin:0 0 18px;color:var(--tsz-muted);font-size:11px;line-height:1.7}
+.contact-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.contact-form>label{display:grid;gap:7px;min-width:0;color:var(--tsz-text);font-size:11px;font-weight:750}
+.contact-form>label:has(textarea){grid-column:1/-1}
+.contact-form input,.contact-form textarea{width:100%;min-width:0;min-height:42px;padding:10px 12px;border:1px solid var(--tsz-line);border-radius:10px;outline:0;background:rgba(3,10,22,.35);color:var(--tsz-text);font:inherit;font-size:12px}
+.contact-form textarea{min-height:155px;resize:vertical;line-height:1.7}
+.contact-form input:focus,.contact-form textarea:focus{border-color:rgba(76,207,239,.55);box-shadow:0 0 0 3px rgba(76,207,239,.08)}
+.contact-form input::placeholder,.contact-form textarea::placeholder{color:var(--tsz-subtle)}
+.contact-feedback{grid-column:1/-1;margin:0;padding:11px 13px;border:1px solid rgba(76,207,239,.2);border-radius:10px;background:rgba(76,207,239,.06);color:#a8eaf6;font-size:11px;line-height:1.6}
+.contact-submit{justify-self:start;min-width:155px;min-height:40px;padding:10px 16px;border:1px solid rgba(76,207,239,.25);border-radius:10px;background:linear-gradient(110deg,#47d9ed,#659bff);color:#071827;font-size:11px;font-weight:900;cursor:pointer}
+.contact-submit:disabled{opacity:.55;cursor:wait}
+.contact-faq{margin-top:30px}
+.contact-section-heading{margin-bottom:14px}
+.contact-section-heading h2{margin-top:7px}
+.contact-faq .faq{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.contact-faq .faq>div{min-width:0;padding:17px;border:1px solid var(--tsz-line);border-radius:13px;background:rgba(255,255,255,.025)}
+.contact-faq .faq h3{margin:0 0 8px;color:var(--tsz-text);font-size:12px;line-height:1.5}
+.contact-faq .faq p{margin:0;color:var(--tsz-muted);font-size:10px;line-height:1.75}
+.contact-page button:focus-visible,.contact-page input:focus-visible,.contact-page textarea:focus-visible{outline:2px solid #43e1f5;outline-offset:3px}
+@media(max-width:760px){.contact-page{padding-top:21px!important}.contact-form{grid-template-columns:1fr}.contact-form>label:has(textarea){grid-column:auto}.contact-faq .faq{grid-template-columns:1fr}.contact-panel{padding:16px;border-radius:15px}.contact-submit{width:100%}}
+@media(prefers-reduced-motion:reduce){.contact-page *{transition:none!important}}
