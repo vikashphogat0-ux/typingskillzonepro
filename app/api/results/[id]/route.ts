@@ -35,5 +35,18 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     rank = k.rank; participants = k.participants;
   }
   return Response.json({ reference: r.reference_text, typed: r.typed_text, events: r.keystrokes ?? [], score, durationSec: duration, createdAt: r.created_at,
+    evaluation: {
+      profileId: profile.id,
+      profileLabel: profile.label,
+      unit: profile.unit,
+      charsPerWord: profile.charsPerWord,
+      netMethod: profile.netMethod,
+      qualificationBasis: profile.qualificationBasis ?? "net",
+      qualifyingWpm: profile.qualifyingWpm ?? null,
+      errorAllowancePercent: profile.errorAllowancePercent ?? null,
+      maxErrorPercent: profile.maxErrorPercent ?? null,
+      minWords: profile.minWords ?? null,
+      targetKeystrokes: profile.targetKeystrokes ?? null,
+    },
     simulator: r.sim_slug ? { slug: r.sim_slug, name: r.sim_name } : null, flagged: r.flagged, rank, participants, studentName: viewingStudent ? r.student_name : null });
 }
