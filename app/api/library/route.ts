@@ -20,6 +20,7 @@ export async function GET(req: Request) {
             ORDER BY p.created_at ASC, p.id ASC
           ) AS passage_number
         FROM passages p
+        WHERE NOT EXISTS (SELECT 1 FROM passage_distributions d WHERE d.passage_id = p.id AND d.status = 'archived')
       )
       SELECT id, title, language, word_count, body, passage_number FROM ranked WHERE id = ${one}`;
       return p ? Response.json(p) : Response.json({ error: "Not found." }, { status: 404 });
@@ -30,7 +31,8 @@ export async function GET(req: Request) {
     const requestedMonth = u.searchParams.get("month") ?? "";
     const monthRows = await db`SELECT DISTINCT to_char(p.created_at AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM') AS month
       FROM passages p LEFT JOIN exam_templates et ON et.id = p.template_id
-      WHERE to_char(p.created_at AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM') < ${currentMonth}
+      WHERE NOT EXISTS (SELECT 1 FROM passage_distributions d WHERE d.passage_id = p.id AND d.status = 'archived')
+        AND to_char(p.created_at AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM') < ${currentMonth}
         AND (${tpl} = '' OR et.slug = ${tpl})
         AND (${lang}::text IS NULL OR p.language = ${lang})
       ORDER BY month DESC`;
@@ -44,6 +46,7 @@ export async function GET(req: Request) {
           ORDER BY p.created_at ASC, p.id ASC
         ) AS month_passage_number
         FROM passages p
+        WHERE NOT EXISTS (SELECT 1 FROM passage_distributions d WHERE d.passage_id = p.id AND d.status = 'archived')
       )
       SELECT p.id,
         CASE WHEN p.title ~* 'passage[[:space:]]+[0-9]+'
