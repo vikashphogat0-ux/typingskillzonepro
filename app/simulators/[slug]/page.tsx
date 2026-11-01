@@ -302,6 +302,10 @@ export default function SimulatorPage() {
   const relevantResults = results.filter(r => !r.simulator || r.simulator.toLowerCase() === sim.name.toLowerCase());
   const bestNet = relevantResults.length ? Math.max(...relevantResults.map(r => Number(r.net_wpm) || 0)) : 0;
   const averageAccuracy = relevantResults.length ? relevantResults.reduce((sum, r) => sum + (Number(r.accuracy) || 0), 0) / relevantResults.length : 0;
+  const customWordCount = customPassage.trim().split(/\\s+/u).filter(Boolean).length;
+  const customWordsRequired = customMinimumWords(slug);
+  const customPassageReady = passageSource !== "custom" || customWordCount >= customWordsRequired;
+  const selectedLibraryPassage = passageOptions.find(item => item.id === selectedPassageId);
   const dailyItems = library?.dailyItems ?? [];
   const visibleDailyItems = dailyItems.filter(item => {
     const query = dailySearch.trim().toLowerCase();
@@ -356,7 +360,7 @@ export default function SimulatorPage() {
         <div className="exam-passage-selector">
           <div className="exam-passage-selector-head"><h3>Exam passage collection</h3><a href="/library">Open full library ↗</a></div>
           <div className="exam-source-toggle"><button type="button" className={passageSource === "library" ? "selected" : ""} onClick={() => setPassageSource("library")}>Choose library passage</button><button type="button" className={passageSource === "custom" ? "selected" : ""} onClick={() => setPassageSource("custom")}>Use a custom passage</button></div>
-          {passageSource === "custom" ? <label className="exam-field">Paste your own passage (minimum {customMinimumWords(slug)} words)<textarea rows={7} maxLength={50000} value={customPassage} onChange={e => setCustomPassage(e.target.value)} placeholder="Paste your own passage here…" spellCheck={false}/></label> : <>
+          {passageSource === "custom" ? <label className="exam-field">Paste your own passage (minimum {customWordsRequired} words)<textarea rows={7} maxLength={50000} value={customPassage} onChange={e => setCustomPassage(e.target.value)} placeholder="Paste your own passage here…" spellCheck={false}/></label><div className="exam-custom-passage-meter" aria-live="polite"><strong className={customPassageReady ? "is-ready" : ""}>{customWordCount} / {customWordsRequired} words</strong><span>{customPassageReady ? "Passage meets this exam’s minimum length." : `${customWordsRequired - customWordCount} more words required before starting.`}</span></div> : <>
             <label className="exam-field">Find passage by title or unique ID<input value={passageSearch} onChange={e => setPassageSearch(e.target.value)} placeholder="Search by passage ID or title…"/></label>
             <label className="exam-field">Select passage<select value={selectedPassageId} onChange={e => setSelectedPassageId(e.target.value)} disabled={passageOptionsLoading || !!passageOptionsError || visiblePassages.length === 0}><option value="">Random passage for this exam language</option>{visiblePassages.map(p => <option key={p.id} value={p.id}>Passage ID: {String(p.passage_number ?? 1).padStart(2, "0")} · {p.title} · {p.word_count} words</option>)}</select></label>
             {passageOptionsLoading ? (
@@ -373,10 +377,8 @@ export default function SimulatorPage() {
                 The selected simulator controls timing, scoring, layout and keyboard rules.
               </small>
             )}
-            {selectedPassageId && passageOptions.find(item => item.id === selectedPassageId) && (
-              <small role="status">
-                Selected: Passage {String(passageOptions.find(item => item.id === selectedPassageId)?.passage_number ?? 1).padStart(2, "0")} · {passageOptions.find(item => item.id === selectedPassageId)?.title} · {passageOptions.find(item => item.id === selectedPassageId)?.word_count} words
-              </small>
+            {selectedLibraryPassage && (
+              <div className="exam-selected-passage" role="status"><span>SELECTED PASSAGE</span><strong>{selectedLibraryPassage.title}</strong><small>Passage ID: {String(selectedLibraryPassage.passage_number ?? 1).padStart(2, "0")} · {selectedLibraryPassage.word_count} words · {sim.language === "hi" ? "Hindi" : "English"}</small></div>
             )}
             {!selectedPassageId && (
               <small>Random selection: the server will choose an available passage for this exam language.</small>
@@ -395,7 +397,7 @@ export default function SimulatorPage() {
           </div>
         </div>
         <div className="exam-rules-grid"><div><span>DURATION</span><strong>{Math.round(sim.duration_sec / 60)} minutes</strong></div><div><span>DISPLAY</span><strong>{sim.display_mode}</strong></div><div><span>BACKSPACE</span><strong>{sim.backspace}</strong></div><div><span>SCORING</span><strong>{scoring.unit === "keystrokes" ? "Key depressions" : scoring.netMethod ?? "Standard WPM"}</strong></div><div><span>PASSAGE FORMAT</span><strong>{sim.passage_layout === "continuous" ? "Continuous" : "Paragraphs"}</strong></div><div><span>ENTER KEY</span><strong>{sim.enter_key_policy === "blocked" ? "Blocked" : "New line"}</strong></div><div><span>TAB KEY</span><strong>{sim.tab_key_policy === "insert" ? "Insert tab" : "Blocked"}</strong></div></div>
-        <div className="exam-practice-actions"><button className="exam-action-primary" disabled={testState === "starting"} onClick={() => startTest()}>{testState === "starting" ? "Preparing test…" : "Start typing test →"}</button><button className="exam-action-secondary" onClick={() => { setTab("daily"); }}>Explore daily passages</button></div>
+        <div className="exam-practice-actions"><button className="exam-action-primary" disabled={testState === "starting" || !customPassageReady || (passageSource === "library" && (passageOptionsLoading || !!passageOptionsError || passageOptions.length === 0))} onClick={() => startTest()}>{testState === "starting" ? "Preparing test…" : !customPassageReady ? `Add ${customWordsRequired - customWordCount} more words` : "Start typing test →"}</button><button className="exam-action-secondary" onClick={() => { setTab("daily"); }}>Explore daily passages</button></div>
       </section>}
 
       {tab === "daily" && <section className="exam-workspace-panel">
