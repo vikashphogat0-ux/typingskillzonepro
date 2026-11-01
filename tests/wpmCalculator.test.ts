@@ -295,6 +295,30 @@ test("mistake patterns find letter confusions and omissions", () => {
   assert.equal(p.extra, 1);
   assert.equal(annotate(ops)[0].segs?.some((s) => s.t === "extra"), true);
 });
+test("anti-cheat enforces server-owned simulator backspace policies", () => {
+  const make = (mode: "full" | "word" | "disabled", events: KeyEvent[], typed: string) =>
+    validateAttempt({ typed, events, elapsedSec: 1, durationSec: 60, backspaceMode: mode });
+
+  const withinWord: KeyEvent[] = [
+    { t: 1, type: "ins", ch: "a" }, { t: 2, type: "ins", ch: "b" },
+    { t: 3, type: "del" }, { t: 4, type: "ins", ch: "c" },
+  ];
+  assert.equal(make("disabled", withinWord, "ac").tampered, true);
+  assert.equal(make("word", withinWord, "ac").tampered, false);
+  assert.equal(make("full", withinWord, "ac").tampered, false);
+
+  const crossingSpace: KeyEvent[] = [
+    { t: 1, type: "ins", ch: "a" }, { t: 2, type: "ins", ch: " " },
+    { t: 3, type: "del", n: 2 },
+  ];
+  assert.equal(make("word", crossingSpace, "").tampered, true);
+  assert.equal(make("full", crossingSpace, "").tampered, false);
+
+  const oversizedDelete: KeyEvent[] = [{ t: 1, type: "ins", ch: "a" }, { t: 2, type: "del", n: 2 }];
+  assert.equal(make("full", oversizedDelete, "").tampered, true);
+  assert.equal(make("disabled", [{ t: 1, type: "ins", ch: "a" }], "a").tampered, false);
+});
+
 test("anti-cheat: tampered text rejected, impossible speed flagged", () => {
   const ins = (s: string, t0 = 0) => Array.from(s).map((ch, i) => ({ t: t0 + i * 100, type: "ins" as const, ch }));
   const ev = ins("hello");
