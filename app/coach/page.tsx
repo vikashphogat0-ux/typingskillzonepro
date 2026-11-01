@@ -57,7 +57,7 @@ export default function CoachPage() {
     return()=>window.clearInterval(timer);
   },[reminderEnabled,reminderTime,notificationPermission,data,goals.sessions]);
   useEffect(()=>{fetch("/api/coach/insights").then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error||"Could not load coaching insights.");setData(d);}).catch(e=>setError(e.message));},[]);
-  if(error)return <main className="page"><h1>Intelligent Typing Coach</h1><p><a className="go" href="/coach/drills">Start targeted typing drills →</a></p><p>{error} <a href="/login">Sign in</a></p></main>;
+  if(error)return <main className="page coach-page"><h1>Intelligent Typing Coach</h1><p><a className="go" href="/coach/drills">Start targeted typing drills →</a></p><p>{error} <a href="/login">Sign in</a></p></main>;
   if(!data)return <main className="page"><p>Analysing your recent typing history…</p></main>;
   const s=data.summary;
   const attempts=data.attempts??[];
