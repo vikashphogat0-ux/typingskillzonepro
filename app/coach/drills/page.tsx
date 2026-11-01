@@ -17,8 +17,11 @@ export default function TargetedDrillsPage(){
  useEffect(()=>{setData(null);setTyped("");setElapsed(0);setStarted(null);fetch("/api/coach/drills?lang="+lang).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error||"Could not load drills.");setData(d);setSelected(d.drills?.[0]?.id??"");}).catch(e=>setError(e.message));},[lang]);
  useEffect(()=>{if(started===null)return;const id=window.setInterval(()=>setElapsed(Math.floor((Date.now()-started)/1000)),250);return()=>window.clearInterval(id);},[started]);
  const drill=data?.drills.find(d=>d.id===selected)??data?.drills[0];
- const score=useMemo(()=>drill?metrics(drill.text,typed,elapsed):{accuracy:100,wpm:0,typed:0,correct:0},[drill,typed,elapsed]);
+ const reference=useMemo(()=>drill?Array.from({length:level},()=>drill.text).join("\n\n"):"",[drill,level]);
+ const score=useMemo(()=>drill?metrics(reference,typed,elapsed):{accuracy:100,wpm:0,typed:0,correct:0},[drill,reference,typed,elapsed]);
+ const completed=!!reference&&Array.from(normal(typed)).length>=Array.from(normal(reference)).length;
  const reset=()=>{setTyped("");setElapsed(0);setStarted(null);};
+ const finishRound=()=>{if(!completed)return;let next:1|2|3=level;let message="Repeat this level to stabilise your performance.";if(score.accuracy>=97&&score.wpm>=30){next=Math.min(3,level+1) as 1|2|3;message=next>level?"Accuracy and pace target met. Difficulty increased.":"Highest level maintained. Aim for even cleaner typing.";}else if(score.accuracy<90){next=Math.max(1,level-1) as 1|2|3;message=next<level?"Difficulty reduced to rebuild accuracy.":"Stay at Foundation until accuracy improves.";}setLevel(next);setLastOutcome(message);reset();};
  const change=(value:string)=>{if(started===null&&value.length)setStarted(Date.now());setTyped(value);};
  if(error)return <main className="page"><h1>Targeted Typing Drills</h1><p>{error}</p><a href="/login">Sign in</a></main>;
  if(!data||!drill)return <main className="page"><p>Building your personalised drills…</p></main>;
