@@ -43,12 +43,12 @@ export async function POST(req: Request) {
 
   let bodies: string[];
   if (b.passageId) {
-    const [selected] = await db`SELECT body FROM passages WHERE id = ${String(b.passageId)} AND language = ${t.language} AND template_id = ${t.id}`;
+    const [selected] = await db`SELECT body FROM passages WHERE id = ${String(b.passageId)} AND language = ${t.language} AND template_id = ${t.id} AND NOT EXISTS (SELECT 1 FROM passage_distributions d WHERE d.passage_id = passages.id AND d.status = 'archived')`;
     if (!selected) return Response.json({ error: "That passage is unavailable for this simulator language." }, { status: 404 });
     bodies = [selected.body as string];
   } else {
     // Passage content is shared across compatible simulators. Only the selected template controls presentation and typing rules.
-    const rows = await db`SELECT body FROM passages WHERE language = ${t.language} AND template_id = ${t.id} ORDER BY random() LIMIT 30`;
+    const rows = await db`SELECT body FROM passages WHERE language = ${t.language} AND template_id = ${t.id} AND NOT EXISTS (SELECT 1 FROM passage_distributions d WHERE d.passage_id = passages.id AND d.status = 'archived') ORDER BY random() LIMIT 30`;
     bodies = rows.map((r: any) => r.body as string);
     if (!bodies.length && !requestedCustom) {
       return Response.json({ error: "No passages are available for this exam yet. Please try again later." }, { status: 503 });
