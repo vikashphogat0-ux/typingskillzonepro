@@ -242,12 +242,18 @@ export default function SimulatorPage() {
     if (!target) { window.alert("Allow pop-ups to create the monthly PDF."); return; }
     const escapeHtml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     const monthLabel = month ? new Date(month + "-01T00:00:00").toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : "Monthly archive";
+    const layout = sim?.passage_layout ?? getRkcPassageLayout(String(sim?.slug ?? ""));
+    const paragraphSpacing = Math.max(0, Math.min(32, Number(sim?.passage_paragraph_spacing ?? 8)));
+    const renderPassage = (value: string) => {
+      const formatted = formatRkcPassage(value, layout);
+      if (layout === "continuous") return `<p>${escapeHtml(formatted)}</p>`;
+      return formatted.split(/\n{2,}/u).map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join("");
+    };
     const sections = monthlyItems.map((item, index) => {
-      const text = formatRkcPassage(item.body ?? item.preview ?? "", (sim?.passage_layout ?? getRkcPassageLayout(String(sim?.slug ?? ""))));
-      return `<section class="passage"><h2>Passage ${String(index + 1).padStart(2, "0")} · ${escapeHtml(item.title)}</h2><p>${escapeHtml(text)}</p><small>${item.word_count} words · ${escapeHtml(item.date ?? "")}</small></section>`;
+      return `<section class="passage"><h2>Passage ${String(index + 1).padStart(2, "0")} · ${escapeHtml(item.title)}</h2>${renderPassage(item.body ?? item.preview ?? "")}<small>${item.word_count} words · ${escapeHtml(item.date ?? "")}</small></section>`;
     }).join("");
     target.document.open();
-    target.document.write(`<!doctype html><html lang="${sim?.language ?? "en"}"><head><meta charset="utf-8"><title>${escapeHtml(sim?.name ?? "TypingSkillZone")} · ${escapeHtml(monthLabel)}</title><style>body{font-family:${sim?.passage_font_family === "serif" ? "Georgia,serif" : sim?.passage_font_family === "mono" ? "monospace" : 'Arial,"Noto Sans Devanagari",sans-serif'};color:#172033;max-width:850px;margin:28px auto;padding:0 24px;line-height:${Math.max(1.1,Math.min(2.5,Number(sim?.passage_line_spacing ?? 1.5)))};text-align:${sim?.passage_alignment === "justify" ? "justify" : sim?.passage_alignment === "center" ? "center" : "left"}}h1{font-size:20pt;margin-bottom:4px}h2{font-size:13pt;margin:0 0 10px}.passage{margin:0 0 24px;page-break-inside:avoid}.passage p{font-size:${Math.max(8,Math.min(24,Number(sim?.font_size_pt ?? 12)))}pt;white-space:${getRkcPassageLayout(String(sim?.slug ?? "")) === "continuous" ? "normal" : "pre-wrap"};margin:0 0 6px}.passage small{color:#64748b}@page{size:${sim?.print_page_size === "Letter" ? "Letter" : sim?.print_page_size === "Legal" ? "Legal" : "A4"};margin:18mm}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${escapeHtml(sim?.name ?? "TypingSkillZone")}</h1><p>${escapeHtml(monthLabel)} · ${monthlyItems.length} passages</p>${sections}<script>window.onload=()=>window.print()<\/script></body></html>`);
+    target.document.write(`<!doctype html><html lang="${sim?.language ?? "en"}"><head><meta charset="utf-8"><title>${escapeHtml(sim?.name ?? "TypingSkillZone")} · ${escapeHtml(monthLabel)}</title><style>body{font-family:${sim?.passage_font_family === "serif" ? "Georgia,serif" : sim?.passage_font_family === "mono" ? "monospace" : 'Arial,"Noto Sans Devanagari",sans-serif'};color:#172033;max-width:850px;margin:28px auto;padding:0 24px;line-height:${Math.max(1.1,Math.min(2.5,Number(sim?.passage_line_spacing ?? 1.5)))};text-align:${sim?.passage_alignment === "justify" ? "justify" : sim?.passage_alignment === "center" ? "center" : "left"}}h1{font-size:20pt;margin-bottom:4px}h2{font-size:13pt;margin:0 0 10px}.passage{margin:0 0 24px;page-break-inside:avoid}.passage p{font-size:${Math.max(8,Math.min(24,Number(sim?.font_size_pt ?? 12)))}pt;white-space:${layout === "continuous" ? "normal" : "pre-wrap"};margin:0 0 ${paragraphSpacing}pt}.passage small{color:#64748b}@page{size:${sim?.print_page_size === "Letter" ? "Letter" : sim?.print_page_size === "Legal" ? "Legal" : "A4"};margin:18mm}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${escapeHtml(sim?.name ?? "TypingSkillZone")}</h1><p>${escapeHtml(monthLabel)} · ${monthlyItems.length} passages</p>${sections}<script>window.onload=()=>window.print()<\/script></body></html>`);
     target.document.close();
     target.focus();
   };
@@ -267,12 +273,18 @@ export default function SimulatorPage() {
       const title = escapeHtml(full.title || "Exam passage");
       const exam = escapeHtml(sim?.name || "TypingSkillZone");
       const rawBody = full.body ?? full.preview ?? "";
-      // Match the RKC-referenced exam-specific layout in previews and downloaded PDFs.
-      const layout = getRkcPassageLayout(String(sim?.slug ?? ""));
+      // Use the simulator's saved presentation settings, matching its on-screen passage.
+      const layout = sim?.passage_layout ?? getRkcPassageLayout(String(sim?.slug ?? ""));
       const formattedBody = formatRkcPassage(rawBody, layout);
-      const body = escapeHtml(formattedBody);
+      const paragraphSpacing = Math.max(0, Math.min(32, Number(sim?.passage_paragraph_spacing ?? 8)));
+      const body = layout === "continuous"
+        ? `<p>${escapeHtml(formattedBody)}</p>`
+        : formattedBody.split(/\n{2,}/u).map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join("");
+      const fontFamily = sim?.passage_font_family === "serif" ? "Georgia,serif" : sim?.passage_font_family === "mono" ? "monospace" : 'Arial,"Noto Sans Devanagari",sans-serif';
+      const alignment = sim?.passage_alignment === "justify" ? "justify" : sim?.passage_alignment === "center" ? "center" : "left";
+      const lineSpacing = Math.max(1.1, Math.min(2.5, Number(sim?.passage_line_spacing ?? 1.5)));
       target.document.open();
-      target.document.write(`<!doctype html><html lang="${sim?.language ?? "en"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${exam} — ${title}</title><style>body{font-family:Arial,"Noto Sans Devanagari",sans-serif;max-width:850px;margin:32px auto;padding:0 24px;color:#172033;line-height:1.5}h1{font-size:18pt;margin:0 0 5px}h2{font-size:13pt;font-weight:500;margin:0 0 22px;color:#526176}.passage{font-size:${Math.max(10,Math.min(18,sim?.font_size_pt ?? 12))}pt;white-space:${layout === "continuous" ? "normal" : "pre-wrap"};overflow-wrap:anywhere;line-height:1.5}@page{size:${sim?.print_page_size === "Letter" ? "Letter" : sim?.print_page_size === "Legal" ? "Legal" : "A4"};margin:20mm}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${exam}</h1><h2>${title} · Passage ID: ${String(full.passage_number ?? 1).padStart(2, "0")}</h2><div class="passage">${body}</div><script>window.onload=()=>window.print()<\/script></body></html>`);
+      target.document.write(`<!doctype html><html lang="${sim?.language ?? "en"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${exam} — ${title}</title><style>body{font-family:${fontFamily};max-width:850px;margin:32px auto;padding:0 24px;color:#172033;line-height:${lineSpacing};text-align:${alignment}}h1{font-size:18pt;margin:0 0 5px}h2{font-size:13pt;font-weight:500;margin:0 0 22px;color:#526176}.passage{font-size:${Math.max(8,Math.min(24,Number(sim?.font_size_pt ?? 12)))}pt;white-space:${layout === "continuous" ? "normal" : "pre-wrap"};overflow-wrap:anywhere}.passage p{margin:0 0 ${paragraphSpacing}pt}@page{size:${sim?.print_page_size === "Letter" ? "Letter" : sim?.print_page_size === "Legal" ? "Legal" : "A4"};margin:20mm}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${exam}</h1><h2>${title} · Passage ID: ${String(full.passage_number ?? 1).padStart(2, "0")}</h2><div class="passage">${body}</div><script>window.onload=()=>window.print()<\/script></body></html>`);
       target.document.close();
       target.focus();
     } catch (error) {
