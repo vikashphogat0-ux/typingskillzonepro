@@ -59,7 +59,7 @@ export async function POST(req: Request) {
       word_count: countWords(item.clean.body),
     }));
     const payload = basePayload.map((item: any) => {
-      const match = /^Passage\\s+(\\d+)$/i.exec(item.title.trim());
+      const match = /^Passage\s+(\d+)$/i.exec(item.title.trim());
       const title = match ? `${destination.name} — Passage ${String(Number(match[1])).padStart(2, "0")}` : item.title;
       return { ...item, title: title.slice(0, 120) };
     });
