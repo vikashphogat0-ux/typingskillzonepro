@@ -4,6 +4,7 @@ import { getStudentAccess } from "@/lib/subscription";
 import { LIMITS } from "@/lib/pricing";
 import { buildReference, minCharsFor } from "@/lib/library";
 import { getBuiltInPreset } from "@/lib/presets";
+import { getRkcPassageLayout } from "@/lib/rkc-passage-format";
 
 /** Starts a simulator attempt. The server picks the text and keeps it, so the browser cannot choose its own reference. */
 export async function POST(req: Request) {
@@ -76,5 +77,5 @@ export async function POST(req: Request) {
   ]);
   const [row] = tx[1] as Array<{ id: string }>;
   if (!row) return Response.json({ error: "You have used your free tests for today.", upgrade: true }, { status: 402 });
-  return Response.json({ testId: row.id, reference, lang: t.language, durationSec, mode: displayMode, practiceMode: requestedMode, backspace, profile: scoring, name: t.name, slug: t.slug, fontSizePt: t.font_size_pt ?? 12, passageLayout: t.passage_layout ?? "continuous", enterKeyPolicy: t.enter_key_policy ?? "newline", tabKeyPolicy: t.tab_key_policy ?? "blocked" });
+  return Response.json({ testId: row.id, reference, lang: t.language, durationSec, mode: displayMode, practiceMode: requestedMode, backspace, profile: scoring, name: t.name, slug: t.slug, fontSizePt: t.font_size_pt ?? 12, passageLayout: getRkcPassageLayout(String(t.slug)), enterKeyPolicy: t.enter_key_policy ?? "newline", tabKeyPolicy: t.tab_key_policy ?? "blocked" });
 }
