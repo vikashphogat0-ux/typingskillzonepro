@@ -74,7 +74,9 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, prac
   const hasRrbPhases = usesRrbCbtstPhases(profile.id);
   const [phase, setPhase] = useState<"warmup" | "break" | "test">(hasRrbPhases ? "warmup" : "test");
   const [phaseLeft, setPhaseLeft] = useState(60);
-  const phaseStartRef = useRef<number | null>(hasRrbPhases ? Date.now() : null);
+  // Start the warm-up clock after the component mounts, not during server render/hydration.
+  // This prevents hydration delay from consuming part of the candidate's official warm-up.
+  const phaseStartRef = useRef<number | null>(null);
   const [done, setDone] = useState(false);
   const valueRef = useRef("");
   const events = useRef<KeyEvent[]>([]);
