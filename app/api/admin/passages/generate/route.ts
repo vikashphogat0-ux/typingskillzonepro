@@ -70,7 +70,9 @@ export async function POST(req: Request) {
     stage = "reading request";
     const body: any = await req.json().catch(() => ({}));
     const slot = body?.slot as PassageSlot;
+    const templateSlug = typeof body?.templateSlug === "string" ? body.templateSlug.trim() : "";
     if (!["morning", "afternoon", "live"].includes(slot)) return Response.json({ error: "slot must be morning, afternoon, or live." }, { status: 400 });
+    if (!templateSlug) return Response.json({ error: "Choose one simulator folder for generation." }, { status: 400 });
 
     stage = "checking AI provider configuration";
     const apiKey = process.env.GROQ_API_KEY;
@@ -81,6 +83,10 @@ export async function POST(req: Request) {
     stage = "loading database client";
     const { sql } = await import("@/lib/db");
     const db = sql();
+    const [template] = await db`SELECT id, slug, name, language FROM exam_templates WHERE slug = ${templateSlug} AND is_active = true LIMIT 1`;
+    if (!template || (template.language !== "en" && template.language !== "hi")) return Response.json({ error: "Selected simulator folder is unavailable." }, { status: 422 });
+    const templateId = String(template.id);
+    const language = template.language as PassageLanguage;
 
     stage = "recording generation run";
     await db`INSERT INTO passage_generation_runs (generation_date, slot, requested_count, status)
@@ -88,17 +94,10 @@ export async function POST(req: Request) {
       ON CONFLICT (generation_date, slot) DO UPDATE SET requested_count = EXCLUDED.requested_count, status = 'running', error_message = NULL, started_at = now()`;
 
     stage = "checking existing passages";
-    const existingRows = await db`SELECT language, count(*)::int AS count FROM passages
-      WHERE generation_date = ${date}::date AND generation_slot = ${slot} AND source = 'scheduled-ai'
-      GROUP BY language`;
-    const existing: Record<PassageLanguage, number> = { en: 0, hi: 0 };
-    for (const row of existingRows) {
-      if (row.language === "en" || row.language === "hi") {
-        const language = row.language as PassageLanguage;
-        existing[language] = Number(row.count);
-      }
-    }
-    const jobs = passageJobs(slot, existing);
+    const [existingRow] = await db`SELECT count(*)::int AS count FROM passages WHERE template_id = ${templateId}::uuid AND generation_date = ${date}::date AND generation_slot = ${slot} AND source = 'scheduled-ai'`;
+    const target = slot === "live" ? 2 : 5;
+    const existingCount = Number(existingRow?.count ?? 0);
+    const jobs = Array.from({ length: Math.max(0, target - existingCount) }, (_, index) => ({ language, index: existingCount + index }));
     const failures: string[] = [];
     let saved = 0;
     const wordCounts: number[] = [];
@@ -119,9 +118,10 @@ export async function POST(req: Request) {
         continue;
       }
       try {
+        const generatedTitle = `${String(template.name)} — ${result.title}`;
         const inserted = await db`INSERT INTO passages (template_id, language, title, body, word_count, source, generation_date, generation_slot, format_metadata)
-          VALUES (NULL, ${job.language}, ${result.title}, ${result.body}, ${result.wordCount}, 'scheduled-ai', ${date}::date, ${slot},
-          ${JSON.stringify({ topic: result.topic, minimumWords: 500, sharedAcrossSimulators: true, slotIndex: job.index })}::jsonb)
+          VALUES (${templateId}::uuid, ${job.language}, ${generatedTitle.slice(0, 120)}, ${result.body}, ${result.wordCount}, 'scheduled-ai', ${date}::date, ${slot},
+          ${JSON.stringify({ topic: result.topic, minimumWords: 500, simulatorSlug: templateSlug, examSpecific: true, slotIndex: job.index })}::jsonb)
           ON CONFLICT DO NOTHING RETURNING id`;
         if (inserted.length) {
           saved++;
@@ -134,29 +134,18 @@ export async function POST(req: Request) {
       }
     }
 
-    const finalRows = await db`SELECT language, count(*)::int AS count FROM passages
-      WHERE generation_date = ${date}::date AND generation_slot = ${slot} AND source = 'scheduled-ai'
-      GROUP BY language`;
-    const finalCounts: Record<PassageLanguage, number> = { en: 0, hi: 0 };
-    for (const row of finalRows) {
-      if (row.language === "en" || row.language === "hi") {
-        const language = row.language as PassageLanguage;
-        finalCounts[language] = Number(row.count);
-      }
-    }
-    const target = slot === "live" ? 2 : 5;
-    const complete = finalCounts.en >= target && finalCounts.hi >= target && failures.length === 0;
+    const [finalRow] = await db`SELECT count(*)::int AS count FROM passages WHERE template_id = ${templateId}::uuid AND generation_date = ${date}::date AND generation_slot = ${slot} AND source = 'scheduled-ai'`;
+    const finalCount = Number(finalRow?.count ?? 0);
+    const complete = finalCount >= target && failures.length === 0;
     const summary = failures.join(" | ").slice(0, 500) || null;
     await db`UPDATE passage_generation_runs SET status = ${complete ? "completed" : "failed"},
-      generated_count = ${finalCounts.en + finalCounts.hi}, error_message = ${summary},
+      generated_count = ${finalCount}, error_message = ${summary},
       completed_at = ${complete ? new Date().toISOString() : null}::timestamptz
       WHERE generation_date = ${date}::date AND slot = ${slot}`;
 
     return Response.json({
-      ok: complete, date, slot, generatedThisRun: saved,
-      generatedTotal: finalCounts.en + finalCounts.hi,
-      targets: { en: target, hi: target }, counts: finalCounts,
-      remaining: { en: Math.max(0, target - finalCounts.en), hi: Math.max(0, target - finalCounts.hi) },
+      ok: complete, date, slot, simulator: templateSlug, generatedThisRun: saved,
+      generatedTotal: finalCount, target, language, remaining: Math.max(0, target - finalCount),
       wordCounts, failures,
     }, { status: complete ? 200 : 502 });
   } catch (error) {
