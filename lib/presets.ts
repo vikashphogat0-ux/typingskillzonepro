@@ -54,6 +54,38 @@ const VERIFIED_EXAM_SLUGS = new Set([
   "delhi-high-court-jja-en",
 ]);
 
+/**
+ * Detect configuration drift before an exam preset can silently run with
+ * a different language, duration, or scoring profile than its own catalog entry.
+ * Database-created templates are validated separately by adminValidation.
+ */
+export function validatePresetCatalog(presets: ExamPreset[] = PRESETS): string[] {
+  const issues: string[] = [];
+  const seen = new Set<string>();
+  for (const preset of presets) {
+    if (!preset.slug.trim()) issues.push("Preset slug must not be empty.");
+    if (seen.has(preset.slug)) issues.push(`Duplicate preset slug: ${preset.slug}`);
+    seen.add(preset.slug);
+    if (!Number.isFinite(preset.durationSec) || preset.durationSec <= 0) {
+      issues.push(`${preset.slug}: durationSec must be a positive finite number.`);
+    }
+    if (!preset.profile) {
+      issues.push(`${preset.slug}: scoring profile is missing.`);
+      continue;
+    }
+    if (preset.profile.id !== preset.profileId) {
+      issues.push(`${preset.slug}: profileId does not match the attached scoring profile.`);
+    }
+    if (preset.profile.language && preset.profile.language !== preset.lang) {
+      issues.push(`${preset.slug}: preset language does not match scoring profile language.`);
+    }
+    if (preset.profile.durationSec !== undefined && preset.profile.durationSec !== preset.durationSec) {
+      issues.push(`${preset.slug}: preset duration does not match scoring profile duration.`);
+    }
+  }
+  return issues;
+}
+
 export function getBuiltInPreset(slug: string): ExamPreset | undefined {
   return PRESETS.find((p) => p.slug === slug);
 }
