@@ -1,0 +1,11 @@
+"use client";
+import { useCallback, useEffect, useState } from "react";
+type UserRow = { id:string; name:string|null; email:string; role:string; created_at:string; plan:string|null; tests:number; last_test:string|null };
+export default function AdminUsersPage() {
+ const [rows,setRows]=useState<UserRow[]>([]),[q,setQ]=useState(""),[msg,setMsg]=useState(""),[denied,setDenied]=useState(false);
+ const load=useCallback(async()=>{const r=await fetch("/api/admin/users?q="+encodeURIComponent(q),{cache:"no-store"});if(r.status===403){setDenied(true);return;}const d=await r.json().catch(()=>[]);if(r.ok)setRows(d);else setMsg(d.error||"Could not load users.");},[q]);
+ useEffect(()=>{void load();},[load]);
+ const setRole=async(id:string,role:"student"|"admin")=>{if(!confirm("Change this account role to "+role+"?"))return;const r=await fetch("/api/admin/users",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,role})});const d=await r.json().catch(()=>({}));setMsg(r.ok?"User role updated.":d.error||"Update failed.");if(r.ok)void load();};
+ if(denied)return <main className="page"><h1>User management</h1><p>Admin access is required.</p></main>;
+ return <main className="page admin"><h1>User management</h1><p><a href="/admin">Back to admin dashboard</a></p><label>Search by name or email <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search users…"/></label>{msg&&<p className="flash-msg" role="status">{msg}</p>}<p className="hint">Showing up to 200 accounts. Grant admin privileges only to trusted staff.</p><div className="tbl"><table><thead><tr><th>User</th><th>Role</th><th>Plan</th><th>Tests</th><th>Joined</th><th>Last test</th><th>Action</th></tr></thead><tbody>{rows.map(u=><tr key={u.id}><td>{u.name||"—"}<br/><small>{u.email}</small></td><td>{u.role}</td><td>{u.plan||"Free"}</td><td>{u.tests}</td><td>{new Date(u.created_at).toLocaleDateString("en-IN")}</td><td>{u.last_test?new Date(u.last_test).toLocaleDateString("en-IN"):"—"}</td><td><button className="link" onClick={()=>void setRole(u.id,u.role==="admin"?"student":"admin")}>{u.role==="admin"?"Remove admin":"Make admin"}</button></td></tr>)}{!rows.length&&<tr><td colSpan={7}>No matching users.</td></tr>}</tbody></table></div></main>;
+}
