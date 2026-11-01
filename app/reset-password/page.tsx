@@ -50,7 +50,7 @@ export default function ResetPassword() {
           <input type="password" required minLength={8} value={confirm}
             onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
         </label>
-        {err && <p className="err" role="alert">{err}</p>}
+        {err && <p className="err auth-feedback" role="alert" aria-live="assertive">{err}</p>}
         <button className="go" disabled={busy || !token}>{busy ? "Saving…" : "Set new password"}</button>
       </form>
     </div>
