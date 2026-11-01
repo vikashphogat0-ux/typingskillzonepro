@@ -87,6 +87,23 @@ export function validateScoring(raw: unknown): { scoring?: ScoringProfile; error
   };
 }
 
+export type PresentationSettings = Pick<TemplateInput,
+  "passageLayout" | "fontSizePt" | "passageFontFamily" | "passageAlignment" |
+  "passageLineSpacing" | "passageParagraphSpacing" | "printPageSize">;
+
+/** Validate only presentation controls; exam scoring and keyboard rules are separate. */
+export function validatePresentationSettings(settings: PresentationSettings): string[] {
+  const errors: string[] = [];
+  if (settings.passageLayout !== undefined && !["continuous", "paragraph-tab", "source-preserved"].includes(settings.passageLayout)) errors.push("Choose a valid passage layout.");
+  if (settings.fontSizePt !== undefined && !num(settings.fontSizePt, 8, 24)) errors.push("Font size must be between 8 and 24 pt.");
+  if (settings.passageFontFamily !== undefined && !["system", "serif", "mono"].includes(settings.passageFontFamily)) errors.push("Choose a valid font family.");
+  if (settings.passageAlignment !== undefined && !["left", "center", "justify"].includes(settings.passageAlignment)) errors.push("Choose a valid text alignment.");
+  if (settings.passageLineSpacing !== undefined && !num(settings.passageLineSpacing, 1.1, 2.5)) errors.push("Line spacing must be between 1.1 and 2.5.");
+  if (settings.passageParagraphSpacing !== undefined && !num(settings.passageParagraphSpacing, 0, 32)) errors.push("Paragraph spacing must be between 0 and 32 pt.");
+  if (settings.printPageSize !== undefined && !["A4", "Letter", "Legal"].includes(settings.printPageSize)) errors.push("Choose A4, Letter or Legal page size.");
+  return errors;
+}
+
 export function validateTemplate(t: TemplateInput): { errors: string[]; scoring?: ScoringProfile } {
   const errors: string[] = [];
   if (!/^[a-z0-9-]{2,40}$/.test(t.slug)) errors.push("Slug: 2 to 40 characters, lowercase letters, numbers and hyphens.");
@@ -97,13 +114,7 @@ export function validateTemplate(t: TemplateInput): { errors: string[]; scoring?
   if (!["full", "word", "disabled"].includes(t.backspace)) errors.push("Unknown backspace rule.");
   if (t.enterKeyPolicy !== undefined && !["newline", "blocked"].includes(t.enterKeyPolicy)) errors.push("Unknown Enter-key policy.");
   if (t.tabKeyPolicy !== undefined && !["blocked", "insert"].includes(t.tabKeyPolicy)) errors.push("Unknown Tab-key policy.");
-  if (t.passageLayout !== undefined && !["continuous", "paragraph-tab", "source-preserved"].includes(t.passageLayout)) errors.push("Unknown passage layout.");
-  if (t.fontSizePt !== undefined && !num(t.fontSizePt, 8, 24)) errors.push("Passage font size must be between 8 and 24 pt.");
-  if (t.passageFontFamily !== undefined && !["system", "serif", "mono"].includes(t.passageFontFamily)) errors.push("Unknown passage font family.");
-  if (t.passageAlignment !== undefined && !["left", "center", "justify"].includes(t.passageAlignment)) errors.push("Unknown passage alignment.");
-  if (t.passageLineSpacing !== undefined && !num(t.passageLineSpacing, 1.1, 2.5)) errors.push("Passage line spacing must be between 1.1 and 2.5.");
-  if (t.passageParagraphSpacing !== undefined && !num(t.passageParagraphSpacing, 0, 32)) errors.push("Paragraph spacing must be between 0 and 32 pt.");
-  if (t.printPageSize !== undefined && !["A4", "Letter", "Legal"].includes(t.printPageSize)) errors.push("Unknown print page size.");
+  errors.push(...validatePresentationSettings(t));
   const sc = validateScoring(t.scoring);
   if (sc.error) errors.push(sc.error);
   return { errors, scoring: sc.scoring };
