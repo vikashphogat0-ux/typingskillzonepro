@@ -1639,3 +1639,9 @@ body:has(.home-reference){background:#071225!important;color:#edf5ff!important}
 .passage-format-studio button:focus-visible,.passage-format-studio input:focus-visible,.passage-format-studio select:focus-visible{outline:2px solid #2784c7;outline-offset:2px}
 @media(max-width:720px){.passage-format-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.passage-format-preview{padding:24px 20px;min-height:280px}}
 @media(max-width:420px){.passage-format-controls{grid-template-columns:1fr}}
+
+
+/* Improvement 36 — make simulator formatting fallback visible to candidates */
+.exam-formatting-warning{display:grid;gap:5px;margin:12px 0;padding:12px 14px;border:1px solid rgba(220,164,66,.42);border-left:3px solid #d49a32;border-radius:8px;background:rgba(212,154,50,.09);color:var(--tsz-text,#eaf2ff);font-size:12px;line-height:1.6}
+.exam-formatting-warning strong{color:#e6b85f;font-size:12px}
+.exam-formatting-warning span{color:var(--tsz-muted,#b5c0d1)}
