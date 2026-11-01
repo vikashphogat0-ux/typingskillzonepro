@@ -77,5 +77,5 @@ export async function POST(req: Request) {
   ]);
   const [row] = tx[1] as Array<{ id: string }>;
   if (!row) return Response.json({ error: "You have used your free tests for today.", upgrade: true }, { status: 402 });
-  return Response.json({ testId: row.id, reference, lang: t.language, durationSec, mode: displayMode, practiceMode: requestedMode, backspace, profile: scoring, name: t.name, slug: t.slug, fontSizePt: t.font_size_pt ?? 12, passageLayout: getRkcPassageLayout(String(t.slug)), enterKeyPolicy: t.enter_key_policy ?? "newline", tabKeyPolicy: t.tab_key_policy ?? "blocked" });
+  return Response.json({ testId: row.id, reference, lang: t.language, durationSec, mode: displayMode, practiceMode: requestedMode, backspace, profile: scoring, name: t.name, slug: t.slug, fontSizePt: t.font_size_pt ?? 12, passageLayout: t.passage_layout || getRkcPassageLayout(String(t.slug)), passageFontFamily: t.passage_font_family ?? "system", passageAlignment: t.passage_alignment ?? "left", passageLineSpacing: Number(t.passage_line_spacing ?? 1.5), passageParagraphSpacing: Number(t.passage_paragraph_spacing ?? 8), printPageSize: t.print_page_size ?? "A4", enterKeyPolicy: t.enter_key_policy ?? "newline", tabKeyPolicy: t.tab_key_policy ?? "blocked" });
 }
