@@ -25,6 +25,11 @@ interface Props {
   profile: ScoringProfile;
   fontSizePt?: number;
   passageLayout?: string;
+  passageFontFamily?: string;
+  passageAlignment?: string;
+  passageLineSpacing?: number;
+  passageParagraphSpacing?: number;
+  printPageSize?: string;
   examName?: string;
   enterKeyPolicy?: "newline" | "blocked";
   tabKeyPolicy?: "blocked" | "insert";
@@ -48,7 +53,7 @@ const Word = memo(function Word({ text, typed, active }: { text: string; typed: 
   );
 });
 
-export default function TypingSimulator({ passage, lang, durationSec, mode, practiceMode = "exam", backspace, profile, fontSizePt = 12, passageLayout = "continuous", examName = "Typing practice", enterKeyPolicy = "newline", tabKeyPolicy = "blocked", onFinish }: Props) {
+export default function TypingSimulator({ passage, lang, durationSec, mode, practiceMode = "exam", backspace, profile, fontSizePt = 12, passageLayout = "continuous", passageFontFamily = "system", passageAlignment = "left", passageLineSpacing = 1.5, passageParagraphSpacing = 8, printPageSize = "A4", examName = "Typing practice", enterKeyPolicy = "newline", tabKeyPolicy = "blocked", onFinish }: Props) {
   // Practice mode is a presentation override only. The exam preset remains authoritative for all rules.
   const displayMode: DisplayMode = practiceMode === "exam" ? mode : practiceMode;
   const reference = useMemo(() => norm(formatRkcPassage(passage, passageLayout)), [passage, passageLayout]);
@@ -179,9 +184,9 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, prac
       return;
     }
     const escaped = reference.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const printSize = Math.max(8, Math.min(24, fontSizePt));
+    const printSize = Math.max(8, Math.min(24, fontSizePt));\n    const fontFamily = passageFontFamily === "serif" ? "Georgia, serif" : passageFontFamily === "mono" ? "monospace" : "Arial, \\"Noto Sans Devanagari\\", sans-serif";\n    const alignment = passageAlignment === "justify" ? "justify" : passageAlignment === "center" ? "center" : "left";\n    const pageSize = printPageSize === "Letter" ? "Letter" : printPageSize === "Legal" ? "Legal" : "A4";
     target.document.open();
-    target.document.write(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${examName.replace(/</g, "&lt;").replace(/>/g, "&gt;")} passage</title><style>body{font-family:Arial,"Noto Sans Devanagari",sans-serif;max-width:850px;margin:36px auto;padding:0 24px;color:#172033;line-height:1.65}h1{font-size:16pt;margin-bottom:8px}p{white-space:${passageLayout === "continuous" ? "normal" : "pre-wrap"};font-size:${printSize}pt}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${examName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</h1><p>${escaped}</p></body></html>`);
+    target.document.write(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${examName.replace(/</g, "&lt;").replace(/>/g, "&gt;")} passage</title><style>body{font-family:${fontFamily};max-width:850px;margin:36px auto;padding:0 24px;color:#172033;line-height:${passageLineSpacing};text-align:${alignment}}h1{font-size:16pt;margin-bottom:8px}p{white-space:${passageLayout === "continuous" ? "normal" : "pre-wrap"};font-size:${printSize}pt}@page{size:${pageSize};margin:20mm}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${examName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</h1><p>${escaped}</p></body></html>`);
     target.document.close();
     target.focus();
     target.print();
@@ -215,7 +220,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, prac
 
       {hasRrbPhases && phase !== "test" && <div className="mode-note" role="status"><strong>{phase === "warmup" ? "RRB CBTST warm-up" : "Break before scored test"}</strong><p>{phase === "warmup" ? "Practise for one minute. This typing is not scored and will be cleared automatically." : "Your one-minute break is in progress. The scored 10-minute test starts automatically when it ends."}</p></div>}
       {displayMode === "offscreen" && <div className="offscreen-print-tools"><p>The passage is hidden during this exam mode. Print it or choose “Save as PDF” before typing, then return here to start.</p><button type="button" className="go alt" onClick={printReference}>Print passage / Save as PDF</button></div>}
-      <div className={`sheet ${lang === "hi" ? "hi" : ""} ${displayMode} layout-${passageLayout}`} ref={boxRef} lang={lang} tabIndex={-1} onClick={() => taRef.current?.focus()} style={{ fontSize: `${Math.max(8, Math.min(24, fontSizePt))}pt`, whiteSpace: passageLayout === "continuous" ? "normal" : "pre-wrap" }}>
+      <div className={`sheet ${lang === "hi" ? "hi" : ""} ${displayMode} layout-${passageLayout}`} ref={boxRef} lang={lang} tabIndex={-1} onClick={() => taRef.current?.focus()} style={{ fontSize: `${Math.max(8, Math.min(24, fontSizePt))}pt`, whiteSpace: passageLayout === "continuous" ? "normal" : "pre-wrap", fontFamily: passageFontFamily === "serif" ? "Georgia, serif" : passageFontFamily === "mono" ? "monospace" : undefined, textAlign: passageAlignment === "justify" ? "justify" : passageAlignment === "center" ? "center" : "left", lineHeight: Math.max(1.1, Math.min(2.5, passageLineSpacing)), ["--passage-paragraph-spacing" as any]: `${Math.max(0, Math.min(32, passageParagraphSpacing))}px` }}>
         {displayMode === "highlighted"
           ? tokens.map((tk, i) => {
               const slice = typedChars.slice(tk.start, tk.start + tk.len).join("");
