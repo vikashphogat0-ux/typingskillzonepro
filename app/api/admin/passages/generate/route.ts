@@ -1,4 +1,4 @@
-import { passageJobs, type PassageSlot, type PassageLanguage } from "@/lib/passageGenerationPlan";
+import { type PassageSlot, type PassageLanguage } from "@/lib/passageGenerationPlan";
 
 const istDate = () => new Date(Date.now() + 19_800_000).toISOString().slice(0, 10);
 const wordCount = (s: string) => s.trim().split(/\s+/u).filter(Boolean).length;
