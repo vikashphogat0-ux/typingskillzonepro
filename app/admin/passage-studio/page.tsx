@@ -115,7 +115,7 @@ export default function PassageStudioPage() {
     setFileName(file.name);
     setExtracted([]);
     setMessage("");
-    if (/\\.txt$/i.test(file.name) || file.type === "text/plain") {
+    if (/\.txt$/i.test(file.name) || file.type === "text/plain") {
       setBusy(true);
       try {
         const parsed = parseBulk(await file.text());
@@ -129,7 +129,7 @@ export default function PassageStudioPage() {
       }
       return;
     }
-    if (file.type !== "application/pdf" && !/\\.pdf$/i.test(file.name)) {
+    if (file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)) {
       setMessage("Choose a PDF or UTF-8 TXT file.");
       return;
     }
