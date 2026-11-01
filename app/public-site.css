@@ -1395,3 +1395,31 @@ body:has(.home-reference){background:#071225!important;color:#edf5ff!important}
 @media(max-width:760px){.drills-page{padding-top:20px!important}.drills-page>.drills-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.drills-page>.drills-metrics>div{padding:12px}.drills-workspace>.form{grid-template-columns:1fr}.drills-workspace{padding:15px!important;border-radius:15px!important}.drills-actions>*{flex:1 1 145px;text-align:center}}
 @media(max-width:420px){.drills-hero{padding:19px;border-radius:17px}.drills-page>.drills-metrics>div>b{font-size:21px}.drills-passage{font-size:14px;padding:14px!important}.drills-input{min-height:150px;font-size:14px}.drills-actions{display:grid;grid-template-columns:1fr}.drills-actions>*{width:100%}}
 @media(prefers-reduced-motion:reduce){.drills-page *{scroll-behavior:auto!important;transition:none!important}}
+
+
+
+/* Improvement 15: progressive touch-typing learning path */
+.learn-page{max-width:1180px!important;padding-top:32px!important;padding-bottom:68px!important}
+.learn-page>h1{margin:0 0 9px;color:var(--tsz-text);font-size:clamp(30px,4vw,42px);letter-spacing:-.055em}
+.learn-page>.hint{max-width:760px;margin:0 0 24px;color:var(--tsz-muted);font-size:12px;line-height:1.7}
+.learn-track{margin:18px 0 0;padding:clamp(16px,2.2vw,22px);border:1px solid var(--tsz-line);border-radius:17px;background:linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.012));box-shadow:var(--tsz-shadow)}
+.learn-track>h2{display:flex;align-items:center;gap:10px;margin:0 0 14px;color:var(--tsz-text);font-size:18px;letter-spacing:-.03em}
+.learn-track>h2:before{content:"";width:4px;height:20px;border-radius:5px;background:linear-gradient(#43d9ed,#719dff)}
+.learn-lesson-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.learn-lesson-grid>.lesson{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:14px;min-width:0;min-height:105px;padding:15px;border:1px solid var(--tsz-line);border-radius:13px;background:rgba(255,255,255,.025);color:var(--tsz-text);text-align:left;cursor:pointer;transition:border-color .18s,background .18s,transform .18s}
+.learn-lesson-grid>.lesson:not(:disabled):hover{transform:translateY(-2px);border-color:rgba(76,207,239,.38);background:rgba(76,207,239,.055)}
+.learn-lesson-grid>.lesson>b{font-size:12px;line-height:1.45}
+.learn-lesson-grid>.lesson>span{color:var(--tsz-muted);font-size:10px;line-height:1.5}
+.learn-lesson-grid>.lesson.passed{border-color:rgba(65,206,161,.25);background:rgba(65,206,161,.045)}
+.learn-lesson-grid>.lesson.passed>span{color:#79dcb7}
+.learn-lesson-grid>.lesson:disabled{opacity:.48;cursor:not-allowed;background:rgba(255,255,255,.012)}
+.learn-page>.link,.learn-page button.link{padding:7px 0;border:0;background:transparent;color:#7edff0;font-size:11px;font-weight:800;cursor:pointer}
+.learn-page>h2{margin:14px 0;color:var(--tsz-text);font-size:22px}
+.learn-page .learn-summary{margin-top:18px;padding:clamp(18px,3vw,28px);border:1px solid var(--tsz-line);border-radius:17px;background:linear-gradient(145deg,rgba(255,255,255,.05),rgba(255,255,255,.015));box-shadow:var(--tsz-shadow);color:var(--tsz-muted);font-size:12px;line-height:1.75}
+.learn-summary p:first-child{color:var(--tsz-text);font-size:15px}
+.learn-summary p:first-child b{color:#83e7f4;font-size:20px}
+.learn-summary .go{display:inline-flex;align-items:center;justify-content:center;min-height:38px;margin:7px 7px 0 0;padding:9px 14px;border:1px solid rgba(76,207,239,.24);border-radius:9px;background:linear-gradient(110deg,#47d9ed,#659bff);color:#071827;font-size:10px;font-weight:900;cursor:pointer}
+.learn-page button:focus-visible,.learn-page a:focus-visible{outline:2px solid #43e1f5;outline-offset:3px}
+@media(max-width:850px){.learn-lesson-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.learn-page{padding-top:22px!important}.learn-track{padding:14px;border-radius:14px}.learn-lesson-grid{grid-template-columns:1fr;gap:8px}.learn-lesson-grid>.lesson{min-height:76px;gap:8px;padding:13px}.learn-page .learn-summary{padding:16px}}
+@media(prefers-reduced-motion:reduce){.learn-page *{transition:none!important}}
