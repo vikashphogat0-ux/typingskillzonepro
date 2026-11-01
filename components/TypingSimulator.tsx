@@ -70,7 +70,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, prac
 
   const [value, setValue] = useState("");
   const [left, setLeft] = useState(durationSec);
-  const hasRrbPhases = profile.netMethod === "rrb";
+  const hasRrbPhases = profile.id === "rrb-ntpc-en" || profile.id === "rrb-ntpc-hi";
   const [phase, setPhase] = useState<"warmup" | "break" | "test">(hasRrbPhases ? "warmup" : "test");
   const [phaseLeft, setPhaseLeft] = useState(60);
   const phaseStartRef = useRef<number | null>(hasRrbPhases ? Date.now() : null);
