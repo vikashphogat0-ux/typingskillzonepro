@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { calculateScore, PROFILES, analyzeKeyLog, type KeyEvent } from "../lib/wpmCalculator.ts";
 import { checkEdit } from "../lib/backspacePolicy.ts";
+import { isExamInputAllowed } from "../lib/keyboardPolicy.ts";
 import { PRESETS, getVerifiedPreset, validatePresetCatalog, usesRrbCbtstPhases } from "../lib/presets.ts";
 
 const P = { ...PROFILES.practice };
@@ -472,4 +473,13 @@ test("only RRB NTPC CBTST profiles receive the warm-up and break protocol", () =
   assert.equal(usesRrbCbtstPhases(PROFILES["crpf-hcm-en"].id), false);
   assert.equal(usesRrbCbtstPhases(PROFILES["cisf-hcm-en"].id), false);
   assert.equal(usesRrbCbtstPhases(PROFILES["bsf-typing-en"].id), false);
+});
+
+
+test("exam keyboard policy rejects blocked Enter and Tab at input-commit level", () => {
+  assert.equal(isExamInputAllowed("abc", "abc\\n", "blocked", "insert"), false);
+  assert.equal(isExamInputAllowed("abc", "abc\\t", "newline", "blocked"), false);
+  assert.equal(isExamInputAllowed("abc", "abc\\n", "newline", "blocked"), true);
+  assert.equal(isExamInputAllowed("abc", "abc\\t", "blocked", "insert"), true);
+  assert.equal(isExamInputAllowed("abc\\n", "abc", "blocked", "blocked"), true);
 });
