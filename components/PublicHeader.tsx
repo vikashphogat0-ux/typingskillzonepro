@@ -37,10 +37,10 @@ export default function PublicHeader() {
     <header className="public-header home-reference-header">
       <div className="public-header-inner">
         <a href="/" className="public-brand" aria-label="Typing Skill Zone home">
-          <span className="public-brand-mark">TS</span>
+          <span className="public-brand-mark" aria-hidden="true"><span>TS</span><i /></span>
           <span><strong>Typing Skill Zone</strong><small>EXAM-READY TYPING PRACTICE</small></span>
         </a>
-        <button ref={toggleRef} type="button" className="mobile-nav-toggle" onClick={() => setOpen(value => !value)} aria-expanded={open} aria-controls="public-primary-navigation" aria-label={open ? "Close navigation" : "Open navigation"}>☰</button>
+        <button ref={toggleRef} type="button" className="mobile-nav-toggle" onClick={() => setOpen(value => !value)} aria-expanded={open} aria-controls="public-primary-navigation" aria-label={open ? "Close navigation" : "Open navigation"}><span className="menu-icon" aria-hidden="true"><i /><i /><i /></span></button>
         <nav id="public-primary-navigation" className={open ? "public-nav is-open" : "public-nav"} aria-label="Main navigation">
           {links.map(([href, label]) => (
             <a key={href} href={href} aria-current={pathname === href || (href !== "/" && pathname.startsWith(href + "/")) ? "page" : undefined} onClick={() => setOpen(false)}>{label}</a>
