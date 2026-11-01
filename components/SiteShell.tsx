@@ -14,8 +14,8 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
       </div>
       {!compact && <footer className="footer">
         <div className="footer-content">
-          <div className="footer-section"><h4>Typing Skill Zone</h4><p>Exam-focused English and Hindi typing practice, exam-specific simulators and measurable preparation.</p></div>
-          <div className="footer-section"><h4>Practice</h4><ul><li><a href="/exams">Exam catalogue</a></li><li><a href="/simulators">Exam simulators</a></li><li><a href="/test">Free practice</a></li><li><a href="/library">Passage library</a></li></ul></div>
+          <div className="footer-section footer-brand-section"><div className="footer-brand"><span className="footer-brand-mark" aria-hidden="true">TS</span><span><strong>Typing Skill Zone</strong><small>EXAM-READY TYPING PRACTICE</small></span></div><p>Exam-focused English and Hindi typing practice, exam-specific simulators and measurable preparation.</p></div>
+          <nav className="footer-section" aria-label="Practice links"><h4>Practice</h4><ul><li><a href="/exams">Exam catalogue</a></li><li><a href="/simulators">Exam simulators</a></li><li><a href="/test">Free practice</a></li><li><a href="/library">Passage library</a></li></ul></div>
           <div className="footer-section"><h4>Your workspace</h4><ul><li><a href="/dashboard">Dashboard & results</a></li><li><a href="/profile">Profile</a></li><li><a href="/pricing">Plans</a></li><li><a href="/institution">For institutes</a></li></ul></div>
           <div className="footer-section"><h4>Support</h4><ul><li><a href="/faqs">FAQs</a></li><li><a href="/about">About</a></li><li><a href="/contact">Contact</a></li><li><a href="/privacy">Privacy</a></li><li><a href="/terms">Terms</a></li></ul></div>
         </div>
