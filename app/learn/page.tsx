@@ -31,15 +31,15 @@ export default function Learn() {
   const start = (id: string) => { setCurrent(id); setResult(null); setRun((n) => n + 1); };
 
   return (
-    <div className="page learn">
+    <div className="page learn learn-page">
       <h1>Learn touch typing</h1>
       {!lesson ? (
         <>
           <p className="hint">Finish each lesson with {PASS_ACCURACY}% accuracy to unlock the next one. Progress is saved in this browser.</p>
           {TRACKS.map((t) => (
-            <section key={t.id}>
+            <section key={t.id} className="learn-track">
               <h2>{t.title}</h2>
-              <div className="lessons">
+              <div className="lessons learn-lesson-grid">
                 {t.lessons.map((l) => {
                   const i = ALL_LESSONS.indexOf(l), p = progress[l.id], open = unlocked(i);
                   return (
@@ -60,7 +60,7 @@ export default function Learn() {
           {!result ? (
             <LessonDrill key={`${lesson.id}-${run}`} lesson={lesson} onDone={done} />
           ) : (
-            <div className="summary">
+            <div className="summary learn-summary">
               <p><b>{result.accuracy}%</b> accuracy at <b>{result.wpm}</b> WPM.</p>
               {result.accuracy >= PASS_ACCURACY ? <p>Lesson passed.</p> : <p>You need {PASS_ACCURACY}% to move on. Slow down and look at the highlighted key.</p>}
               {result.weakKeys.length > 0 && <p>Keys to watch: {result.weakKeys.map((k) => `"${k}"`).join(", ")}.</p>}
