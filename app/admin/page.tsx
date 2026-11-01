@@ -17,7 +17,7 @@ const post = (url: string, body: unknown) => api(url, { method: "POST", headers:
 const emptyTpl = { slug: "", name: "", language: "en" as Lang, minutes: 10, displayMode: "highlighted", backspace: "full", base: "practice", unit: "words", netMethod: "penalty", qualifying: "", maxErr: "", caseOnly: true, punctOnly: true };
 
 export default function Admin() {
-  const [tab, setTab] = useState<"passages" | "templates">("passages");
+  const [tab, setTab] = useState<"passages" | "templates">("templates");
   const [denied, setDenied] = useState(false);
   const [msg, setMsg] = useState("");
   const [tpls, setTpls] = useState<Tpl[]>([]);
@@ -202,7 +202,7 @@ export default function Admin() {
   return (
     <div className="page admin">
       <h1>Admin</h1>
-      <nav className="admin-management-nav" aria-label="Administration"><a href="/admin/users">Users &amp; roles</a> · <a href="/admin/institutions">Institutes</a> · <a href="/admin/subscribers">Subscriptions</a> · <a href="/admin/payments">Payments</a> · <a href="/admin">Passages &amp; simulators</a></nav>
+      <nav className="admin-management-nav" aria-label="Administration"><a href="/admin/users">Users &amp; roles</a> · <a href="/admin/institutions">Institutes</a> · <a href="/admin/subscribers">Subscriptions</a> · <a href="/admin/payments">Payments</a> · <a href="/admin/passage-studio">Passage Studio</a> · <a href="/admin">Simulator settings</a></nav>
       <section className="admin-generation-panel">
         <h2>Daily Passage Automation</h2>
         <p className="hint">Generate passages for one selected simulator at a time. Each generated passage is saved directly into that simulator folder and uses its language.</p>
@@ -215,7 +215,7 @@ export default function Admin() {
         <p className="hint">Automatic schedule requires the additive SQL migrations plus the same strong PASSAGE_CRON_SECRET configured in both GitHub Actions secrets and Cloudflare Worker secrets.</p>
       </section>
       <div className="tabs" role="tablist">
-        <button role="tab" aria-selected={tab === "passages"} onClick={() => setTab("passages")}>Passages</button>
+        <a role="tab" aria-selected={false} href="/admin/passage-studio">Passage Studio</a>
         <button role="tab" aria-selected={tab === "templates"} onClick={() => setTab("templates")}>Exam templates</button>
       </div>
       {msg && <p className="flash-msg" role="status">{msg}</p>}
