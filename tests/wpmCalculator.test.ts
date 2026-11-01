@@ -76,7 +76,14 @@ test("verified simulator presets use canonical scoring profiles and exam-specifi
   assert.equal(getVerifiedPreset("rrb-ntpc-en")?.profile?.netMethod, "rrb");
   assert.equal(getVerifiedPreset("delhi-high-court-jja-en")?.durationSec, 600);
   assert.equal(getVerifiedPreset("bsf-hcm-en"), undefined);
-  assert.equal(PROFILES["bsf-typing-en"].qualifyingWpm, undefined);
+  assert.equal(PROFILES["bsf-typing-en"].qualifyingWpm, 35);
+  assert.equal(PROFILES["bsf-typing-hi"].qualifyingWpm, 30);
+  assert.equal(PROFILES["bsf-typing-en"].qualificationBasis, "net");
+  assert.equal(PROFILES["bsf-typing-hi"].qualificationBasis, "net");
+  assert.equal(PROFILES["bsf-typing-en"].errorAllowancePercent, 5);
+  assert.equal(PROFILES["bsf-typing-hi"].errorAllowancePercent, 5);
+  assert.equal(PROFILES["bsf-typing-en"].netMethod, "rrb");
+  assert.equal(PROFILES["bsf-typing-hi"].netMethod, "rrb");
   assert.equal(PROFILES["hc-clerk-en"].qualifyingWpm, undefined);
 });
 
