@@ -48,6 +48,7 @@ export interface TemplateInput {
   displayMode: "highlighted" | "unhighlighted" | "offscreen";
   backspace: "full" | "word" | "disabled";
   scoring: unknown; isActive?: boolean; presentationOnly?: boolean;
+  enterKeyPolicy?: "newline" | "blocked"; tabKeyPolicy?: "blocked" | "insert";
   passageLayout?: "continuous" | "paragraph-tab" | "source-preserved";
   fontSizePt?: number; passageFontFamily?: "system" | "serif" | "mono";
   passageAlignment?: "left" | "center" | "justify"; passageLineSpacing?: number;
@@ -94,6 +95,8 @@ export function validateTemplate(t: TemplateInput): { errors: string[]; scoring?
   if (!num(t.durationSec, 30, 3600)) errors.push("Duration must be between 30 seconds and 60 minutes.");
   if (!["highlighted", "unhighlighted", "offscreen"].includes(t.displayMode)) errors.push("Unknown display mode.");
   if (!["full", "word", "disabled"].includes(t.backspace)) errors.push("Unknown backspace rule.");
+  if (t.enterKeyPolicy !== undefined && !["newline", "blocked"].includes(t.enterKeyPolicy)) errors.push("Unknown Enter-key policy.");
+  if (t.tabKeyPolicy !== undefined && !["blocked", "insert"].includes(t.tabKeyPolicy)) errors.push("Unknown Tab-key policy.");
   if (t.passageLayout !== undefined && !["continuous", "paragraph-tab", "source-preserved"].includes(t.passageLayout)) errors.push("Unknown passage layout.");
   if (t.fontSizePt !== undefined && !num(t.fontSizePt, 8, 24)) errors.push("Passage font size must be between 8 and 24 pt.");
   if (t.passageFontFamily !== undefined && !["system", "serif", "mono"].includes(t.passageFontFamily)) errors.push("Unknown passage font family.");
