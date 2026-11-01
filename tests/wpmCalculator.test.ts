@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { calculateScore, PROFILES, analyzeKeyLog, type KeyEvent } from "../lib/wpmCalculator.ts";
 import { checkEdit } from "../lib/backspacePolicy.ts";
-import { PRESETS, getVerifiedPreset } from "../lib/presets.ts";
+import { PRESETS, getVerifiedPreset, validatePresetCatalog } from "../lib/presets.ts";
 
 const P = { ...PROFILES.practice };
 const ref = "the quick brown fox jumps over the lazy dog";
@@ -443,4 +443,24 @@ test("Delhi Police HCM Hindi qualification and marks use Hindi thresholds", () =
   assert.equal(r.netWpm, 20.08);
   assert.equal(r.passed, false);
   assert.equal(r.marks, 0);
+});
+
+
+test("every built-in exam preset has internally consistent language, duration and scoring profile", () => {
+  assert.deepEqual(validatePresetCatalog(), []);
+});
+
+test("preset catalog validation catches duplicate slugs and rule mismatches", () => {
+  const preset = PRESETS.find((item) => item.slug === "ssc-chsl-en")!;
+  const invalid = [
+    preset,
+    { ...preset, profileId: "wrong-profile" },
+    { ...preset, durationSec: 300 },
+    { ...preset, lang: "hi" as const },
+  ];
+  const issues = validatePresetCatalog(invalid);
+  assert.ok(issues.some((issue) => issue.includes("Duplicate preset slug")));
+  assert.ok(issues.some((issue) => issue.includes("profileId")));
+  assert.ok(issues.some((issue) => issue.includes("duration")));
+  assert.ok(issues.some((issue) => issue.includes("language")));
 });
