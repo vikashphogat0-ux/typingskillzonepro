@@ -44,7 +44,8 @@ export async function GET(req: Request) {
         p.language, p.word_count, p.month_passage_number AS passage_number,
         (p.created_at AT TIME ZONE 'Asia/Kolkata')::date::text AS date, et.name AS exam
       FROM ranked p LEFT JOIN exam_templates et ON et.id = p.template_id
-      WHERE (p.created_at AT TIME ZONE 'Asia/Kolkata')::date = ${today}::date
+      WHERE to_char(p.created_at AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM') = ${currentMonth}
+        AND (p.created_at AT TIME ZONE 'Asia/Kolkata')::date <= ${today}::date
         AND (${lang}::text IS NULL OR p.language = ${lang})
         AND (${tpl} = '' OR et.slug = ${tpl})
       ORDER BY p.created_at ASC, p.id ASC`;
