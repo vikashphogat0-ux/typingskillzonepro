@@ -190,12 +190,29 @@ export default function Admin() {
   const upd = (k: keyof typeof emptyTpl, v: any) => setT((x) => ({ ...x, [k]: v }));
   const selectedProfile = PROFILES[t.base] ?? PROFILES.practice;
   const saveTpl = async () => {
-    const scoring = { ...defaultScoring(t.base), id: t.slug, label: t.name, unit: t.unit, netMethod: t.netMethod, halfRules: { caseOnly: t.caseOnly, punctuationOnly: t.punctOnly }, qualifyingWpm: t.qualifying === "" ? undefined : Number(t.qualifying), maxErrorPercent: t.maxErr === "" ? undefined : Number(t.maxErr) };
-    const r = await post("/api/admin/templates", { slug: t.slug.trim(), name: t.name, language: t.language, durationSec: Math.round(t.minutes * 60), displayMode: t.displayMode, backspace: t.backspace, scoring, passageLayout: t.passageLayout, fontSizePt: t.fontSizePt, passageFontFamily: t.passageFontFamily, passageAlignment: t.passageAlignment, passageLineSpacing: t.passageLineSpacing, passageParagraphSpacing: t.passageParagraphSpacing, printPageSize: t.printPageSize, enterKeyPolicy: t.enterKeyPolicy, tabKeyPolicy: t.tabKeyPolicy, presentationOnly: PRESETS.some((p) => p.slug === t.slug) });
-    setMsg(r.ok ? "Template saved." : r.data.error ?? "Could not save."); if (r.ok) { setT(emptyTpl); load(); }
+    if (!t.name.trim() || !t.slug.trim()) { setMsg("Enter both a template name and slug."); return; }
+    try {
+      const scoring = { ...defaultScoring(t.base), id: t.slug.trim(), label: t.name.trim(), unit: t.unit, netMethod: t.netMethod, halfRules: { caseOnly: t.caseOnly, punctuationOnly: t.punctOnly }, qualifyingWpm: t.qualifying === "" ? undefined : Number(t.qualifying), maxErrorPercent: t.maxErr === "" ? undefined : Number(t.maxErr) };
+      const r = await post("/api/admin/templates", { slug: t.slug.trim(), name: t.name, language: t.language, durationSec: Math.round(t.minutes * 60), displayMode: t.displayMode, backspace: t.backspace, scoring, passageLayout: t.passageLayout, fontSizePt: t.fontSizePt, passageFontFamily: t.passageFontFamily, passageAlignment: t.passageAlignment, passageLineSpacing: t.passageLineSpacing, passageParagraphSpacing: t.passageParagraphSpacing, printPageSize: t.printPageSize, enterKeyPolicy: t.enterKeyPolicy, tabKeyPolicy: t.tabKeyPolicy, presentationOnly: PRESETS.some((p) => p.slug === t.slug) });
+      setMsg(r.ok ? "Template saved successfully." : r.data.error ?? `Could not save template (HTTP ${r.status}).`);
+      if (r.ok) { setT(emptyTpl); await load(); }
+    } catch (error) { setMsg(error instanceof Error ? error.message : "Could not save template. Check your connection."); }
   };
-  const editTpl = (x: Tpl) => setT({ slug: x.slug, name: x.name, language: x.language, minutes: x.duration_sec / 60, displayMode: x.display_mode, backspace: x.backspace, base: (PROFILES[x.scoring.id] ? x.scoring.id : "practice"), unit: x.scoring.unit, netMethod: x.scoring.netMethod, qualifying: x.scoring.qualifyingWpm?.toString() ?? "", maxErr: x.scoring.maxErrorPercent?.toString() ?? "", caseOnly: !!x.scoring.halfRules?.caseOnly, punctOnly: !!x.scoring.halfRules?.punctuationOnly, passageLayout: x.passage_layout ?? "continuous", fontSizePt: Number(x.font_size_pt ?? 12), passageFontFamily: x.passage_font_family ?? "system", passageAlignment: x.passage_alignment ?? "left", passageLineSpacing: Number(x.passage_line_spacing ?? 1.5), passageParagraphSpacing: Number(x.passage_paragraph_spacing ?? 8), printPageSize: x.print_page_size ?? "A4", enterKeyPolicy: x.enter_key_policy ?? "newline", tabKeyPolicy: x.tab_key_policy ?? "blocked" });
-  const delTpl = async (slug: string) => { if (confirm(`Delete template ${slug}? Passages stay but lose the link.`)) { await api(`/api/admin/templates?slug=${slug}`, { method: "DELETE" }); load(); } };
+  const editTpl = (x: Tpl) => {
+    setMsg("");
+    setT({ slug: x.slug, name: x.name, language: x.language, minutes: x.duration_sec / 60, displayMode: x.display_mode, backspace: x.backspace, base: (PROFILES[x.scoring?.id] ? x.scoring.id : "practice"), unit: x.scoring?.unit ?? "words", netMethod: x.scoring?.netMethod ?? "penalty", qualifying: x.scoring?.qualifyingWpm?.toString() ?? "", maxErr: x.scoring?.maxErrorPercent?.toString() ?? "", caseOnly: !!x.scoring?.halfRules?.caseOnly, punctOnly: !!x.scoring?.halfRules?.punctuationOnly, passageLayout: x.passage_layout ?? "continuous", fontSizePt: Number(x.font_size_pt ?? 12), passageFontFamily: x.passage_font_family ?? "system", passageAlignment: x.passage_alignment ?? "left", passageLineSpacing: Number(x.passage_line_spacing ?? 1.5), passageParagraphSpacing: Number(x.passage_paragraph_spacing ?? 8), printPageSize: x.print_page_size ?? "A4", enterKeyPolicy: x.enter_key_policy ?? "newline", tabKeyPolicy: x.tab_key_policy ?? "blocked" });
+    setTab("templates");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const delTpl = async (slug: string) => {
+    if (!confirm(`Delete template ${slug}? This is allowed only when no saved test history depends on it.`)) return;
+    try {
+      const r = await api(`/api/admin/templates?slug=${encodeURIComponent(slug)}`, { method: "DELETE" });
+      if (!r.ok) { setMsg(r.data.error ?? `Delete failed (HTTP ${r.status}).`); return; }
+      setMsg("Template deleted.");
+      await load();
+    } catch (error) { setMsg(error instanceof Error ? error.message : "Could not delete template. Check your connection."); }
+  };
 
   if (denied) return <div className="page"><h1>Admin</h1><p>Admin access is required. Sign in with an admin account (users.role = &apos;admin&apos;).</p></div>;
 
