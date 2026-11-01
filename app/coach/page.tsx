@@ -7,6 +7,9 @@ type Goals={sessions:number;targetWpm:number;targetAccuracy:number};
 type PlanItem={day:string;focus:string;task:string;duration:string;href:string};
 const DEFAULT_GOALS:Goals={sessions:3,targetWpm:50,targetAccuracy:95};
 const dayKey=(date:Date)=>date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");
+function todayAttemptsForReminder(attempts:NonNullable<Data["attempts"]>,today:string,target:number){
+  return attempts.filter(x=>dayKey(new Date(x.createdAt))===today).length>=target;
+}
 function streakDays(attempts:NonNullable<Data["attempts"]>){
   const days=new Set(attempts.map(x=>dayKey(new Date(x.createdAt))));
   const cursor=new Date();cursor.setHours(0,0,0,0);
@@ -22,10 +25,37 @@ export default function CoachPage() {
   const [planChecks,setPlanChecks]=useState<Record<string,boolean>>({});
   const [planReady,setPlanReady]=useState(false);
   const [planWeek,setPlanWeek]=useState("");
+  const [reminderEnabled,setReminderEnabled]=useState(false);
+  const [reminderTime,setReminderTime]=useState("19:00");
+  const [notificationPermission,setNotificationPermission]=useState("unsupported");
+  const [reminderMessage,setReminderMessage]=useState("");
   useEffect(()=>{try{const saved=localStorage.getItem("tsz-coach-daily-goals-v1");if(saved){const parsed=JSON.parse(saved) as Partial<Goals>;setGoals({sessions:Math.min(10,Math.max(1,Math.round(Number(parsed.sessions)||3))),targetWpm:Math.min(200,Math.max(1,Number(parsed.targetWpm)||50)),targetAccuracy:Math.min(100,Math.max(1,Number(parsed.targetAccuracy)||95))});}}catch{/* Keep safe defaults. */}setGoalsReady(true);},[]);
   useEffect(()=>{if(goalsReady)try{localStorage.setItem("tsz-coach-daily-goals-v1",JSON.stringify(goals));}catch{/* Goals remain available for this visit. */}},[goals,goalsReady]);
   useEffect(()=>{const now=new Date();const monday=new Date(now);monday.setHours(0,0,0,0);monday.setDate(now.getDate()-((now.getDay()+6)%7));const key=dayKey(monday);setPlanWeek(key);try{const saved=localStorage.getItem("tsz-coach-weekly-plan-"+key);if(saved)setPlanChecks(JSON.parse(saved) as Record<string,boolean>);}catch{/* Start with an unchecked plan if stored data is invalid. */}setPlanReady(true);},[]);
   useEffect(()=>{if(planReady&&planWeek)try{localStorage.setItem("tsz-coach-weekly-plan-"+planWeek,JSON.stringify(planChecks));}catch{/* Checklist remains usable for this visit. */}},[planChecks,planReady,planWeek]);
+  useEffect(()=>{try{const saved=localStorage.getItem("tsz-coach-reminders-v1");if(saved){const value=JSON.parse(saved) as {enabled?:boolean;time?:string};setReminderEnabled(value.enabled===true);if(typeof value.time==="string"&&/^([01]\\d|2[0-3]):[0-5]\\d$/.test(value.time))setReminderTime(value.time);}}catch{/* Keep reminders disabled when preferences are unreadable. */}setNotificationPermission("Notification" in window?Notification.permission:"unsupported");},[]);
+  useEffect(()=>{try{localStorage.setItem("tsz-coach-reminders-v1",JSON.stringify({enabled:reminderEnabled,time:reminderTime}));}catch{/* Preferences remain available for this visit. */}},[reminderEnabled,reminderTime]);
+  useEffect(()=>{
+    if(!reminderEnabled||!data||notificationPermission!=="granted")return;
+    const check=()=>{
+      const now=new Date();
+      const [hours,minutes]=reminderTime.split(":").map(Number);
+      const todayKey=dayKey(now);
+      const due=now.getHours()>hours||(now.getHours()===hours&&now.getMinutes()>=minutes);
+      const done=todayAttemptsForReminder(data.attempts??[],todayKey,goals.sessions);
+      if(!due||done)return;
+      try{
+        const sent=localStorage.getItem("tsz-coach-reminder-sent");
+        if(sent===todayKey)return;
+        new Notification("TypingSkillZone practice reminder",{body:"Your daily typing goal is still in progress. A short focused session can keep your practice consistent.",icon:"/favicon.ico"});
+        localStorage.setItem("tsz-coach-reminder-sent",todayKey);
+        setReminderMessage("Today's reminder has been sent.");
+      }catch{setReminderMessage("Could not send a browser notification. Check your browser notification settings.");}
+    };
+    check();
+    const timer=window.setInterval(check,30000);
+    return()=>window.clearInterval(timer);
+  },[reminderEnabled,reminderTime,notificationPermission,data,goals.sessions]);
   useEffect(()=>{fetch("/api/coach/insights").then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error||"Could not load coaching insights.");setData(d);}).catch(e=>setError(e.message));},[]);
   if(error)return <main className="page"><h1>Intelligent Typing Coach</h1><p><a className="go" href="/coach/drills">Start targeted typing drills →</a></p><p>{error} <a href="/login">Sign in</a></p></main>;
   if(!data)return <main className="page"><p>Analysing your recent typing history…</p></main>;
@@ -107,6 +137,21 @@ export default function CoachPage() {
         </article>)}
       </div>
       <p className="hint">Checklist progress is saved in this browser for the current Monday–Sunday week. The planner does not create or submit official exam attempts.</p>
+    </section>
+    <section className="admin-generation-panel">
+      <h2>Practice reminders</h2>
+      <p className="hint">Optional browser notifications when your daily session goal is still incomplete. Reminders work only while this coach page is open in a supported browser; they are not background or mobile push notifications.</p>
+      <div className="form">
+        <label style={{display:"flex",alignItems:"center",gap:".6rem"}}><input type="checkbox" checked={reminderEnabled} onChange={e=>setReminderEnabled(e.target.checked)} /> Enable daily reminder</label>
+        <label>Reminder time<input type="time" value={reminderTime} onChange={e=>setReminderTime(e.target.value)} /></label>
+      </div>
+      <p className="hint">Browser notification permission: {notificationPermission}</p>
+      <div style={{display:"flex",gap:".75rem",flexWrap:"wrap",marginTop:".75rem"}}>
+        <button className="go" type="button" onClick={async()=>{if(!("Notification" in window)){setNotificationPermission("unsupported");setReminderMessage("This browser does not support notifications.");return;}const permission=await Notification.requestPermission();setNotificationPermission(permission);setReminderMessage(permission==="granted"?"Permission granted. Daily reminders are ready.":permission==="denied"?"Permission denied. Allow notifications in your browser settings to use reminders.":"Notification permission was not granted.");}}>Allow browser notifications</button>
+        <button className="go alt" type="button" onClick={()=>{if(!("Notification" in window)||Notification.permission!=="granted"){setReminderMessage("Allow browser notifications first.");return;}new Notification("TypingSkillZone reminder test",{body:"Browser notifications are working."});setReminderMessage("Test notification sent.");}}>Send test notification</button>
+      </div>
+      {reminderMessage&&<p role="status" className="hint">{reminderMessage}</p>}
+      <p className="hint">A reminder is sent at most once per day and stops automatically after you reach your daily session target. You can disable it any time.</p>
     </section>
     <section className="admin-generation-panel">
       <h2>Daily practice goals</h2>
