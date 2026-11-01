@@ -19,7 +19,9 @@ export async function POST(req: Request) {
 
   const verified = getBuiltInPreset(String(t.slug));
   const durationSec = verified?.durationSec ?? Number(t.duration_sec);
-  const displayMode = verified?.mode ?? String(t.display_mode);
+  const examDisplayMode = verified?.mode ?? String(t.display_mode);
+  const requestedMode = b.practiceMode === "highlighted" || b.practiceMode === "unhighlighted" ? b.practiceMode : "exam";
+  const displayMode = requestedMode === "exam" ? examDisplayMode : requestedMode;
   const scoring = verified?.profile ?? t.scoring;
   const requestedCustom = typeof b.customPassage === "string" ? b.customPassage.trim() : "";
   const customWords = requestedCustom ? requestedCustom.split(/\s+/u).filter(Boolean).length : 0;
