@@ -295,7 +295,7 @@ export default function SimulatorPage() {
   const dailyItems = library?.dailyItems ?? [];
 
   return (
-    <main className="exam-workspace">
+    <main className={`exam-workspace exam-workspace--${identity.tone}`} data-exam-tone={identity.tone} data-exam-slug={sim.slug}>
       <section className="exam-workspace-hero">
         <div className="exam-workspace-identity">
           <ExamEmblem slug={sim.slug} mark={identity.mark} short={identity.short} family={identity.family} tone={identity.tone} />
