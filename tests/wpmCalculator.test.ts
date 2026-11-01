@@ -464,3 +464,13 @@ test("preset catalog validation catches duplicate slugs and rule mismatches", ()
   assert.ok(issues.some((issue) => issue.includes("duration")));
   assert.ok(issues.some((issue) => issue.includes("language")));
 });
+
+
+test("only RRB NTPC CBTST profiles receive the warm-up and break protocol", () => {
+  const requiresRrbPhases = (profileId: string) => profileId === "rrb-ntpc-en" || profileId === "rrb-ntpc-hi";
+  assert.equal(requiresRrbPhases(PROFILES["rrb-ntpc-en"].id), true);
+  assert.equal(requiresRrbPhases(PROFILES["rrb-ntpc-hi"].id), true);
+  assert.equal(requiresRrbPhases(PROFILES["crpf-hcm-en"].id), false);
+  assert.equal(requiresRrbPhases(PROFILES["cisf-hcm-en"].id), false);
+  assert.equal(requiresRrbPhases(PROFILES["bsf-typing-en"].id), false);
+});
