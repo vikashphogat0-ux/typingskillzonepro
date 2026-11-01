@@ -21,7 +21,9 @@ export async function POST(req: Request) {
   const durationSec = verified?.durationSec ?? Number(t.duration_sec);
   const examDisplayMode = verified?.mode ?? String(t.display_mode);
   const requestedMode = b.practiceMode === "highlighted" || b.practiceMode === "unhighlighted" ? b.practiceMode : "exam";
-  const displayMode = requestedMode === "exam" ? examDisplayMode : requestedMode;
+  // Keep the simulator’s exam-defined display rule separate from the learner’s presentation choice.
+  // Practice mode may change only the passage presentation, never the exam configuration stored with the attempt.
+  const displayMode = examDisplayMode;
   const scoring = verified?.profile ?? t.scoring;
   const requestedCustom = typeof b.customPassage === "string" ? b.customPassage.trim() : "";
   const customWords = requestedCustom ? requestedCustom.split(/\s+/u).filter(Boolean).length : 0;
@@ -66,7 +68,7 @@ export async function POST(req: Request) {
           AND started_at >= (date_trunc('day', now() AT TIME ZONE 'Asia/Kolkata') AT TIME ZONE 'Asia/Kolkata')
       )
       INSERT INTO tests (user_id, template_id, language, display_mode, backspace, duration_sec, reference_text, assignment_id)
-      SELECT ${uid}, ${t.id}, ${t.language}, ${displayMode}, ${backspace}, ${durationSec}, ${reference}, ${assignmentId}
+      SELECT ${uid}, ${t.id}, ${t.language}, ${examDisplayMode}, ${backspace}, ${durationSec}, ${reference}, ${assignmentId}
       FROM usage
       WHERE ${access.testsLeft === null}::boolean OR usage.tests_today < ${LIMITS.free.testsPerDay}
       RETURNING id
@@ -74,5 +76,5 @@ export async function POST(req: Request) {
   ]);
   const [row] = tx[1] as Array<{ id: string }>;
   if (!row) return Response.json({ error: "You have used your free tests for today.", upgrade: true }, { status: 402 });
-  return Response.json({ testId: row.id, reference, lang: t.language, durationSec, mode: displayMode, backspace, profile: scoring, name: t.name, slug: t.slug, fontSizePt: t.font_size_pt ?? 12, passageLayout: t.passage_layout ?? "continuous", enterKeyPolicy: t.enter_key_policy ?? "newline", tabKeyPolicy: t.tab_key_policy ?? "blocked" });
+  return Response.json({ testId: row.id, reference, lang: t.language, durationSec, mode: displayMode, practiceMode: requestedMode, backspace, profile: scoring, name: t.name, slug: t.slug, fontSizePt: t.font_size_pt ?? 12, passageLayout: t.passage_layout ?? "continuous", enterKeyPolicy: t.enter_key_policy ?? "newline", tabKeyPolicy: t.tab_key_policy ?? "blocked" });
 }
