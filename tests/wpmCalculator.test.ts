@@ -51,6 +51,16 @@ test("Hindi text is compared exactly, matra differences count", () => {
   assert.equal(r.fullErrors, 1);
 });
 
+test("NFC-normalized committed text produces a single canonical Unicode character", () => {
+  const decomposed = "e\\u0301";
+  const canonical = norm(decomposed);
+  assert.equal(canonical, "é");
+  const log: KeyEvent[] = [{ t: 1, type: "ins", ch: canonical }];
+  assert.equal(analyzeKeyLog(log, canonical).ignored, 0);
+  const hindi = "कि";
+  assert.equal(norm(hindi), hindi);
+});
+
 test("fixed vs ignored errors come from the key log", () => {
   const ev: KeyEvent[] = [
     { t: 1, type: "ins", ch: "t" }, { t: 2, type: "ins", ch: "x" },
