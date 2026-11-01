@@ -20,18 +20,18 @@ export async function GET(req: Request) {
     const safeMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth) ? requestedMonth : today.slice(0, 7);
     const daily: Record<string, any> = {}, archive: Record<string, any[]> = {};
     for (const l of ["en", "hi"]) {
-      const pool = await db`WITH ranked AS (SELECT p.id, p.title, p.language, p.word_count, row_number() OVER (ORDER BY p.created_at ASC, p.id ASC) AS passage_number FROM passages p WHERE p.language = ${l} AND (${tpl} = '' OR p.template_id = (SELECT id FROM exam_templates WHERE slug = ${tpl}))) SELECT id, title, word_count, passage_number FROM ranked ORDER BY id`;
+      const pool = await db`WITH ranked AS (SELECT p.id, p.title, p.language, p.word_count, row_number() OVER (PARTITION BY p.template_id, p.language ORDER BY p.created_at ASC, p.id ASC) AS passage_number FROM passages p WHERE p.language = ${l} AND (${tpl} = '' OR p.template_id = (SELECT id FROM exam_templates WHERE slug = ${tpl}))) SELECT id, title, word_count, passage_number FROM ranked ORDER BY id`;
       const pick = dailyPick(pool as any[], today, l);
       if (pick) { const [full] = await db`WITH ranked AS (SELECT id, row_number() OVER (ORDER BY created_at ASC, id ASC) AS passage_number FROM passages) SELECT p.id, p.title, p.word_count, p.body, ranked.passage_number FROM passages p JOIN ranked ON ranked.id = p.id WHERE p.id = ${pick.id}`; daily[l] = { date: today, ...full }; }
       archive[l] = dates.map((d) => ({ date: d, ...(dailyPick(pool as any[], d, l) as any) })).filter((x) => x.id);
     }
     const like = `%${q.replace(/[%_]/g, "")}%`;
-    const list = await db`WITH ranked AS (SELECT p.*, row_number() OVER (ORDER BY p.created_at ASC, p.id ASC) AS passage_number FROM passages p)
+    const list = await db`WITH ranked AS (SELECT p.*, row_number() OVER (PARTITION BY p.template_id, p.language ORDER BY p.created_at ASC, p.id ASC) AS passage_number FROM passages p)
       SELECT p.id, p.passage_number, p.title, p.language, p.word_count, left(p.body, 140) AS preview, et.name AS exam
       FROM ranked p LEFT JOIN exam_templates et ON et.id = p.template_id
       WHERE (${lang}::text IS NULL OR p.language = ${lang}) AND (${q} = '' OR p.title ILIKE ${like} OR p.id::text ILIKE ${like} OR p.passage_number::text = ltrim(${q}, '0') OR p.body ILIKE ${like}) AND (${tpl} = '' OR et.slug = ${tpl})
       ORDER BY p.created_at DESC, p.id DESC`;
-    const monthly = await db`WITH ranked AS (SELECT p.*, row_number() OVER (ORDER BY p.created_at ASC, p.id ASC) AS passage_number FROM passages p)
+    const monthly = await db`WITH ranked AS (SELECT p.*, row_number() OVER (PARTITION BY p.template_id, p.language ORDER BY p.created_at ASC, p.id ASC) AS passage_number FROM passages p)
       SELECT p.id, p.passage_number, p.title, p.language, p.word_count, left(p.body, 180) AS preview, p.created_at::date::text AS date, et.name AS exam
       FROM ranked p LEFT JOIN exam_templates et ON et.id = p.template_id
       WHERE p.created_at >= (${safeMonth} || '-01')::date
