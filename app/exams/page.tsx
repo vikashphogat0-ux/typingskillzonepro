@@ -115,6 +115,13 @@ export default function ExamsPage() {
           </label>
         </div>
 
+        <div className="exam-catalogue-stats" aria-label="Exam catalogue summary">
+          <div><strong>{items.length}</strong><span>Total modules</span></div>
+          <div><strong>{items.filter(exam => exam.language === "en").length}</strong><span>English modules</span></div>
+          <div><strong>{items.filter(exam => exam.language === "hi").length}</strong><span>Hindi modules</span></div>
+          <div><strong>{filtered.length}</strong><span>Matching results</span></div>
+        </div>
+
         <div className="exam-popular">
           <div className="exam-popular-label">POPULAR EXAMS</div>
           <div className="exam-popular-list">
