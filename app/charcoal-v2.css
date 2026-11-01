@@ -292,3 +292,14 @@ body{background-image:radial-gradient(ellipse at 16% -10%,rgba(72,111,190,.17),t
  .public-header.home-reference-header .auth-header-wrap>a{max-width:calc(100vw - 64px)}
 }
 @media(prefers-reduced-motion:reduce){.public-header.home-reference-header *{transition:none!important}}
+
+
+/* Exam emblems never render as blank boxes while remote artwork is loading. */
+.exam-card-emblem{position:relative;display:grid;place-items:center;isolation:isolate}
+.exam-card-emblem img{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%;opacity:0;transition:opacity .15s ease}
+.exam-card-emblem.has-image img{opacity:1}
+.exam-card-emblem.has-image .exam-card-fallback{display:none!important}
+.exam-card-emblem .exam-card-fallback{position:relative;z-index:0;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:100%;height:100%;padding:3px;box-sizing:border-box;text-align:center;line-height:1.05}
+.exam-card-emblem .exam-card-fallback strong{font-size:12px;line-height:1.05}
+.exam-card-emblem .exam-card-fallback small{font-size:7px!important;line-height:1.1;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(prefers-reduced-motion:reduce){.exam-card-emblem img{transition:none}}
