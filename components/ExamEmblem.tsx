@@ -35,7 +35,8 @@ const assetBySlug = (slug: string): string | null => {
 };
 
 export default function ExamEmblem({ slug, mark, short, family, tone }: Props) {
-  const [failed, setFailed] = useState(false);\n  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const src = assetBySlug(slug);
 
   return (
@@ -51,12 +52,13 @@ export default function ExamEmblem({ slug, mark, short, family, tone }: Props) {
           onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}
         />
-      ) : (
+      ) : null}
+      {!src || failed || !loaded ? (
         <span className="exam-card-fallback" aria-hidden="true">
           <strong>{mark}</strong>
           <small>{short}</small>
         </span>
-      )}
+      ) : null}
     </div>
   );
 }
