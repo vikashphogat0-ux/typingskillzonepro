@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireSuperAdmin } from "@/lib/auth";
 
 const deny = () => Response.json({ error: "Admin access required." }, { status: 403 });
 
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  if (!(await requireAdmin(req))) return deny();
+  if (!(await requireSuperAdmin(req))) return Response.json({ error: "Super admin access required to change user roles." }, { status: 403 });
   const b = await req.json().catch(() => null);
   const id = String(b?.id ?? "");
   if (!/^[0-9a-f-]{36}$/i.test(id)) return Response.json({ error: "Invalid user ID." }, { status: 400 });
