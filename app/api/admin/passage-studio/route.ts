@@ -25,7 +25,7 @@ export async function GET(req: Request) {
         AND (${q} = '' OR s.title ILIKE ${'%' + q.replace(/[%_]/g, '') + '%'}
           OR s.body ILIKE ${'%' + q.replace(/[%_]/g, '') + '%'} OR s.id::text ILIKE ${'%' + q + '%'})
     )
-    SELECT n.id, n.title, n.language, n.word_count, n.source_type, n.source_filename,
+    SELECT n.id, n.title, n.language, n.body, n.word_count, n.source_type, n.source_filename,
       n.version, n.visible_number, n.created_at, n.updated_at, n.archived_at,
       COALESCE(jsonb_agg(
         jsonb_build_object('slug', et.slug, 'name', et.name, 'status', d.status, 'passageId', d.passage_id)
@@ -59,6 +59,16 @@ export async function PATCH(req: Request) {
 
   try {
     const db = sql();
+    const [languageConflict] = await db`
+      SELECT count(*)::int AS count
+      FROM passage_distributions d
+      JOIN exam_templates et ON et.id = d.template_id
+      WHERE d.source_id = ${id}::uuid AND d.status = 'published'
+        AND et.language <> ${checked.clean.language}
+    `;
+    if (Number(languageConflict?.count ?? 0) > 0) {
+      return Response.json({ error: "A distributed passage cannot change language. Create a new source in the required language instead." }, { status: 422 });
+    }
     const result = await db`
       WITH current_source AS (
         SELECT id, version FROM passage_sources
