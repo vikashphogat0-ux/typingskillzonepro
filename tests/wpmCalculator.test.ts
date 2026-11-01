@@ -495,3 +495,15 @@ test("exam keyboard policy rejects blocked Enter and Tab at input-commit level",
   assert.equal(isExamInputAllowed("abc", "abc" + tab, "blocked", "insert"), true);
   assert.equal(isExamInputAllowed("abc" + newline, "abc", "blocked", "blocked"), true);
 });
+
+
+test("custom exam templates validate Enter and Tab policies independently", () => {
+  const base = {
+    slug: "custom-key-policy", name: "Custom keyboard exam", language: "en" as const,
+    durationSec: 600, displayMode: "highlighted" as const, backspace: "full" as const,
+    scoring: { ...PROFILES.practice },
+  };
+  assert.deepEqual(validateTemplate({ ...base, enterKeyPolicy: "blocked", tabKeyPolicy: "insert" }).errors, []);
+  assert.ok(validateTemplate({ ...base, enterKeyPolicy: "sometimes" as any }).errors.some((e) => e.includes("Enter-key")));
+  assert.ok(validateTemplate({ ...base, tabKeyPolicy: "sometimes" as any }).errors.some((e) => e.includes("Tab-key")));
+});
