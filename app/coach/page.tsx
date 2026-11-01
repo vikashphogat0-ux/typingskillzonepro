@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 type Data = { error?: string; role?: string; attempts?: {netWpm:number;accuracy:number;createdAt:string;simulator:string|null}[]; weeklyReport?: {recent:{attempts:number;avgNetWpm:number;bestNetWpm:number;avgAccuracy:number};previous:{attempts:number;avgNetWpm:number;avgAccuracy:number};changes:{avgNetWpm:number|null;avgAccuracy:number|null};coverage:{days:number;attemptsAnalysed:number;capped:boolean}}; summary?: {tests:number;avgNetWpm:number;avgAccuracy:number;bestNetWpm:number}; patterns?: {weakKeys:{label:string;attempts:number;errors:number;errorRate:number}[];weakPairs:{label:string;attempts:number;errors:number;errorRate:number}[]}; recommendations?: string[] };
 
 type Goals={sessions:number;targetWpm:number;targetAccuracy:number};
+type PlanItem={day:string;focus:string;task:string;duration:string;href:string};
 const DEFAULT_GOALS:Goals={sessions:3,targetWpm:50,targetAccuracy:95};
 const dayKey=(date:Date)=>date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");
 function streakDays(attempts:NonNullable<Data["attempts"]>){
@@ -18,8 +19,13 @@ export default function CoachPage() {
   const [data,setData]=useState<Data|null>(null); const [error,setError]=useState("");
   const [goals,setGoals]=useState<Goals>(DEFAULT_GOALS);
   const [goalsReady,setGoalsReady]=useState(false);
+  const [planChecks,setPlanChecks]=useState<Record<string,boolean>>({});
+  const [planReady,setPlanReady]=useState(false);
+  const [planWeek,setPlanWeek]=useState("");
   useEffect(()=>{try{const saved=localStorage.getItem("tsz-coach-daily-goals-v1");if(saved){const parsed=JSON.parse(saved) as Partial<Goals>;setGoals({sessions:Math.min(10,Math.max(1,Math.round(Number(parsed.sessions)||3))),targetWpm:Math.min(200,Math.max(1,Number(parsed.targetWpm)||50)),targetAccuracy:Math.min(100,Math.max(1,Number(parsed.targetAccuracy)||95))});}}catch{/* Keep safe defaults. */}setGoalsReady(true);},[]);
   useEffect(()=>{if(goalsReady)try{localStorage.setItem("tsz-coach-daily-goals-v1",JSON.stringify(goals));}catch{/* Goals remain available for this visit. */}},[goals,goalsReady]);
+  useEffect(()=>{const now=new Date();const monday=new Date(now);monday.setHours(0,0,0,0);monday.setDate(now.getDate()-((now.getDay()+6)%7));const key=dayKey(monday);setPlanWeek(key);try{const saved=localStorage.getItem("tsz-coach-weekly-plan-"+key);if(saved)setPlanChecks(JSON.parse(saved) as Record<string,boolean>);}catch{/* Start with an unchecked plan if stored data is invalid. */}setPlanReady(true);},[]);
+  useEffect(()=>{if(planReady&&planWeek)try{localStorage.setItem("tsz-coach-weekly-plan-"+planWeek,JSON.stringify(planChecks));}catch{/* Checklist remains usable for this visit. */}},[planChecks,planReady,planWeek]);
   useEffect(()=>{fetch("/api/coach/insights").then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error||"Could not load coaching insights.");setData(d);}).catch(e=>setError(e.message));},[]);
   if(error)return <main className="page"><h1>Intelligent Typing Coach</h1><p><a className="go" href="/coach/drills">Start targeted typing drills →</a></p><p>{error} <a href="/login">Sign in</a></p></main>;
   if(!data)return <main className="page"><p>Analysing your recent typing history…</p></main>;
@@ -33,6 +39,27 @@ export default function CoachPage() {
   const wpmProgress=Math.min(100,Math.round(todayBestWpm/goals.targetWpm*100));
   const accuracyProgress=Math.min(100,Math.round(todayBestAccuracy/goals.targetAccuracy*100));
   const streak=streakDays(attempts);
+  const weakKey=data.patterns?.weakKeys[0]?.label;
+  const weakPair=data.patterns?.weakPairs[0]?.label;
+  const needsAccuracy=(s?.avgAccuracy??100)<95;
+  const needsSpeed=(s?.avgNetWpm??0)<goals.targetWpm;
+  const todayDate=new Date();
+  const mondayOffset=(todayDate.getDay()+6)%7;
+  const plannerDays=Array.from({length:7},(_,i)=>{const d=new Date(todayDate);d.setHours(0,0,0,0);d.setDate(d.getDate()-mondayOffset+i);return d;});
+  const weeklyPlan:PlanItem[]=plannerDays.map((date,i)=>{
+    const focus=needsAccuracy?"Accuracy & control":weakKey?"Weak-key training":weakPair?"Letter transitions":needsSpeed?"Speed & rhythm":"Endurance & consistency";
+    const tasks=[
+      {focus,task:weakKey?"Start with the key "+weakKey+" in targeted drills, then complete one short simulator session.":"Complete a short controlled warm-up, then one simulator session.",duration:"20 minutes",href:"/coach/drills"},
+      {focus:weakPair?"Letter pair "+weakPair+" and smooth transitions":"Accuracy-first passage practice",task:weakPair?"Practise words containing "+weakPair+" and avoid rushing the transition.":"Complete one passage slowly, prioritising correct characters.",duration:"15 minutes",href:"/coach/drills"},
+      {focus:"Baseline check",task:"Complete one normal simulator attempt and review net WPM and accuracy.",duration:"20 minutes",href:"/simulators"},
+      {focus:"Targeted correction",task:weakKey?"Repeat the weak-key exercise for "+weakKey+"; stop if accuracy falls.":"Repeat the exercise with the highest observed error rate.",duration:"15 minutes",href:"/coach/drills"},
+      {focus:"Speed with control",task:"Use a familiar passage and increase pace only while maintaining your accuracy target.",duration:"20 minutes",href:"/simulators"},
+      {focus:"Full-length practice",task:"Complete one simulator session using its normal exam rules and review the result.",duration:"30 minutes",href:"/simulators"},
+      {focus:"Weekly review",task:"Review your weekly report, weak patterns and next week's goals. Keep this day light.",duration:"10 minutes",href:"/coach"}
+    ][i];
+    return {day:date.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"}),...tasks};
+  });
+  const completedPlan=weeklyPlan.filter((_,i)=>planChecks[planWeek+"-"+i]).length;
   const trend=[...(data.attempts??[])].slice(0,10).reverse();
   const maxWpm=Math.max(1,...trend.map(x=>x.netWpm));
   const firstHalf=trend.slice(0,Math.ceil(trend.length/2));
@@ -66,6 +93,20 @@ export default function CoachPage() {
         {!data.weeklyReport.previous.attempts&&<p className="hint">Complete tests in both periods to see a meaningful week-over-week comparison.</p>}
         {data.weeklyReport.recent.attempts===0&&<p className="hint">No saved simulator attempts were found in the last 7 days.</p>}
       </>:<p className="hint">Weekly report is not available yet. Refresh after your next saved test.</p>}
+    </section>
+    <section className="admin-generation-panel">
+      <h2>Your 7-day training planner</h2>
+      <p className="hint">Generated from your recent speed, accuracy and weak-key patterns. This is a practice schedule only; simulator exam settings remain unchanged. Check off each session as you complete it.</p>
+      <div className="tiles"><div><b>{completedPlan}/7</b><span>Days completed</span></div><div><b>{needsAccuracy?"Accuracy":weakKey?"Weak key":weakPair?"Letter pair":needsSpeed?"Speed":"Consistency"}</b><span>Primary training priority</span></div><div><b>{goals.sessions}</b><span>Daily session goal</span></div><div><b>{goals.targetAccuracy}%</b><span>Accuracy target</span></div></div>
+      <div style={{display:"grid",gap:".75rem",marginTop:"1rem"}}>
+        {weeklyPlan.map((item,i)=><article key={planWeek+"-"+i} style={{border:"1px solid var(--border, #888)",borderRadius:"12px",padding:"1rem",opacity:planChecks[planWeek+"-"+i]?.65:1}}>
+          <label style={{display:"flex",alignItems:"flex-start",gap:".75rem",cursor:"pointer"}}>
+            <input type="checkbox" checked={!!planChecks[planWeek+"-"+i]} onChange={e=>setPlanChecks(old=>({...old,[planWeek+"-"+i]:e.target.checked}))} />
+            <span style={{flex:1}}><b>{item.day} · {item.focus}</b><br/><span>{item.task}</span><br/><span className="hint">Suggested time: {item.duration}</span><br/><a className="go alt" href={item.href}>Open practice</a></span>
+          </label>
+        </article>)}
+      </div>
+      <p className="hint">Checklist progress is saved in this browser for the current Monday–Sunday week. The planner does not create or submit official exam attempts.</p>
     </section>
     <section className="admin-generation-panel">
       <h2>Daily practice goals</h2>
