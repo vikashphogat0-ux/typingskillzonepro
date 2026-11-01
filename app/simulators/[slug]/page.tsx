@@ -77,6 +77,7 @@ export default function SimulatorPage() {
   const [practiceMode, setPracticeMode] = useState<"highlighted" | "unhighlighted" | "exam">("exam");
   const [passageSearch, setPassageSearch] = useState("");
   const [dailySearch, setDailySearch] = useState("");
+  const [monthlySearch, setMonthlySearch] = useState("");
   const [passageSource, setPassageSource] = useState<"library" | "custom">("library");
   const [customPassage, setCustomPassage] = useState("");
   const [library, setLibrary] = useState<LibraryData | null>(null);
@@ -290,6 +291,14 @@ export default function SimulatorPage() {
   const scoring = sim.scoring ?? {};
   const visiblePassages = passageOptions.filter(p => !passageSearch.trim() || p.id.toLowerCase().includes(passageSearch.trim().toLowerCase()) || String(p.passage_number ?? "").padStart(2, "0").includes(passageSearch.trim().toLowerCase()) || p.title.toLowerCase().includes(passageSearch.trim().toLowerCase()));
   const monthlyItems = library?.monthly ?? [];
+  const visibleMonthlyItems = monthlyItems.filter(item => {
+    const query = monthlySearch.trim().toLowerCase();
+    if (!query) return true;
+    return item.id.toLowerCase().includes(query)
+      || item.title.toLowerCase().includes(query)
+      || String(item.passage_number ?? "").padStart(2, "0").includes(query)
+      || (item.date ?? "").toLowerCase().includes(query);
+  });
   const relevantResults = results.filter(r => !r.simulator || r.simulator.toLowerCase() === sim.name.toLowerCase());
   const bestNet = relevantResults.length ? Math.max(...relevantResults.map(r => Number(r.net_wpm) || 0)) : 0;
   const averageAccuracy = relevantResults.length ? relevantResults.reduce((sum, r) => sum + (Number(r.accuracy) || 0), 0) / relevantResults.length : 0;
@@ -404,10 +413,14 @@ export default function SimulatorPage() {
 
       {tab === "monthly" && <section className="exam-workspace-panel">
         <div className="exam-workspace-section-heading"><div><span className="exam-workspace-eyebrow">COMPLETED MONTH ARCHIVE · {sim.language === "hi" ? "HINDI" : "ENGLISH"}</span><h2>Monthly passage PDFs</h2><p>Each completed month is presented as one combined PDF containing all passages uploaded to this exam’s daily library during that month.</p></div></div>
-        <div className="exam-month-toolbar"><label>Select completed month<select value={month} onChange={e => { setMonth(e.target.value); setSelectedPreview(null); void loadLibrary(e.target.value); }}><option value="">Choose month</option>{(library?.months ?? []).map(m => <option key={m} value={m}>{new Date(m + "-01T00:00:00").toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</option>)}</select></label><span>{monthlyItems.length} passages in this monthly PDF</span></div>
+        <div className="exam-month-toolbar"><label>Select completed month<select value={month} onChange={e => { setMonth(e.target.value); setMonthlySearch(""); setSelectedPreview(null); void loadLibrary(e.target.value); }}><option value="">Choose month</option>{(library?.months ?? []).map(m => <option key={m} value={m}>{new Date(m + "-01T00:00:00").toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</option>)}</select></label><span>{monthlyItems.length} passages · {monthlyItems.reduce((sum, item) => sum + Number(item.word_count || 0), 0)} total words</span></div>
         {libraryLoading && <div className="exam-workspace-state">Preparing monthly collection…</div>}
         {libraryError && <div className="exam-workspace-error">{libraryError}</div>}
-        {!libraryLoading && !libraryError && monthlyItems.length > 0 && <article className="exam-passage-row exam-passage-row-feature"><div className="exam-passage-row-main"><span className="exam-passage-row-exam">{sim.name} · MONTHLY COLLECTION</span><strong>{month ? new Date(month + "-01T00:00:00").toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : "Completed month"}</strong><small>{monthlyItems.length} passages · {monthlyItems.reduce((sum, item) => sum + Number(item.word_count || 0), 0)} total words · Numbered from 01 in upload order</small></div><div className="exam-passage-row-actions"><button className="exam-row-practice" onClick={printMonthlyBundle}>Print / Save monthly PDF</button></div></article>}
+        {!libraryLoading && !libraryError && monthlyItems.length > 0 && <>
+          <article className="exam-passage-row exam-passage-row-feature"><div className="exam-passage-row-main"><span className="exam-passage-row-exam">{sim.name} · MONTHLY COLLECTION</span><strong>{month ? new Date(month + "-01T00:00:00").toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : "Completed month"}</strong><small>{monthlyItems.length} passages · Numbered from 01 in upload order</small></div><div className="exam-passage-row-actions"><button className="exam-row-practice" onClick={printMonthlyBundle}>Print / Save monthly PDF</button></div></article>
+          <div className="exam-daily-toolbar exam-monthly-search"><label className="exam-field">Find a passage in this month<input type="search" value={monthlySearch} onChange={event => setMonthlySearch(event.target.value)} placeholder="Search by passage ID, title or date…" /></label><span>{visibleMonthlyItems.length} of {monthlyItems.length} passages</span>{monthlySearch && <button type="button" className="exam-small-refresh" onClick={() => setMonthlySearch("")}>Clear search</button>}</div>
+          <div className="exam-passage-list">{visibleMonthlyItems.map(item => <article className="exam-passage-row" key={item.id}><div className="exam-passage-row-main"><span className="exam-passage-row-exam">{sim.name} · MONTHLY ARCHIVE</span><strong>{item.title}</strong><small>{item.date ?? "Archived passage"} · {item.word_count} words · Passage ID: {String(item.passage_number ?? 1).padStart(2, "0")}</small></div><div className="exam-passage-row-actions"><button onClick={() => void fetchPreview(item)}>View</button><button onClick={() => void printPassage(item)}>Print</button><button className="exam-row-practice" onClick={() => { setPassageSource("library"); setSelectedPassageId(item.id); setTab("practice"); }}>Practise</button></div></article>)}{!visibleMonthlyItems.length && <div className="exam-workspace-state">No archived passages match “{monthlySearch}”. Try another ID, title or date.</div>}</div>
+        </>}
         {!libraryLoading && !libraryError && !monthlyItems.length && <div className="exam-workspace-state">No completed monthly PDF is available yet. This month’s passages remain in Daily passages until the month closes.</div>}
       </section>}
 
