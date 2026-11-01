@@ -34,7 +34,7 @@ export interface AttemptCheck { tampered: boolean; flagged: boolean; reasons: st
  * flagged: saved, but kept off the leaderboards (impossible speed or time overrun).
  * Elapsed time can never be shorter than the last keystroke.
  */
-export function validateAttempt(a: { typed: string; events: KeyEvent[]; elapsedSec: number; durationSec: number; backspaceMode?: BackspaceMode }): AttemptCheck {
+export function validateAttempt(a: { typed: string; events: KeyEvent[]; elapsedSec: number; durationSec: number; backspaceMode?: BackspaceMode; enterKeyPolicy?: "newline" | "blocked"; tabKeyPolicy?: "blocked" | "insert" }): AttemptCheck {
   const reasons: string[] = [];
   let tampered = false, flagged = false;
   const ev = Array.isArray(a.events) ? a.events : [];
@@ -72,6 +72,19 @@ export function validateAttempt(a: { typed: string; events: KeyEvent[]; elapsedS
         break;
       }
       stack.splice(stack.length - count, count);
+    }
+  }
+  if (tampered) return { tampered, flagged, reasons, elapsedSec: 0 };
+  // Enforce the selected exam's control-character policy on the server too.
+  // The browser is not trusted: a caller must not bypass blocked Enter/Tab via a direct API request.
+  if (typeof a.typed === "string") {
+    if (a.enterKeyPolicy === "blocked" && a.typed.includes("\\n")) {
+      tampered = true;
+      reasons.push("Enter is disabled for this simulator.");
+    }
+    if (a.tabKeyPolicy === "blocked" && a.typed.includes("\\t")) {
+      tampered = true;
+      reasons.push("Tab is disabled for this simulator.");
     }
   }
   if (tampered) return { tampered, flagged, reasons, elapsedSec: 0 };
