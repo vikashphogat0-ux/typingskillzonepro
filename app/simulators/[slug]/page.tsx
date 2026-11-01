@@ -341,10 +341,31 @@ export default function SimulatorPage() {
           {passageSource === "custom" ? <label className="exam-field">Paste your own passage (minimum {customMinimumWords(slug)} words)<textarea rows={7} maxLength={50000} value={customPassage} onChange={e => setCustomPassage(e.target.value)} placeholder="Paste your own passage here…" spellCheck={false}/></label> : <>
             <label className="exam-field">Find passage by title or unique ID<input value={passageSearch} onChange={e => setPassageSearch(e.target.value)} placeholder="Search by passage ID or title…"/></label>
             <label className="exam-field">Select passage<select value={selectedPassageId} onChange={e => setSelectedPassageId(e.target.value)} disabled={passageOptionsLoading || !!passageOptionsError || visiblePassages.length === 0}><option value="">Random passage for this exam language</option>{visiblePassages.map(p => <option key={p.id} value={p.id}>Passage ID: {String(p.passage_number ?? 1).padStart(2, "0")} · {p.title} · {p.word_count} words</option>)}</select></label>
-            {passageOptionsLoading ? <small role="status">Loading passages for {sim.name}…</small> : passageOptionsError ? <p className="exam-workspace-error" role="alert">{passageOptionsError} <button type="button" onClick={() => void retryPassageOptions()}>Retry</button></p> : <small>{visiblePassages.length} matching passages available{passageSearch.trim() ? ` out of ${passageOptions.length}` : ""}. The selected simulator controls timing, scoring, layout and keyboard rules.</small>
-            {selectedPassageId && passageOptions.find(item => item.id === selectedPassageId) && <small role="status">Selected: Passage {String(passageOptions.find(item => item.id === selectedPassageId)?.passage_number ?? 1).padStart(2, "0")} · {passageOptions.find(item => item.id === selectedPassageId)?.title} · {passageOptions.find(item => item.id === selectedPassageId)?.word_count} words</small>}
-            {!selectedPassageId && <small>Random selection: the server will choose an available passage for this exam language.</small>}}
-            {!passageOptionsLoading && !passageOptionsError && passageSearch.trim() && visiblePassages.length === 0 && <small>No passages match that search. Try a different ID or title.</small>}
+            {passageOptionsLoading ? (
+              <small role="status">Loading passages for {sim.name}…</small>
+            ) : passageOptionsError ? (
+              <p className="exam-workspace-error" role="alert">
+                {passageOptionsError}{" "}
+                <button type="button" onClick={() => void retryPassageOptions()}>Retry</button>
+              </p>
+            ) : (
+              <small>
+                {visiblePassages.length} matching passages available
+                {passageSearch.trim() ? ` out of ${passageOptions.length}` : ""}.
+                The selected simulator controls timing, scoring, layout and keyboard rules.
+              </small>
+            )}
+            {selectedPassageId && passageOptions.find(item => item.id === selectedPassageId) && (
+              <small role="status">
+                Selected: Passage {String(passageOptions.find(item => item.id === selectedPassageId)?.passage_number ?? 1).padStart(2, "0")} · {passageOptions.find(item => item.id === selectedPassageId)?.title} · {passageOptions.find(item => item.id === selectedPassageId)?.word_count} words
+              </small>
+            )}
+            {!selectedPassageId && (
+              <small>Random selection: the server will choose an available passage for this exam language.</small>
+            )}
+            {!passageOptionsLoading && !passageOptionsError && passageSearch.trim() && visiblePassages.length === 0 && (
+              <small>No passages match that search. Try a different ID or title.</small>
+            )}
           </>}
         </div>
         <div className="exam-mode-picker">
