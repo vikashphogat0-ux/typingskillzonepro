@@ -18,10 +18,24 @@ export async function POST(req: Request) {
   if (getBuiltInPreset(String(t.slug))) return Response.json({ error: "Built-in exam presets are code-managed to keep published rules consistent. Create a new custom slug to configure different rules." }, { status: 409 });
   const { errors, scoring } = validateTemplate(t);
   if (errors.length || !scoring) return Response.json({ error: errors.join(" ") }, { status: 422 });
-  await sql()`INSERT INTO exam_templates (slug, name, language, duration_sec, display_mode, backspace, scoring, is_active)
-    VALUES (${t.slug}, ${t.name.trim()}, ${t.language}, ${t.durationSec}, ${t.displayMode}, ${t.backspace}, ${JSON.stringify(scoring)}::jsonb, ${t.isActive ?? true})
+  await sql()`INSERT INTO exam_templates (
+      slug, name, language, duration_sec, display_mode, backspace, scoring, is_active,
+      passage_layout, font_size_pt, passage_font_family, passage_alignment,
+      passage_line_spacing, passage_paragraph_spacing, print_page_size
+    )
+    VALUES (
+      ${t.slug}, ${t.name.trim()}, ${t.language}, ${t.durationSec}, ${t.displayMode}, ${t.backspace},
+      ${JSON.stringify(scoring)}::jsonb, ${t.isActive ?? true},
+      ${t.passageLayout ?? "continuous"}, ${t.fontSizePt ?? 12}, ${t.passageFontFamily ?? "system"},
+      ${t.passageAlignment ?? "left"}, ${t.passageLineSpacing ?? 1.5},
+      ${t.passageParagraphSpacing ?? 8}, ${t.printPageSize ?? "A4"}
+    )
     ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, language = EXCLUDED.language, duration_sec = EXCLUDED.duration_sec,
-      display_mode = EXCLUDED.display_mode, backspace = EXCLUDED.backspace, scoring = EXCLUDED.scoring, is_active = EXCLUDED.is_active`;
+      display_mode = EXCLUDED.display_mode, backspace = EXCLUDED.backspace, scoring = EXCLUDED.scoring, is_active = EXCLUDED.is_active,
+      passage_layout = EXCLUDED.passage_layout, font_size_pt = EXCLUDED.font_size_pt,
+      passage_font_family = EXCLUDED.passage_font_family, passage_alignment = EXCLUDED.passage_alignment,
+      passage_line_spacing = EXCLUDED.passage_line_spacing, passage_paragraph_spacing = EXCLUDED.passage_paragraph_spacing,
+      print_page_size = EXCLUDED.print_page_size`;
   return Response.json({ ok: true });
 }
 
