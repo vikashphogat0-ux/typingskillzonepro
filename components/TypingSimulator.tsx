@@ -2,7 +2,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { calculateScore, norm, type KeyEvent, type Lang, type ScoreResult, type ScoringProfile } from "@/lib/wpmCalculator";
 import { checkEdit, type BackspaceMode } from "@/lib/backspacePolicy";
-import type { DisplayMode } from "@/lib/presets";
+import { usesRrbCbtstPhases, type DisplayMode } from "@/lib/presets";
 import { formatRkcPassage } from "@/lib/rkc-passage-format";
 
 export interface SimResult {
@@ -70,7 +70,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, prac
 
   const [value, setValue] = useState("");
   const [left, setLeft] = useState(durationSec);
-  const hasRrbPhases = profile.id === "rrb-ntpc-en" || profile.id === "rrb-ntpc-hi";
+  const hasRrbPhases = usesRrbCbtstPhases(profile.id);
   const [phase, setPhase] = useState<"warmup" | "break" | "test">(hasRrbPhases ? "warmup" : "test");
   const [phaseLeft, setPhaseLeft] = useState(60);
   const phaseStartRef = useRef<number | null>(hasRrbPhases ? Date.now() : null);
