@@ -37,6 +37,14 @@ export interface AttemptCheck { tampered: boolean; flagged: boolean; reasons: st
 export function validateAttempt(a: { typed: string; events: KeyEvent[]; elapsedSec: number; durationSec: number; backspaceMode?: BackspaceMode; enterKeyPolicy?: "newline" | "blocked"; tabKeyPolicy?: "blocked" | "insert" }): AttemptCheck {
   const reasons: string[] = [];
   let tampered = false, flagged = false;
+  // Fail closed on invalid timing metadata. NaN/Infinity would otherwise make
+  // elapsed-time and overrun comparisons silently evaluate to false.
+  if (!Number.isFinite(a.durationSec) || a.durationSec <= 0) {
+    return { tampered: true, flagged: false, reasons: ["Invalid test duration."], elapsedSec: 0 };
+  }
+  if (!Number.isFinite(a.elapsedSec) || a.elapsedSec < 0) {
+    return { tampered: true, flagged: false, reasons: ["Invalid elapsed time."], elapsedSec: 0 };
+  }
   const ev = Array.isArray(a.events) ? a.events : [];
   if (!Array.isArray(a.events)) { tampered = true; reasons.push("Invalid key log."); }
   if (ev.length > 40000) { tampered = true; reasons.push("Too many key events."); }
