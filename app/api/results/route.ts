@@ -37,7 +37,7 @@ async function submitSimulator(uid: string, b: any) {
   const typed = b.typed;
   const events: KeyEvent[] = b.events;
   const backspaceMode = t.backspace === "disabled" || t.backspace === "word" ? t.backspace : "full";
-  const check = validateAttempt({ typed, events, elapsedSec: Number(b.elapsedSec) || 0, durationSec: t.duration_sec, backspaceMode, enterKeyPolicy: t.enter_key_policy === "blocked" ? "blocked" : "newline", tabKeyPolicy: t.tab_key_policy === "insert" ? "insert" : "blocked" });
+  const check = validateAttempt({ typed, events, elapsedSec: Number(b.elapsedSec), durationSec: t.duration_sec, backspaceMode, enterKeyPolicy: t.enter_key_policy === "blocked" ? "blocked" : "newline", tabKeyPolicy: t.tab_key_policy === "insert" ? "insert" : "blocked" });
   if (check.tampered) return Response.json({ error: "This result could not be verified." }, { status: 400 });
   const profile = getBuiltInPreset(String(t.template_slug ?? ""))?.profile ?? t.scoring ?? PROFILES.practice;
   const s = calculateScore({ reference: t.reference_text, typed, elapsedSec: check.elapsedSec, durationSec: t.duration_sec, profile, keyEvents: events });
@@ -79,7 +79,7 @@ async function submitPractice(uid: string, b: any) {
   const configuredDuration = preset?.durationSec ?? (savedTemplate?.duration_sec ? Number(savedTemplate.duration_sec) : Number(b.durationSec));
   const duration = Math.min(Math.max(Number(configuredDuration) || 0, 30), 3600);
   const reference = b.reference, typed = b.typed;
-  const check = validateAttempt({ typed, events, elapsedSec: Number(b.elapsedSec) || 0, durationSec: duration });
+  const check = validateAttempt({ typed, events, elapsedSec: Number(b.elapsedSec), durationSec: duration });
   if (check.tampered) return Response.json({ error: "This result could not be verified." }, { status: 400 });
   const s = calculateScore({ reference, typed, elapsedSec: check.elapsedSec, durationSec: duration, profile, keyEvents: events });
   const enforceDailyLimit = access.testsLeft !== null;
