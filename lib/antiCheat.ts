@@ -66,7 +66,7 @@ export function validateAttempt(a: { typed: string; events: KeyEvent[]; elapsedS
         reasons.push("Deletion exceeds the available typed text.");
         break;
       }
-      if (a.backspaceMode === "word" && stack.slice(stack.length - count).some((ch) => /\\s/u.test(ch))) {
+      if (a.backspaceMode === "word" && stack.slice(stack.length - count).some((ch) => /\s/u.test(ch))) {
         tampered = true;
         reasons.push("Backspace cannot delete a word separator in this simulator.");
         break;
