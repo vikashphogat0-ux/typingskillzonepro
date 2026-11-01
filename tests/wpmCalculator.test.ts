@@ -477,9 +477,11 @@ test("only RRB NTPC CBTST profiles receive the warm-up and break protocol", () =
 
 
 test("exam keyboard policy rejects blocked Enter and Tab at input-commit level", () => {
-  assert.equal(isExamInputAllowed("abc", "abc\\n", "blocked", "insert"), false);
-  assert.equal(isExamInputAllowed("abc", "abc\\t", "newline", "blocked"), false);
-  assert.equal(isExamInputAllowed("abc", "abc\\n", "newline", "blocked"), true);
-  assert.equal(isExamInputAllowed("abc", "abc\\t", "blocked", "insert"), true);
-  assert.equal(isExamInputAllowed("abc\\n", "abc", "blocked", "blocked"), true);
+  const newline = String.fromCharCode(10);
+  const tab = String.fromCharCode(9);
+  assert.equal(isExamInputAllowed("abc", "abc" + newline, "blocked", "insert"), false);
+  assert.equal(isExamInputAllowed("abc", "abc" + tab, "newline", "blocked"), false);
+  assert.equal(isExamInputAllowed("abc", "abc" + newline, "newline", "blocked"), true);
+  assert.equal(isExamInputAllowed("abc", "abc" + tab, "blocked", "insert"), true);
+  assert.equal(isExamInputAllowed("abc" + newline, "abc", "blocked", "blocked"), true);
 });
