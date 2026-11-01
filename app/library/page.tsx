@@ -25,6 +25,8 @@ export default function Library() {
   const [month, setMonth] = useState(currentISTMonth);
   const [monthly, setMonthly] = useState<P[]>([]);
   const [monthLoading, setMonthLoading] = useState(false);
+  const [monthError, setMonthError] = useState("");
+  const [monthRetry, setMonthRetry] = useState(0);
   const [monthLang, setMonthLang] = useState<"all" | "en" | "hi">("all");
   const [selectedPassage, setSelectedPassage] = useState("");
 
@@ -51,16 +53,18 @@ export default function Library() {
   useEffect(() => {
     let active = true;
     setMonthLoading(true);
+    setMonthError("");
     api(`/api/library?month=${encodeURIComponent(month)}${monthLang === "all" ? "" : `&lang=${monthLang}`}`)
       .then(r => {
-        if (!active || !r.ok) return;
+        if (!active) return;
+        if (!r.ok) { setMonthError(r.data?.error ?? "The selected month could not be loaded. Please try again."); return; }
         setMonthly(Array.isArray(r.data?.monthly) ? r.data.monthly : []);
         if (r.data?.months?.length && !r.data.months.includes(month)) setMonth(r.data.months[0]);
       })
-      .catch(() => { if (active) setMonthly([]); })
+      .catch(() => { if (active) setMonthError("Connection issue while loading this month. Check your connection and try again."); })
       .finally(() => { if (active) setMonthLoading(false); });
     return () => { active = false; };
-  }, [month, monthLang]);
+  }, [month, monthLang, monthRetry]);
   useEffect(() => {
     if (printing?.body) {
       const t = setTimeout(() => window.print(), 100);
@@ -121,8 +125,9 @@ export default function Library() {
           <label>Practice month<select value={month} onChange={e => setMonth(e.target.value)}>{(d?.months?.length ? d.months : [month]).map(m => <option key={m} value={m}>{new Date(`${m}-01T12:00:00`).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</option>)}</select></label>
           <label className="library-month-language">Passage folder<select value={monthLang} onChange={e => setMonthLang(e.target.value as "all" | "en" | "hi")}><option value="all">All passages</option><option value="en">English folder</option><option value="hi">Hindi folder</option></select></label><span className="library-month-count">{monthLoading ? "Loading passages…" : `${monthly.length} passage${monthly.length === 1 ? "" : "s"} in this month`}</span>
         </div>
-        {!monthLoading && monthly.length === 0 ? <div className="empty-state"><b>No passages found for this month.</b><p>Choose another month or use Search Library to find any available passage.</p><button className="go alt" onClick={() => setTab("all")}>Search all passages</button></div> :
-          <div className="library-month-list">{monthly.map((p, index) => <article key={p.id} className={`library-month-item ${selectedPassage === p.id ? "selected" : ""}`}>
+        {monthError && !monthLoading ? <div className="empty-state" role="alert"><b>We couldn’t load this month’s passages.</b><p>{monthError}</p><button className="go alt" onClick={() => setMonthRetry(value => value + 1)}>Retry this month</button></div> : null}
+        {!monthError && !monthLoading && monthly.length === 0 ? <div className="empty-state"><b>No passages found for this month.</b><p>Choose another month or use Search Library to find any available passage.</p><button className="go alt" onClick={() => setTab("all")}>Search all passages</button></div> :
+          {!monthError && monthly.length > 0 && <div className="library-month-list">{monthly.map((p, index) => <article key={p.id} className={`library-month-item ${selectedPassage === p.id ? "selected" : ""}`}>
             <div className="library-month-select">
               <span className="library-row-number">{index + 1}</span>
               <span className={`library-language-mark ${p.language === "hi" ? "hindi" : "english"}`}>{p.language === "hi" ? "हि" : "EN"}</span>
