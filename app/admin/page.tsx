@@ -58,9 +58,12 @@ export default function Admin() {
   useEffect(() => { if (tpls.length && !tpls.some((x) => x.slug === selectedExamSlug && x.is_active)) setSelectedExamSlug(tpls.find((x) => x.language === lang && x.is_active)?.slug ?? ""); }, [tpls, selectedExamSlug, lang]);
   const check = useMemo(() => validatePassage({ title, language: lang, body }), [title, lang, body]);
   const [bulk, setBulk] = useState<{ title: string; body: string }[]>([]);
+  const [publishToAll, setPublishToAll] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfName, setPdfName] = useState("");
   const bulkChecks = useMemo(() => bulk.map((b) => validatePassage({ ...b, language: lang })), [bulk, lang]);
 
-  const savePassages = async (items: { title: string; language: Lang; body: string }[]) => {
+  const savePassages = async (items: { title: string; language: Lang; body: string }[], allMatching = false) => {
     if (savingPassages || !items.length) return;
     setSavingPassages(true);
     let saved = 0;
@@ -85,7 +88,7 @@ export default function Admin() {
       for (let index = 0; index < chunks.length; index++) {
         const batch = chunks[index];
         setMsg(`Saving passages: ${saved} of ${items.length} complete (batch ${index + 1}/${chunks.length})…`);
-        const r = await post("/api/admin/passages", { items: batch, templateSlug: selectedExamSlug });
+        const r = await post("/api/admin/passages", { items: batch, templateSlug: selectedExamSlug, publishToAll: allMatching });
         if (!r.ok || Number(r.data.saved) !== batch.length) {
           const details = Array.isArray(r.data.problems)
             ? r.data.problems.map((p: any) => `Passage ${p.index + 1}: ${(p.errors ?? []).join(" ")}`).join(" | ")
@@ -100,7 +103,7 @@ export default function Admin() {
         if (bulk.length) setBulk(remaining.map(({ title, body }) => ({ title, body })));
       }
 
-      setMsg(`Successfully saved all ${saved} passage(s).`);
+      setMsg(`Successfully published ${saved} passage(s)${allMatching ? " to all active matching-language simulators" : ""}.`);
       setTitle(""); setBody(""); setBulk([]);
       await load();
     } catch (error) {
@@ -112,6 +115,34 @@ export default function Admin() {
     }
   };
   const onFile = async (f?: File) => { if (f) setBulk(parseBulk(await f.text())); };
+  const onPdfFile = async (file?: File) => {
+    if (!file) return;
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      setMsg("Choose a PDF file."); return;
+    }
+    if (file.size > 20 * 1024 * 1024) { setMsg("PDF must be 20 MB or smaller."); return; }
+    setPdfBusy(true); setMsg(""); setBulk([]); setPdfName(file.name);
+    try {
+      const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const task = pdfjs.getDocument({ data: bytes, isEvalSupported: false, useSystemFonts: true });
+      const pdf = await task.promise;
+      if (pdf.numPages > 200) throw new Error("PDF has more than 200 pages. Split it into smaller monthly files.");
+      const extracted: { title: string; body: string }[] = [];
+      for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
+        const page = await pdf.getPage(pageNo);
+        const content = await page.getTextContent();
+        const text = cleanBody(content.items.map((item: any) => typeof item.str === "string" ? item.str : "").join(" "));
+        if (!text || countWords(text) < 30) continue;
+        extracted.push({ title: \`Passage \${String(extracted.length + 1).padStart(2, "0")}\`, body: text });
+      }
+      if (!extracted.length) throw new Error("No selectable passage text was found. This PDF may be scanned; OCR is not included.");
+      setBulk(extracted);
+      setMsg(\`Extracted \${extracted.length} passage(s) from \${pdf.numPages} PDF pages. Review the preview, then publish.\`);
+    } catch (error) {
+      setMsg(error instanceof Error ? error.message : "Could not extract text from this PDF.");
+    } finally { setPdfBusy(false); }
+  };
   const folderRows = rows.filter((row) =>
     (folder === "all" || (row.template ?? "general") === folder) &&
     (languageFilter === "all" || row.language === languageFilter) &&
@@ -193,6 +224,18 @@ export default function Admin() {
             {check.warnings.map((e) => <p key={e} className="warn">{e}</p>)}
             <button className="go" disabled={!check.ok} onClick={() => savePassages([check.clean])}>Save passage</button>
           </div>
+
+          <section className="admin-generation-panel">
+            <h2>Upload one RKC-style monthly PDF</h2>
+            <p className="hint">Upload a text-based PDF with one complete passage per page. Each page becomes one passage. Scanned image-only PDFs require OCR and are not supported by this extractor.</p>
+            <label>PDF language <select value={lang} onChange={e => setLang(e.target.value as Lang)}><option value="en">English</option><option value="hi">Hindi</option></select></label>
+            <label>PDF file <input type="file" accept="application/pdf,.pdf" disabled={pdfBusy || savingPassages} onChange={e => void onPdfFile(e.target.files?.[0])} /></label>
+            {pdfName && <p className="hint">Selected: {pdfName}</p>}
+            <label><input type="checkbox" checked={publishToAll} onChange={e => setPublishToAll(e.target.checked)} /> Publish automatically to every active simulator with this language</label>
+            <p className="hint">Each simulator receives its own passage copy. Its own RKC-referenced layout is applied at display time. Exam rules and scoring are not changed.</p>
+            {pdfBusy && <p role="status">Extracting PDF pages…</p>}
+            {bulk.length > 0 && <><p>{bulk.length} passages extracted · {bulkChecks.filter(c => c.ok).length} valid · {bulkChecks.filter(c => !c.ok).length} need review</p><ol>{bulkChecks.slice(0, 12).map((c, i) => <li key={i}>{String(i + 1).padStart(2, "0")} · {c.clean.title} · {countWords(c.clean.body)} words {c.ok ? "✓" : c.errors.join(" ")}</li>)}</ol>{bulk.length > 12 && <p className="hint">Showing first 12 passages.</p>}<button className="go" disabled={pdfBusy || savingPassages || bulkChecks.some(c => !c.ok)} onClick={() => void savePassages(bulkChecks.map(c => ({ ...c.clean, language: lang })), publishToAll)}>{savingPassages ? "Publishing…" : \`Publish \${bulk.length} passages \${publishToAll ? "to all matching simulators" : "to selected simulator"}\`}</button></>}
+          </section>
 
           <h2>Upload many at once</h2>
           <p className="hint">Use a UTF-8 .txt file. Separate passages with a line containing only ---. Start a passage with “# Title” to name it. Language and selected exam directories above apply to all.</p>
