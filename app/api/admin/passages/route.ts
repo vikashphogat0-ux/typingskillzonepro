@@ -62,22 +62,22 @@ export async function POST(req: Request) {
     }));
     const payload = basePayload.map((item: any, index: number) => ({
       ...item,
-      title: /^Passage\s+\d+$/i.test(item.title.trim()) ? \`Passage \${String(index + 1).padStart(2, "0")}\` : item.title,
+      title: /^Passage\s+\d+$/i.test(item.title.trim()) ? `Passage \${String(index + 1).padStart(2, "0")}` : item.title,
     }));
     const records = destinations.flatMap((destination: any) => payload.map((item: any, index: number) => ({
       template_id: String(destination.id), language: item.language,
-      title: \`\${String(destination.name)} — Passage \${String(index + 1).padStart(2, "0")}\`.slice(0, 120),
+      title: `\${String(destination.name)} — Passage \${String(index + 1).padStart(2, "0")}`.slice(0, 120),
       body: item.body, word_count: item.word_count,
       simulator_slug: String(destination.slug), source_title: item.title,
     })));
-    const inserted = await db\`
+    const inserted = await db`
       INSERT INTO passages (template_id, language, title, body, word_count, created_by, format_metadata)
       SELECT item.template_id::uuid, item.language, item.title, item.body, item.word_count, \${uid},
         jsonb_build_object('importType', 'multi-simulator-pdf', 'source', 'admin-upload', 'simulatorSlug', item.simulator_slug, 'sourceTitle', item.source_title)
       FROM jsonb_to_recordset(\${JSON.stringify(records)}::jsonb)
         AS item(template_id text, language text, title text, body text, word_count integer, simulator_slug text, source_title text)
       RETURNING id
-    \`;
+    `;
     if (inserted.length !== records.length) return Response.json({ error: "Passage publication was incomplete. Refresh before retrying.", saved: 0 }, { status: 500 });
     return Response.json({ ok: true, saved: payload.length, publications: inserted.length, destinations: destinations.map((d: any) => d.slug), simulatorCount: destinations.length });
   } catch (error) {
