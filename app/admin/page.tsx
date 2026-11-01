@@ -126,7 +126,7 @@ export default function Admin() {
       const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
       pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/legacy/build/pdf.worker.mjs", import.meta.url).toString();
       const bytes = new Uint8Array(await file.arrayBuffer());
-      const task = pdfjs.getDocument({ data: bytes, isEvalSupported: false, useSystemFonts: true });
+      const task = pdfjs.getDocument({ data: bytes, useSystemFonts: true });
       const pdf = await task.promise;
       if (pdf.numPages > 200) throw new Error("PDF has more than 200 pages. Split it into smaller monthly files.");
       const extracted: { title: string; body: string }[] = [];
