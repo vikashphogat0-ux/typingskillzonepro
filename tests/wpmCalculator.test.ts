@@ -2,10 +2,34 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { calculateScore, PROFILES, analyzeKeyLog, type KeyEvent } from "../lib/wpmCalculator.ts";
 import { checkEdit } from "../lib/backspacePolicy.ts";
+import { formatRkcPassage, getRkcPassageLayout } from "../lib/rkc-passage-format.ts";
 import { isExamInputAllowed } from "../lib/keyboardPolicy.ts";
 import { PRESETS, getVerifiedPreset, validatePresetCatalog, usesRrbCbtstPhases } from "../lib/presets.ts";
 
 const P = { ...PROFILES.practice };
+
+test("simulator passage layout profiles remain exam-specific", () => {
+  assert.equal(getRkcPassageLayout("bsf-hcm-en"), "continuous");
+  assert.equal(getRkcPassageLayout("crpf-hcm-hi"), "continuous");
+  assert.equal(getRkcPassageLayout("dp-hcm-en"), "paragraph-tab");
+  assert.equal(getRkcPassageLayout("dp-hcm-hi"), "paragraph-tab");
+  assert.equal(getRkcPassageLayout("ssc-chsl-en"), "source-preserved");
+});
+
+test("continuous passage formatting collapses all source whitespace without changing words", () => {
+  const source = "  First   line\\n\\nSecond\\tline  ";
+  assert.equal(formatRkcPassage(source, "continuous"), "First line Second line");
+});
+
+test("source-preserved formatting normalizes line endings and trims trailing line spaces", () => {
+  const source = "  First line  \\r\\nSecond line\\t\\r\\n\\r\\nThird line  ";
+  assert.equal(formatRkcPassage(source, "source-preserved"), "First line\\nSecond line\\n\\nThird line");
+});
+
+test("paragraph-tab formatting retains paragraph boundaries for simulator rendering", () => {
+  const source = "First paragraph\\r\\n\\r\\nSecond paragraph";
+  assert.equal(formatRkcPassage(source, "paragraph-tab"), "First paragraph\\n\\nSecond paragraph");
+});
 const ref = "the quick brown fox jumps over the lazy dog";
 const run = (typed: string, sec = 60) => calculateScore({ reference: ref, typed, elapsedSec: sec, durationSec: 600, profile: P });
 
