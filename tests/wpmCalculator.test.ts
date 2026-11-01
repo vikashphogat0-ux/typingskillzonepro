@@ -534,3 +534,57 @@ test("anti-cheat rejects invalid attempt timing metadata", () => {
   assert.equal(validateAttempt({ ...base, elapsedSec: Number.POSITIVE_INFINITY }).tampered, true);
   assert.equal(validateAttempt(base).tampered, false);
 });
+
+
+test("Hindi committed IME text replays exactly as Unicode code-point events", () => {
+  const committed = "किताब भारत क्षत्रिय".normalize("NFC");
+  const events: KeyEvent[] = Array.from(committed, (ch, index) => ({
+    t: index + 1,
+    type: "ins" as const,
+    ch,
+  }));
+  assert.equal(replayEvents(events), committed);
+  assert.equal(validateAttempt({
+    typed: committed,
+    events,
+    elapsedSec: 10,
+    durationSec: 60,
+  }).tampered, false);
+});
+
+test("canonically equivalent committed text is logged after NFC normalization", () => {
+  const decomposed = "Cafe" + String.fromCharCode(0x0301);
+  const committed = decomposed.normalize("NFC");
+  const events: KeyEvent[] = Array.from(committed, (ch, index) => ({
+    t: index + 1,
+    type: "ins" as const,
+    ch,
+  }));
+  assert.equal(committed, "Café");
+  assert.equal(Array.from(committed).length, 4);
+  assert.equal(replayEvents(events), committed);
+  assert.equal(validateAttempt({
+    typed: committed,
+    events,
+    elapsedSec: 5,
+    durationSec: 60,
+  }).tampered, false);
+});
+
+test("Hindi backspace replay removes code points without corrupting remaining text", () => {
+  const events: KeyEvent[] = [
+    { t: 1, type: "ins", ch: "क" },
+    { t: 2, type: "ins", ch: "ि" },
+    { t: 3, type: "ins", ch: "त" },
+    { t: 4, type: "del" },
+    { t: 5, type: "ins", ch: "त" },
+  ];
+  assert.equal(replayEvents(events), "कित");
+  assert.equal(validateAttempt({
+    typed: "कित",
+    events,
+    elapsedSec: 5,
+    durationSec: 60,
+    backspaceMode: "full",
+  }).tampered, false);
+});
