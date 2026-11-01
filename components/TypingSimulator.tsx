@@ -142,6 +142,18 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, prac
     const prev = valueRef.current;
     const res = checkEdit(prev, candidate, backspace);
     if (!res.ok) { input.value = prev; setValue(prev); return; }
+    // Enforce Enter/Tab rules at the committed-input boundary too. Keydown
+    // handlers alone can be bypassed by IME, mobile keyboards or synthetic input.
+    const before = Array.from(prev), after = Array.from(res.value);
+    let common = 0;
+    while (common < before.length && common < after.length && before[common] === after[common]) common++;
+    const inserted = after.slice(common).join("");
+    if ((enterKeyPolicy === "blocked" && inserted.includes("\n")) ||
+        (tabKeyPolicy === "blocked" && inserted.includes("\\t"))) {
+      input.value = prev;
+      setValue(prev);
+      return;
+    }
     const next = res.value;
     if (next === prev) { setValue(next); return; }
     if (startRef.current === null) startRef.current = Date.now();
