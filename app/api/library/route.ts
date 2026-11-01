@@ -20,10 +20,11 @@ export async function GET(req: Request) {
     const today = istDate();
     const currentMonth = today.slice(0, 7);
     const requestedMonth = u.searchParams.get("month") ?? "";
-    const monthRows = await db`SELECT DISTINCT to_char(p.created_at, 'YYYY-MM') AS month
+    const monthRows = await db`SELECT DISTINCT to_char(p.created_at AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM') AS month
       FROM passages p LEFT JOIN exam_templates et ON et.id = p.template_id
-      WHERE to_char(p.created_at, 'YYYY-MM') < ${currentMonth}
+      WHERE to_char(p.created_at AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM') < ${currentMonth}
         AND (${tpl} = '' OR et.slug = ${tpl})
+        AND (${lang}::text IS NULL OR p.language = ${lang})
       ORDER BY month DESC`;
     const months = monthRows.map((row: any) => String(row.month));
     const safeMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth) && months.includes(requestedMonth)
@@ -31,7 +32,7 @@ export async function GET(req: Request) {
 
     const dailyItems = await db`WITH ranked AS (
         SELECT p.*, row_number() OVER (
-          PARTITION BY p.template_id, p.language, date_trunc('month', p.created_at)
+          PARTITION BY p.template_id, p.language, date_trunc('month', p.created_at AT TIME ZONE 'Asia/Kolkata')
           ORDER BY p.created_at ASC, p.id ASC
         ) AS month_passage_number
         FROM passages p
@@ -41,9 +42,9 @@ export async function GET(req: Request) {
           THEN regexp_replace(p.title, 'passage[[:space:]]+[0-9]+', 'Passage ' || lpad(p.month_passage_number::text, 2, '0'), 'i')
           ELSE p.title END AS title,
         p.language, p.word_count, p.month_passage_number AS passage_number,
-        p.created_at::date::text AS date, et.name AS exam
+        (p.created_at AT TIME ZONE 'Asia/Kolkata')::date::text AS date, et.name AS exam
       FROM ranked p LEFT JOIN exam_templates et ON et.id = p.template_id
-      WHERE p.created_at::date = ${today}::date
+      WHERE (p.created_at AT TIME ZONE 'Asia/Kolkata')::date = ${today}::date
         AND (${lang}::text IS NULL OR p.language = ${lang})
         AND (${tpl} = '' OR et.slug = ${tpl})
       ORDER BY p.created_at ASC, p.id ASC`;
@@ -51,7 +52,7 @@ export async function GET(req: Request) {
     const like = `%${q.replace(/[%_]/g, "")}%`;
     const list = await db`WITH ranked AS (
         SELECT p.*, row_number() OVER (
-          PARTITION BY p.template_id, p.language, date_trunc('month', p.created_at)
+          PARTITION BY p.template_id, p.language, date_trunc('month', p.created_at AT TIME ZONE 'Asia/Kolkata')
           ORDER BY p.created_at ASC, p.id ASC
         ) AS month_passage_number
         FROM passages p
@@ -72,7 +73,7 @@ export async function GET(req: Request) {
     if (safeMonth) {
       monthly = await db`WITH ranked AS (
           SELECT p.*, row_number() OVER (
-            PARTITION BY p.template_id, p.language, date_trunc('month', p.created_at)
+            PARTITION BY p.template_id, p.language, date_trunc('month', p.created_at AT TIME ZONE 'Asia/Kolkata')
             ORDER BY p.created_at ASC, p.id ASC
           ) AS month_passage_number
           FROM passages p
@@ -82,9 +83,9 @@ export async function GET(req: Request) {
             THEN regexp_replace(p.title, 'passage[[:space:]]+[0-9]+', 'Passage ' || lpad(p.month_passage_number::text, 2, '0'), 'i')
             ELSE p.title END AS title,
           p.month_passage_number AS passage_number, p.language, p.word_count,
-          p.body, p.created_at::date::text AS date, et.name AS exam
+          p.body, (p.created_at AT TIME ZONE 'Asia/Kolkata')::date::text AS date, et.name AS exam
         FROM ranked p LEFT JOIN exam_templates et ON et.id = p.template_id
-        WHERE to_char(p.created_at, 'YYYY-MM') = ${safeMonth}
+        WHERE to_char(p.created_at AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM') = ${safeMonth}
           AND (${lang}::text IS NULL OR p.language = ${lang})
           AND (${tpl} = '' OR et.slug = ${tpl})
         ORDER BY p.created_at ASC, p.id ASC`;
