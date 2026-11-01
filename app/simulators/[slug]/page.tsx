@@ -76,6 +76,7 @@ export default function SimulatorPage() {
   const [selectedPassageId, setSelectedPassageId] = useState("");
   const [practiceMode, setPracticeMode] = useState<"highlighted" | "unhighlighted" | "exam">("exam");
   const [passageSearch, setPassageSearch] = useState("");
+  const [dailySearch, setDailySearch] = useState("");
   const [passageSource, setPassageSource] = useState<"library" | "custom">("library");
   const [customPassage, setCustomPassage] = useState("");
   const [library, setLibrary] = useState<LibraryData | null>(null);
@@ -293,6 +294,14 @@ export default function SimulatorPage() {
   const bestNet = relevantResults.length ? Math.max(...relevantResults.map(r => Number(r.net_wpm) || 0)) : 0;
   const averageAccuracy = relevantResults.length ? relevantResults.reduce((sum, r) => sum + (Number(r.accuracy) || 0), 0) / relevantResults.length : 0;
   const dailyItems = library?.dailyItems ?? [];
+  const visibleDailyItems = dailyItems.filter(item => {
+    const query = dailySearch.trim().toLowerCase();
+    if (!query) return true;
+    return item.id.toLowerCase().includes(query)
+      || item.title.toLowerCase().includes(query)
+      || String(item.passage_number ?? "").padStart(2, "0").includes(query)
+      || (item.date ?? "").toLowerCase().includes(query);
+  });
 
   return (
     <main className={`exam-workspace exam-workspace--${identity.tone}`} data-exam-tone={identity.tone} data-exam-slug={sim.slug}>
@@ -382,9 +391,14 @@ export default function SimulatorPage() {
 
       {tab === "daily" && <section className="exam-workspace-panel">
         <div className="exam-workspace-section-heading"><div><span className="exam-workspace-eyebrow">DAILY PRACTICE · {sim.language === "hi" ? "HINDI" : "ENGLISH"}</span><h2>Today’s passages</h2><p>Passages uploaded during the current month remain here until month-end. After the month closes, the complete set moves into one combined monthly PDF.</p></div><button className="exam-small-refresh" onClick={() => void loadLibrary()}>Refresh passages ↻</button></div>
+        <div className="exam-daily-toolbar">
+          <label className="exam-field">Search this exam’s daily passages<input type="search" value={dailySearch} onChange={event => setDailySearch(event.target.value)} placeholder="Search by passage ID, title or date…" /></label>
+          <span>{visibleDailyItems.length} of {dailyItems.length} passages</span>
+          {dailySearch && <button type="button" className="exam-small-refresh" onClick={() => setDailySearch("")}>Clear search</button>}
+        </div>
         {libraryLoading && <div className="exam-workspace-state">Loading today’s passages…</div>}
         {libraryError && <div className="exam-workspace-error">{libraryError}</div>}
-        {!libraryLoading && !libraryError && <div className="exam-passage-list">{dailyItems.map(item => <article className="exam-passage-row" key={item.id}><div className="exam-passage-row-main"><span className="exam-passage-row-exam">{sim.name}</span><strong>{item.title}</strong><small>{item.date ?? "This month"} · {item.word_count} words · Passage ID: {String(item.passage_number ?? 1).padStart(2, "0")}</small></div><div className="exam-passage-row-actions"><button onClick={() => void fetchPreview(item)}>View</button><button onClick={() => void printPassage(item)}>Print</button><button className="exam-row-practice" onClick={() => { setPassageSource("library"); setSelectedPassageId(item.id); setTab("practice"); }}>Practise</button></div></article>)}{!dailyItems.length && <div className="exam-workspace-state">No passages have been uploaded for this exam during the current month.</div>}</div>}
+        {!libraryLoading && !libraryError && <div className="exam-passage-list">{visibleDailyItems.map(item => <article className="exam-passage-row" key={item.id}><div className="exam-passage-row-main"><span className="exam-passage-row-exam">{sim.name}</span><strong>{item.title}</strong><small>{item.date ?? "This month"} · {item.word_count} words · Passage ID: {String(item.passage_number ?? 1).padStart(2, "0")}</small></div><div className="exam-passage-row-actions"><button onClick={() => void fetchPreview(item)}>View</button><button onClick={() => void printPassage(item)}>Print</button><button className="exam-row-practice" onClick={() => { setPassageSource("library"); setSelectedPassageId(item.id); setTab("practice"); }}>Practise</button></div></article>)}{!dailyItems.length && <div className="exam-workspace-state">No passages have been uploaded for this exam during the current month.</div>}{dailyItems.length > 0 && !visibleDailyItems.length && <div className="exam-workspace-state">No daily passages match “{dailySearch}”. Try a passage ID, title or date.</div>}</div>}
         {selectedPreview && <div className="exam-passage-preview"><div><h3>{selectedPreview.title} · Passage ID: {String(selectedPreview.passage_number ?? 1).padStart(2, "0")}</h3><div className="exam-passage-row-actions"><button onClick={() => void printPassage(selectedPreview)}>Print</button><button onClick={() => { previewRequestId.current += 1; setSelectedPreview(null); setPreviewError(""); setPreviewLoading(false); }}>Close ×</button></div></div>{previewLoading ? <p role="status">Loading full passage…</p> : previewError ? <p className="exam-workspace-error" role="alert">{previewError} <button type="button" onClick={() => void fetchPreview(selectedPreview)}>Retry</button></p> : <p>{selectedPreview.body ?? selectedPreview.preview}</p>}<button className="exam-action-primary" onClick={() => { setSelectedPassageId(selectedPreview.id); setPassageSource("library"); setTab("practice"); }}>Practise this passage →</button></div>}
       </section>}
 
