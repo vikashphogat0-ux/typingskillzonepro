@@ -5,7 +5,7 @@ import { PROFILES, type Lang } from "@/lib/wpmCalculator";
 import { PRESETS } from "@/lib/presets";
 
 type Tpl = { slug: string; name: string; language: Lang; duration_sec: number; display_mode: string; backspace: string; scoring: any; is_active: boolean };
-type Row = { id: string; title: string; language: Lang; word_count: number; preview: string; template: string | null; template_name: string; passage_layout: string; font_size_pt: number; passage_number: number };
+type Row = { id: string; title: string; language: Lang; word_count: number; preview: string; template: string | null; template_name: string; passage_layout: string; font_size_pt: number; passage_number: number; created_at?: string };
 
 async function api(url: string, init?: RequestInit) {
   const r = await fetch(url, init);
@@ -28,6 +28,10 @@ export default function Admin() {
   const [folder, setFolder] = useState("all");
   const [selectedPassageIds, setSelectedPassageIds] = useState<string[]>([]);
   const [deletingPassages, setDeletingPassages] = useState(false);
+  const [passageQuery, setPassageQuery] = useState("");
+  const [languageFilter, setLanguageFilter] = useState<"all" | Lang>("all");
+  const [previewPassage, setPreviewPassage] = useState<{ id: string; title: string; body: string; language: Lang } | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
 
   const runGeneration = async (slot: "morning" | "afternoon" | "live") => {
     const label = slot === "morning" ? "7 AM batch (5 passages)" : slot === "afternoon" ? "1 PM batch (5 passages)" : "7 PM live batch (2 passages)";
@@ -36,7 +40,7 @@ export default function Admin() {
     try {
       const r = await post("/api/admin/passages/generate", { slot });
       if (!r.ok) setGenerationMsg(r.data.error ?? "Generation failed. Check provider configuration and database migration.");
-      else { setGenerationMsg(`Generated ${r.data.generated} passage(s) for ${r.data.date} (${slot}). Word counts: ${(r.data.wordCounts ?? []).join(", ") || "already completed"}.`); await load(); }
+      else { setGenerationMsg(`Generated ${r.data.generatedThisRun ?? 0} this run; ${r.data.generatedTotal ?? 0} total for ${r.data.date} (${slot}). ${r.data.failures?.length ? r.data.failures.join(" · ") : "Generation complete."}`); await load(); }
     } catch { setGenerationMsg("Network error while generating passages."); }
     finally { setGenerationBusy(""); }
   };
@@ -108,9 +112,22 @@ export default function Admin() {
     }
   };
   const onFile = async (f?: File) => { if (f) setBulk(parseBulk(await f.text())); };
-  const folderRows = rows.filter((row) => folder === "all" || (row.template ?? "general") === folder);
+  const folderRows = rows.filter((row) =>
+    (folder === "all" || (row.template ?? "general") === folder) &&
+    (languageFilter === "all" || row.language === languageFilter) &&
+    (!passageQuery.trim() || row.title.toLowerCase().includes(passageQuery.trim().toLowerCase()) || row.id.toLowerCase().includes(passageQuery.trim().toLowerCase()) || String(row.passage_number).includes(passageQuery.trim()))
+  );
   const folderOptions = Array.from(new Map(rows.map((row) => [row.template ?? "general", { slug: row.template ?? "general", name: row.template_name || "General library" }])).values());
   const togglePassage = (id: string, checked: boolean) => setSelectedPassageIds((current) => checked ? [...new Set([...current, id])] : current.filter((x) => x !== id));
+  const openPassagePreview = async (row: Row) => {
+    setPreviewBusy(true);
+    try {
+      const result = await api(`/api/library?id=${encodeURIComponent(row.id)}`);
+      if (!result.ok) throw new Error(result.data.error ?? "Unable to load passage.");
+      setPreviewPassage({ id: row.id, title: row.title, body: result.data.body ?? "", language: row.language });
+    } catch (error) { setMsg(error instanceof Error ? error.message : "Unable to load passage."); }
+    finally { setPreviewBusy(false); }
+  };
   const bulkDeletePassages = async () => {
     const ids = selectedPassageIds.filter((id) => folderRows.some((row) => row.id === id));
     if (!ids.length || !confirm(`Delete ${ids.length} selected passage(s)? Passages linked to test history will be protected.`)) return;
@@ -189,21 +206,32 @@ export default function Admin() {
           <section className="admin-passage-library">
             <div className="admin-library-heading"><div><h2>Passage folders</h2><p className="hint">Each simulator has its own folder. A passage published to multiple simulators appears separately in each selected folder.</p></div><strong>{rows.length} total records</strong></div>
             <div className="admin-folder-toolbar">
-              <label>Open simulator folder
+              <label className="admin-filter-field">Simulator folder
                 <select value={folder} onChange={(e) => { setFolder(e.target.value); setSelectedPassageIds([]); }}>
                   <option value="all">All simulator folders</option>
                   {folderOptions.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
                 </select>
               </label>
-              <span>{folderRows.length} passages in this view</span>
-              <button className="link" type="button" onClick={() => setSelectedPassageIds(folderRows.map((row) => row.id))}>Select all in folder</button>
-              <button className="link" type="button" onClick={() => setSelectedPassageIds([])}>Clear selection</button>
-              <button className="link" type="button" disabled={!selectedPassageIds.length || deletingPassages} onClick={() => void bulkDeletePassages()}>{deletingPassages ? "Deleting…" : `Delete selected (${selectedPassageIds.length})`}</button>
+              <label className="admin-filter-field">Language
+                <select value={languageFilter} onChange={(e) => { setLanguageFilter(e.target.value as "all" | Lang); setSelectedPassageIds([]); }}>
+                  <option value="all">All languages</option><option value="en">English</option><option value="hi">Hindi</option>
+                </select>
+              </label>
+              <label className="admin-search-field">Search title or passage ID
+                <input value={passageQuery} onChange={(e) => setPassageQuery(e.target.value)} placeholder="Search passages…" />
+              </label>
+              <div className="admin-folder-actions">
+                <span>{folderRows.length} shown · {selectedPassageIds.filter((id) => folderRows.some((row) => row.id === id)).length} selected</span>
+                <button type="button" onClick={() => setSelectedPassageIds(folderRows.map((row) => row.id))}>Select visible</button>
+                <button type="button" onClick={() => setSelectedPassageIds([])}>Clear</button>
+                <button type="button" className="danger" disabled={!selectedPassageIds.some((id) => folderRows.some((row) => row.id === id)) || deletingPassages} onClick={() => void bulkDeletePassages()}>{deletingPassages ? "Deleting…" : "Delete selected"}</button>
+              </div>
             </div>
             <div className="tbl"><table><thead><tr><th><input aria-label="Select all visible passages" type="checkbox" checked={folderRows.length > 0 && folderRows.every((row) => selectedPassageIds.includes(row.id))} onChange={(e) => setSelectedPassageIds(e.target.checked ? [...new Set([...selectedPassageIds, ...folderRows.map((row) => row.id)])] : selectedPassageIds.filter((id) => !folderRows.some((row) => row.id === id)))} /></th><th>Passage ID</th><th>Title</th><th>Language</th><th>Words</th><th>Exam format</th><th>Action</th></tr></thead><tbody>
-              {folderRows.map((r) => <tr key={r.id}><td><input type="checkbox" aria-label={`Select ${r.title}`} checked={selectedPassageIds.includes(r.id)} onChange={(e) => togglePassage(r.id, e.target.checked)} /></td><td><code>Passage {String(r.passage_number).padStart(2, "0")}</code></td><td title={r.preview}>{r.title}</td><td>{r.language === "hi" ? "Hindi" : "English"}</td><td>{r.word_count}</td><td>{r.passage_layout === "continuous" ? "Continuous" : "Paragraph layout"} · {Number(r.font_size_pt || 12)}pt</td><td><button className="link" onClick={() => delPassage(r.id)}>Delete</button></td></tr>)}
+              {folderRows.map((r) => <tr key={r.id}><td><input type="checkbox" aria-label={`Select ${r.title}`} checked={selectedPassageIds.includes(r.id)} onChange={(e) => togglePassage(r.id, e.target.checked)} /></td><td><code>Passage {String(r.passage_number).padStart(2, "0")}</code></td><td title={r.preview}>{r.title}</td><td>{r.language === "hi" ? "Hindi" : "English"}</td><td>{r.word_count}</td><td>{r.passage_layout === "continuous" ? "Continuous" : "Paragraph layout"} · {Number(r.font_size_pt || 12)}pt</td><td><div className="admin-row-actions"><button type="button" onClick={() => void openPassagePreview(r)}>View</button><button type="button" className="danger" onClick={() => delPassage(r.id)}>Delete</button></div></td></tr>)}
               {!folderRows.length && <tr><td colSpan={7}>This folder is empty. Upload or generate passages and assign them to this simulator.</td></tr>}
             </tbody></table></div>
+                      {previewPassage && <div className="admin-preview-overlay" role="dialog" aria-modal="true" aria-label="Passage preview"><section className="admin-preview-dialog"><header><div><span>PASSAGE PREVIEW</span><h3>{previewPassage.title}</h3><small>{previewPassage.language === "hi" ? "Hindi" : "English"} · ID {previewPassage.id}</small></div><button type="button" onClick={() => setPreviewPassage(null)}>Close ×</button></header><pre lang={previewPassage.language}>{previewPassage.body}</pre><footer><button type="button" onClick={() => { void navigator.clipboard?.writeText(previewPassage.body).then(() => setMsg("Passage text copied.")); }}>Copy passage text</button><button type="button" onClick={() => setPreviewPassage(null)}>Done</button></footer></section></div>}
           </section>
         </>
       ) : (
