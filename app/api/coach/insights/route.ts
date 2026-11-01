@@ -58,6 +58,39 @@ export async function GET(req: Request) {
         count(*) FILTER (WHERE last_attempt < now() - interval '14 days')::int AS inactive_14_days
       FROM learner_activity
     `;
+    const learnerQueue = await db`
+      WITH learner_activity AS (
+        SELECT user_id, count(*)::int AS attempts,
+          round(avg(net_wpm)::numeric, 1) AS avg_net_wpm,
+          round(avg(accuracy)::numeric, 1) AS avg_accuracy,
+          max(created_at) AS last_attempt
+        FROM results
+        WHERE created_at >= now() - interval '30 days'
+        GROUP BY user_id
+      ),
+      flagged AS (
+        SELECT *,
+          array_remove(ARRAY[
+            CASE WHEN avg_accuracy < 90 THEN 'accuracy' END,
+            CASE WHEN avg_net_wpm < 25 THEN 'speed' END,
+            CASE WHEN attempts <= 1 THEN 'engagement' END,
+            CASE WHEN last_attempt < now() - interval '14 days' THEN 'inactive' END
+          ], NULL) AS flags
+        FROM learner_activity
+      )
+      SELECT left(md5(user_id::text), 10) AS learner_ref,
+        attempts, avg_net_wpm, avg_accuracy, last_attempt, flags,
+        CASE
+          WHEN 'accuracy' = ANY(flags) THEN 'Offer a short accuracy-first drill and review error patterns.'
+          WHEN 'speed' = ANY(flags) THEN 'Recommend foundational rhythm drills before speed work.'
+          WHEN 'inactive' = ANY(flags) THEN 'Consider a friendly re-engagement reminder.'
+          ELSE 'Recommend a simple weekly practice target and check progress.'
+        END AS suggested_action
+      FROM flagged
+      WHERE cardinality(flags) > 0
+      ORDER BY cardinality(flags) DESC, last_attempt ASC
+      LIMIT 100
+    `;
     const simulators = await db`SELECT et.slug, et.name, count(r.id)::int AS attempts,
       round(avg(r.net_wpm)::numeric, 1) AS avg_net_wpm, round(avg(r.accuracy)::numeric, 1) AS avg_accuracy
       FROM results r JOIN exam_templates et ON et.id = r.template_id
@@ -67,7 +100,7 @@ export async function GET(req: Request) {
       FROM results r LEFT JOIN exam_templates et ON et.id = r.template_id
       WHERE r.created_at >= now() - interval '30 days' AND r.keystrokes IS NOT NULL AND r.reference_text IS NOT NULL
       ORDER BY r.created_at DESC LIMIT 300`;
-    return Response.json({ role: "admin", periodDays: 30, totals: totals ?? {}, interventions: interventions ?? {}, simulators, patterns: insights(samples as Attempt[]), sampleAttempts: samples.length });
+    return Response.json({ role: "admin", periodDays: 30, totals: totals ?? {}, interventions: interventions ?? {}, learnerQueue, simulators, patterns: insights(samples as Attempt[]), sampleAttempts: samples.length });
   }
   const rows = await db`SELECT r.id, r.created_at, r.net_wpm, r.gross_wpm, r.accuracy, et.name AS simulator, r.keystrokes, r.reference_text
     FROM results r LEFT JOIN exam_templates et ON et.id = r.template_id
