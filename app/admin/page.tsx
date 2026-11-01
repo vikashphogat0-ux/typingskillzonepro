@@ -117,7 +117,7 @@ export default function Admin() {
     (languageFilter === "all" || row.language === languageFilter) &&
     (!passageQuery.trim() || row.title.toLowerCase().includes(passageQuery.trim().toLowerCase()) || row.id.toLowerCase().includes(passageQuery.trim().toLowerCase()) || String(row.passage_number).includes(passageQuery.trim()))
   );
-  const folderOptions = Array.from(new Map(rows.map((row) => [row.template ?? "general", { slug: row.template ?? "general", name: row.template_name || "General library" }])).values());
+  const folderOptions = [...tpls.map((item) => ({ slug: item.slug, name: item.name, count: rows.filter((row) => row.template === item.slug).length })), ...(rows.some((row) => !row.template) ? [{ slug: "general", name: "General library", count: rows.filter((row) => !row.template).length }] : [])];
   const togglePassage = (id: string, checked: boolean) => setSelectedPassageIds((current) => checked ? [...new Set([...current, id])] : current.filter((x) => x !== id));
   const openPassagePreview = async (row: Row) => {
     setPreviewBusy(true);
@@ -209,7 +209,7 @@ export default function Admin() {
               <label className="admin-filter-field">Simulator folder
                 <select value={folder} onChange={(e) => { setFolder(e.target.value); setSelectedPassageIds([]); }}>
                   <option value="all">All simulator folders</option>
-                  {folderOptions.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
+                  {folderOptions.map((item) => <option key={item.slug} value={item.slug}>{item.name} ({item.count})</option>)}
                 </select>
               </label>
               <label className="admin-filter-field">Language
