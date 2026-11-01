@@ -18,6 +18,19 @@ CREATE TABLE IF NOT EXISTS passage_sources (
   archived_at timestamptz
 );
 
+CREATE TABLE IF NOT EXISTS passage_versions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_id uuid NOT NULL REFERENCES passage_sources(id) ON DELETE RESTRICT,
+  version integer NOT NULL,
+  title text NOT NULL,
+  language text NOT NULL CHECK (language IN ('en', 'hi')),
+  body text NOT NULL,
+  word_count integer NOT NULL DEFAULT 0,
+  changed_by text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (source_id, version)
+);
+
 CREATE TABLE IF NOT EXISTS passage_distributions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   source_id uuid NOT NULL REFERENCES passage_sources(id) ON DELETE RESTRICT,
@@ -46,7 +59,7 @@ ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS print_page_size text NOT NUL
 -- Safe backfill: existing passage rows become independent source records and retain their current IDs.
 -- This does not modify or delete the existing passage rows.
 INSERT INTO passage_sources (title, language, body, word_count, source_type, created_at, updated_at)
-SELECT p.title, p.language, p.body, p.word_count, 'legacy-import', p.created_at, p.created_at
+SELECT DISTINCT ON (p.title, p.language, p.body) p.title, p.language, p.body, p.word_count, 'legacy-import', p.created_at, p.created_at
 FROM passages p
 WHERE NOT EXISTS (
   SELECT 1 FROM passage_distributions d WHERE d.passage_id = p.id
@@ -55,7 +68,8 @@ AND NOT EXISTS (
   SELECT 1 FROM passage_sources s
   WHERE s.title = p.title AND s.language = p.language AND s.body = p.body
     AND s.source_type = 'legacy-import'
-);
+)
+ORDER BY p.title, p.language, p.body, p.created_at;
 
 -- Link each legacy passage to its matching source and simulator.
 INSERT INTO passage_distributions (source_id, template_id, passage_id, status, published_at)
