@@ -303,3 +303,32 @@ body{background-image:radial-gradient(ellipse at 16% -10%,rgba(72,111,190,.17),t
 .exam-card-emblem .exam-card-fallback strong{font-size:12px;line-height:1.05}
 .exam-card-emblem .exam-card-fallback small{font-size:7px!important;line-height:1.1;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(prefers-reduced-motion:reduce){.exam-card-emblem img{transition:none}}
+
+
+/* Authentication card identity and feedback consistency. */
+.page.setup.auth-page{box-sizing:border-box;position:relative;isolation:isolate;gap:16px!important}
+.auth-card-brand{display:flex;align-items:center;gap:11px;min-width:0;padding-bottom:15px;border-bottom:1px solid rgba(145,174,216,.13)}
+.auth-card-mark{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border:1px solid rgba(190,220,255,.42);border-radius:12px;background:linear-gradient(145deg,#8fc4ff 0%,#4778df 58%,#263f87 100%);box-shadow:0 7px 20px rgba(64,117,210,.2);color:#071426;font-size:15px;font-weight:950;letter-spacing:-1.2px}
+.auth-card-brand>span:last-child{display:grid;gap:4px;min-width:0}
+.auth-card-brand strong{color:#eaf3ff;font-size:14px;font-weight:850;line-height:1.2}
+.auth-card-brand small{color:#8fa8c8;font-size:8px;font-weight:800;letter-spacing:1.1px}
+.page.setup.auth-page h1{margin:1px 0 0!important}
+.page.setup.auth-page .hint{margin:0;color:#9db1cc;font-size:12px;line-height:1.6}
+.page.setup.auth-page .auth-feedback{overflow-wrap:anywhere;padding:11px 12px;border-radius:10px}
+.page.setup.auth-page .form label{font-weight:700;line-height:1.35}
+.page.setup.auth-page .form input{font:inherit;font-size:14px;transition:border-color .15s ease,box-shadow .15s ease}
+.page.setup.auth-page .form input::placeholder{color:#7186a3}
+.page.setup.auth-page .form input:focus{border-color:rgba(91,211,244,.8);box-shadow:0 0 0 3px rgba(56,217,245,.1)}
+.page.setup.auth-page .form .go{margin-top:3px;border:0;border-radius:10px;background:linear-gradient(105deg,#47e7f5,#5c9dff);color:#071522;font-weight:900;letter-spacing:.01em;cursor:pointer;transition:transform .15s ease,filter .15s ease}
+.page.setup.auth-page .form .go:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.05)}
+.page.setup.auth-page .form .go:disabled{opacity:.65;cursor:wait}
+.page.setup.auth-page .link{min-height:32px;padding:4px 0;text-align:left;text-decoration:none}
+.page.setup.auth-page .link:hover{text-decoration:underline}
+@media(max-width:480px){
+ .page.setup.auth-page{gap:14px!important;padding:20px 16px!important}
+ .auth-card-brand{padding-bottom:12px}
+ .auth-card-mark{flex-basis:38px;width:38px;height:38px}
+ .page.setup.auth-page h1{font-size:26px}
+ .page.setup.auth-page .form input{min-height:48px}
+}
+@media(prefers-reduced-motion:reduce){.page.setup.auth-page *{transition:none!important}}
