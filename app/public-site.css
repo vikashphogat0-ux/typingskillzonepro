@@ -962,3 +962,12 @@ body:has(.home-reference){background:#071225!important;color:#edf5ff!important}
 .exam-workspace .exam-pattern-tags span{border-color:var(--exam-accent-line)}
 .exam-workspace .exam-workspace-status{border-color:var(--exam-accent-line);background:var(--exam-accent-soft);color:var(--exam-accent)}
 .exam-workspace .exam-action-secondary:hover,.exam-workspace .exam-small-refresh:hover{border-color:var(--exam-accent-line);color:var(--exam-accent)}
+
+
+/* Daily passage search toolbar inside each exam-specific passage directory. */
+.exam-daily-toolbar{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:0 0 14px;padding:13px;border:1px solid var(--ew-line);border-radius:11px;background:rgba(4,17,33,.24)}
+.exam-daily-toolbar .exam-field{flex:1 1 280px;min-width:min(100%,220px);margin:0}
+.exam-daily-toolbar .exam-field input{width:100%;min-height:40px;margin-top:6px}
+.exam-daily-toolbar>span{padding:0 0 10px;color:var(--ew-muted);font-size:10px;font-weight:800;white-space:nowrap}
+.exam-daily-toolbar .exam-small-refresh{min-height:40px}
+@media(max-width:520px){.exam-daily-toolbar{align-items:stretch;gap:9px}.exam-daily-toolbar .exam-field{flex-basis:100%;min-width:0}.exam-daily-toolbar>span{padding:0}.exam-daily-toolbar .exam-small-refresh{width:100%}}
