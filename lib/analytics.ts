@@ -4,35 +4,53 @@ export interface Bucket { startSec: number; wpm: number; accuracy: number; typed
 export interface KeyStat { attempts: number; errors: number }
 export interface Combo { pair: string; attempts: number; errors: number; rate: number }
 
-/** Replay the key log once and collect per-key and per-bucket numbers. */
+/** Replay the key log once and collect correction-aware per-key and per-bucket numbers.
+ * A wrong character that is later deleted is removed from the error totals of
+ * the time bucket and reference key where it was first entered. The insertion
+ * attempt remains in typed/attempt counts, so correction effort is still visible.
+ */
 export function analyzeEvents(events: KeyEvent[], reference: string, bucketSec = 30) {
+  if (!Number.isFinite(bucketSec) || bucketSec <= 0) throw new RangeError("bucketSec must be a positive finite number.");
   const ref = Array.from(norm(reference));
-  const stack: boolean[] = [];
+  type Entry = { bad: boolean; bucket: number; key?: string; pair?: string };
+  const stack: Entry[] = [];
   const keys: Record<string, KeyStat> = {};
   const pairs: Record<string, KeyStat> = {};
   const buckets: Record<number, { typed: number; wrong: number }> = {};
+  const adjustError = (entry: Entry, amount: number) => {
+    if (!entry.bad) return;
+    buckets[entry.bucket].wrong = Math.max(0, buckets[entry.bucket].wrong + amount);
+    if (entry.key) keys[entry.key].errors = Math.max(0, keys[entry.key].errors + amount);
+    if (entry.pair) pairs[entry.pair].errors = Math.max(0, pairs[entry.pair].errors + amount);
+  };
   for (const e of events) {
     const b = Math.floor(e.t / 1000 / bucketSec);
     buckets[b] ??= { typed: 0, wrong: 0 };
     if (e.type === "ins" && e.ch !== undefined) {
       const pos = stack.length, want = ref[pos], bad = e.ch !== want;
-      stack.push(bad);
+      const entry: Entry = { bad, bucket: b };
       buckets[b].typed++;
       if (bad) buckets[b].wrong++;
       if (want !== undefined && want.trim() !== "") {
         const k = want.toLowerCase();
         keys[k] ??= { attempts: 0, errors: 0 };
         keys[k].attempts++;
+        entry.key = k;
         if (bad) keys[k].errors++;
         if (pos > 0 && ref[pos - 1].trim() !== "") {
           const pr = (ref[pos - 1] + want).toLowerCase();
           pairs[pr] ??= { attempts: 0, errors: 0 };
           pairs[pr].attempts++;
+          entry.pair = pr;
           if (bad) pairs[pr].errors++;
         }
       }
+      stack.push(entry);
     } else if (e.type === "del") {
-      for (let i = 0; i < (e.n ?? 1) && stack.length; i++) stack.pop();
+      for (let i = 0; i < (e.n ?? 1) && stack.length; i++) {
+        const removed = stack.pop();
+        if (removed) adjustError(removed, -1);
+      }
     }
   }
   const last = Math.max(0, ...Object.keys(buckets).map(Number));
