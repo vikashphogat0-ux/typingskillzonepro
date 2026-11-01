@@ -1625,3 +1625,17 @@ body:has(.home-reference){background:#071225!important;color:#edf5ff!important}
 .passage-import-card input:focus,.passage-import-card textarea:focus{outline:3px solid rgba(49,94,170,.14);border-color:#4775bd}
 .passage-import-ready{margin:8px 0 0;color:#18734d;font-size:12px;font-weight:750}
 @media(max-width:600px){.passage-import-card{padding:12px}.passage-import-card>header{align-items:flex-start;flex-direction:column;gap:3px}}
+
+/* Improvement 28 — simulator-specific passage formatting studio */
+.passage-format-studio>label{display:grid;gap:7px;max-width:520px;margin:14px 0;color:var(--site-ink,#17243b);font-size:12px;font-weight:750}
+.passage-format-studio select,.passage-format-controls input,.passage-format-controls select{width:100%;min-width:0;min-height:40px;padding:9px 11px;border:1px solid var(--site-line,#dce5f1);border-radius:7px;background:#fff;color:#17243b;font:inherit;font-size:12px}
+.passage-format-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}
+.passage-format-controls label{display:grid;gap:6px;color:var(--site-ink,#17243b);font-size:11px;font-weight:750}
+.passage-format-preview-wrap{margin:18px 0;padding:14px;border:1px solid var(--site-line,#dce5f1);border-radius:9px;background:rgba(20,40,70,.035)}
+.passage-format-preview-heading{display:flex;justify-content:space-between;gap:12px;margin-bottom:10px;color:var(--site-muted,#64748b);font-size:11px}
+.passage-format-preview{box-sizing:border-box;width:min(100%,794px);min-height:360px;margin:0 auto;padding:38px 44px;background:#fff;color:#17243b;box-shadow:0 3px 18px rgba(20,40,70,.09);overflow-wrap:anywhere}
+.passage-format-preview h3{margin:0 0 18px;font-size:1.15em;text-align:center}
+.passage-format-preview p{margin:0;white-space:pre-wrap}
+.passage-format-studio button:focus-visible,.passage-format-studio input:focus-visible,.passage-format-studio select:focus-visible{outline:2px solid #2784c7;outline-offset:2px}
+@media(max-width:720px){.passage-format-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.passage-format-preview{padding:24px 20px;min-height:280px}}
+@media(max-width:420px){.passage-format-controls{grid-template-columns:1fr}}
