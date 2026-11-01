@@ -36,7 +36,8 @@ async function submitSimulator(uid: string, b: any) {
   }
   const typed = b.typed;
   const events: KeyEvent[] = b.events;
-  const check = validateAttempt({ typed, events, elapsedSec: Number(b.elapsedSec) || 0, durationSec: t.duration_sec });
+  const backspaceMode = t.backspace === "disabled" || t.backspace === "word" ? t.backspace : "full";
+  const check = validateAttempt({ typed, events, elapsedSec: Number(b.elapsedSec) || 0, durationSec: t.duration_sec, backspaceMode });
   if (check.tampered) return Response.json({ error: "This result could not be verified." }, { status: 400 });
   const profile = getBuiltInPreset(String(t.template_slug ?? ""))?.profile ?? t.scoring ?? PROFILES.practice;
   const s = calculateScore({ reference: t.reference_text, typed, elapsedSec: check.elapsedSec, durationSec: t.duration_sec, profile, keyEvents: events });
