@@ -66,7 +66,7 @@ export async function GET(req: Request) {
   const weeklyReport = {
     recent: { attempts: recentWeek.length, avgNetWpm: avg(recentWeek.map(x=>x.netWpm)), bestNetWpm: recentWeek.length ? Math.max(...recentWeek.map(x=>x.netWpm)) : 0, avgAccuracy: avg(recentWeek.map(x=>x.accuracy)) },
     previous: { attempts: previousWeek.length, avgNetWpm: avg(previousWeek.map(x=>x.netWpm)), avgAccuracy: avg(previousWeek.map(x=>x.accuracy)) },
-    changes: { avgNetWpm: avg(recentWeek.map(x=>x.netWpm)) - avg(previousWeek.map(x=>x.netWpm)), avgAccuracy: avg(recentWeek.map(x=>x.accuracy)) - avg(previousWeek.map(x=>x.accuracy)) },
+    changes: { avgNetWpm: recentWeek.length && previousWeek.length ? avg(recentWeek.map(x=>x.netWpm)) - avg(previousWeek.map(x=>x.netWpm)) : null, avgAccuracy: recentWeek.length && previousWeek.length ? avg(recentWeek.map(x=>x.accuracy)) - avg(previousWeek.map(x=>x.accuracy)) : null },
     coverage: { days: 14, attemptsAnalysed: allNums.length, capped: allNums.length === 500 }
   };
   const patterns = insights(attempts);
