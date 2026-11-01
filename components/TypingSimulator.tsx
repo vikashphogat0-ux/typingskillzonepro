@@ -2,6 +2,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { calculateScore, norm, type KeyEvent, type Lang, type ScoreResult, type ScoringProfile } from "@/lib/wpmCalculator";
 import { checkEdit, type BackspaceMode } from "@/lib/backspacePolicy";
+import { isExamInputAllowed } from "@/lib/keyboardPolicy";
 import { usesRrbCbtstPhases, type DisplayMode } from "@/lib/presets";
 import { formatRkcPassage } from "@/lib/rkc-passage-format";
 
@@ -144,12 +145,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, prac
     if (!res.ok) { input.value = prev; setValue(prev); return; }
     // Enforce Enter/Tab rules at the committed-input boundary too. Keydown
     // handlers alone can be bypassed by IME, mobile keyboards or synthetic input.
-    const before = Array.from(prev), after = Array.from(res.value);
-    let common = 0;
-    while (common < before.length && common < after.length && before[common] === after[common]) common++;
-    const inserted = after.slice(common).join("");
-    if ((enterKeyPolicy === "blocked" && inserted.includes("\n")) ||
-        (tabKeyPolicy === "blocked" && inserted.includes("\t"))) {
+    if (!isExamInputAllowed(prev, res.value, enterKeyPolicy, tabKeyPolicy)) {
       input.value = prev;
       setValue(prev);
       return;
