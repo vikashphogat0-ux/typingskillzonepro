@@ -9,7 +9,21 @@ import { post } from "@/lib/clientApi";
 
 const mmss = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 
-export default function ResultAnalysis({ reference, events, score: s }: { reference: string; events: KeyEvent[]; score: ScoreResult }) {
+interface Evaluation {
+  profileId: string;
+  profileLabel: string;
+  unit: "words" | "keystrokes";
+  charsPerWord: number;
+  netMethod: "penalty" | "accuracy" | "per-error" | "rrb";
+  qualificationBasis: "gross" | "net";
+  qualifyingWpm: number | null;
+  errorAllowancePercent: number | null;
+  maxErrorPercent: number | null;
+  minWords: number | null;
+  targetKeystrokes: number | null;
+}
+
+export default function ResultAnalysis({ reference, events, score: s, evaluation }: { reference: string; events: KeyEvent[]; score: ScoreResult; evaluation?: Evaluation }) {
   const [ai, setAi] = useState<string | null>(null);
   const a = useMemo(() => analyzeEvents(events, reference), [events, reference]);
   const drops = useMemo(() => accuracyDrops(a.timeline, s.accuracy), [a, s.accuracy]);
@@ -35,6 +49,30 @@ export default function ResultAnalysis({ reference, events, score: s }: { refere
         {typeof s.marks === "number" && <div><b>{s.marks}/25</b><span>Delhi Police HCM marks</span></div>}
         {typeof s.passed === "boolean" && <div><b>{s.passed ? "PASS" : "NOT QUALIFIED"}</b><span>Configured qualification rule</span></div>}
       </div>
+
+      {evaluation && (
+        <section className="panel exam-evaluation" aria-label="Exam evaluation rules">
+          <h2>Exam-specific evaluation</h2>
+          <p className="hint">{evaluation.profileLabel}</p>
+          <div className="tiles">
+            <div><b>{evaluation.unit === "keystrokes" ? "Key depressions" : "Words"}</b><span>Scoring unit</span></div>
+            <div><b>{evaluation.qualificationBasis === "gross" ? "Gross WPM" : "Net WPM"}</b><span>Qualification speed basis</span></div>
+            {evaluation.qualifyingWpm !== null && <div><b>{evaluation.qualifyingWpm} WPM</b><span>Configured minimum speed</span></div>}
+            {evaluation.errorAllowancePercent !== null && <div><b>{evaluation.errorAllowancePercent}%</b><span>Configured error allowance</span></div>}
+            {evaluation.maxErrorPercent !== null && <div><b>{evaluation.maxErrorPercent}%</b><span>Maximum error percentage</span></div>}
+            {evaluation.minWords !== null && <div><b>{evaluation.minWords}</b><span>Minimum words required</span></div>}
+            {evaluation.targetKeystrokes !== null && <div><b>{evaluation.targetKeystrokes}</b><span>Target key depressions</span></div>}
+          </div>
+          <p className="hint">{evaluation.netMethod === "rrb"
+            ? "This profile applies its configured error allowance before calculating the net speed."
+            : evaluation.netMethod === "per-error"
+              ? "This profile deducts its configured weighted error count from gross speed."
+              : evaluation.netMethod === "penalty"
+                ? "This profile calculates net speed by deducting its configured error penalty."
+                : "This profile calculates net speed using its configured accuracy method."}</p>
+          <p className="hint">This report uses the scoring profile saved for this attempt. Where the profile is marked provisional or notification-dependent, verify the current recruitment notice before treating qualification as official.</p>
+        </section>
+      )}
 
       <h2>Your text against the reference</h2>
       <ComparisonView ops={s.wordOps} hindi={hindi} />
