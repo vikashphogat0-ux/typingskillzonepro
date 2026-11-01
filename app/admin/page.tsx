@@ -5,7 +5,7 @@ import { PROFILES, type Lang } from "@/lib/wpmCalculator";
 import { PRESETS } from "@/lib/presets";
 
 type Tpl = { slug: string; name: string; language: Lang; duration_sec: number; display_mode: string; backspace: string; scoring: any; is_active: boolean };
-type Row = { id: string; title: string; language: Lang; word_count: number; preview: string; template: string | null };
+type Row = { id: string; title: string; language: Lang; word_count: number; preview: string; template: string | null; template_name: string; passage_layout: string; font_size_pt: number; passage_number: number };
 
 async function api(url: string, init?: RequestInit) {
   const r = await fetch(url, init);
@@ -25,6 +25,9 @@ export default function Admin() {
   const [generationBusy, setGenerationBusy] = useState("");
   const [generationMsg, setGenerationMsg] = useState("");
   const [savingPassages, setSavingPassages] = useState(false);
+  const [folder, setFolder] = useState("all");
+  const [selectedPassageIds, setSelectedPassageIds] = useState<string[]>([]);
+  const [deletingPassages, setDeletingPassages] = useState(false);
 
   const runGeneration = async (slot: "morning" | "afternoon" | "live") => {
     const label = slot === "morning" ? "7 AM batch (5 passages)" : slot === "afternoon" ? "1 PM batch (5 passages)" : "7 PM live batch (2 passages)";
@@ -105,7 +108,25 @@ export default function Admin() {
     }
   };
   const onFile = async (f?: File) => { if (f) setBulk(parseBulk(await f.text())); };
-  const delPassage = async (id: string) => { if (confirm("Delete this passage?")) { await api(`/api/admin/passages?id=${id}`, { method: "DELETE" }); load(); } };
+  const folderRows = rows.filter((row) => folder === "all" || (row.template ?? "general") === folder);
+  const folderOptions = Array.from(new Map(rows.map((row) => [row.template ?? "general", { slug: row.template ?? "general", name: row.template_name || "General library" }])).values());
+  const togglePassage = (id: string, checked: boolean) => setSelectedPassageIds((current) => checked ? [...new Set([...current, id])] : current.filter((x) => x !== id));
+  const bulkDeletePassages = async () => {
+    const ids = selectedPassageIds.filter((id) => folderRows.some((row) => row.id === id));
+    if (!ids.length || !confirm(`Delete ${ids.length} selected passage(s)? Passages linked to test history will be protected.`)) return;
+    setDeletingPassages(true);
+    const result = await api("/api/admin/passages?ids=" + encodeURIComponent(ids.join(",")), { method: "DELETE" });
+    setMsg(result.ok ? `Deleted ${result.data.deleted} passage(s).` : result.data.error ?? "Bulk delete failed.");
+    setSelectedPassageIds([]);
+    setDeletingPassages(false);
+    await load();
+  };
+  const delPassage = async (id: string) => {
+    if (!confirm("Delete this passage?")) return;
+    const result = await api(`/api/admin/passages?id=${id}`, { method: "DELETE" });
+    setMsg(result.ok ? "Passage deleted." : result.data.error ?? "Could not delete passage.");
+    await load();
+  };
 
   /* ---------- templates ---------- */
   const [t, setT] = useState(emptyTpl);
@@ -165,11 +186,25 @@ export default function Admin() {
             <button className="go" disabled={savingPassages || bulkChecks.some((c) => !c.ok)} onClick={() => savePassages(bulkChecks.map((c) => c.clean))}>{savingPassages ? "Saving passages…" : `Save all ${bulk.length} passages`}</button>
           </>)}
 
-          <h2>Saved passages ({rows.length})</h2>
-          <div className="tbl"><table><thead><tr><th>Passage ID</th><th>Title</th><th>Language</th><th>Words</th><th>Exam directory</th><th></th></tr></thead><tbody>
-            {rows.map((r) => <tr key={r.id}><td><code>{r.id}</code></td><td title={r.preview}>{r.title}</td><td>{r.language === "hi" ? "Hindi" : "English"}</td><td>{r.word_count}</td><td>{r.template ?? "Any"}</td><td><button className="link" onClick={() => delPassage(r.id)}>Delete</button></td></tr>)}
-            {!rows.length && <tr><td colSpan={6}>No passages yet. Add one above. Until then students get the built-in samples.</td></tr>}
-          </tbody></table></div>
+          <section className="admin-passage-library">
+            <div className="admin-library-heading"><div><h2>Passage folders</h2><p className="hint">Each simulator has its own folder. A passage published to multiple simulators appears separately in each selected folder.</p></div><strong>{rows.length} total records</strong></div>
+            <div className="admin-folder-toolbar">
+              <label>Open simulator folder
+                <select value={folder} onChange={(e) => { setFolder(e.target.value); setSelectedPassageIds([]); }}>
+                  <option value="all">All simulator folders</option>
+                  {folderOptions.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
+                </select>
+              </label>
+              <span>{folderRows.length} passages in this view</span>
+              <button className="link" type="button" onClick={() => setSelectedPassageIds(folderRows.map((row) => row.id))}>Select all in folder</button>
+              <button className="link" type="button" onClick={() => setSelectedPassageIds([])}>Clear selection</button>
+              <button className="link" type="button" disabled={!selectedPassageIds.length || deletingPassages} onClick={() => void bulkDeletePassages()}>{deletingPassages ? "Deleting…" : `Delete selected (${selectedPassageIds.length})`}</button>
+            </div>
+            <div className="tbl"><table><thead><tr><th><input aria-label="Select all visible passages" type="checkbox" checked={folderRows.length > 0 && folderRows.every((row) => selectedPassageIds.includes(row.id))} onChange={(e) => setSelectedPassageIds(e.target.checked ? [...new Set([...selectedPassageIds, ...folderRows.map((row) => row.id)])] : selectedPassageIds.filter((id) => !folderRows.some((row) => row.id === id)))} /></th><th>Passage ID</th><th>Title</th><th>Language</th><th>Words</th><th>Exam format</th><th>Action</th></tr></thead><tbody>
+              {folderRows.map((r) => <tr key={r.id}><td><input type="checkbox" aria-label={`Select ${r.title}`} checked={selectedPassageIds.includes(r.id)} onChange={(e) => togglePassage(r.id, e.target.checked)} /></td><td><code>Passage {String(r.passage_number).padStart(2, "0")}</code></td><td title={r.preview}>{r.title}</td><td>{r.language === "hi" ? "Hindi" : "English"}</td><td>{r.word_count}</td><td>{r.passage_layout === "continuous" ? "Continuous" : "Paragraph layout"} · {Number(r.font_size_pt || 12)}pt</td><td><button className="link" onClick={() => delPassage(r.id)}>Delete</button></td></tr>)}
+              {!folderRows.length && <tr><td colSpan={7}>This folder is empty. Upload or generate passages and assign them to this simulator.</td></tr>}
+            </tbody></table></div>
+          </section>
         </>
       ) : (
         <>
