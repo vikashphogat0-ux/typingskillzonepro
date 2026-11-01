@@ -173,7 +173,7 @@ export function analyzeKeyLog(events: KeyEvent[], reference: string) {
     } else if (e.type === "del") {
       const count = e.n ?? 1;
       if (!Number.isInteger(count) || count < 1) throw new RangeError("Deletion event length must be a positive integer.");
-      backspaces++;
+      backspaces += count;
       for (let k = 0; k < count && stack.length; k++) {
         if (stack.pop()) fixed++;
         deleted++;
