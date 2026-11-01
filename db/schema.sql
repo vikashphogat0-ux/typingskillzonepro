@@ -122,6 +122,11 @@ ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS passage_layout text NOT NULL
 ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS enter_key_policy text NOT NULL DEFAULT 'newline';
 ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS tab_key_policy text NOT NULL DEFAULT 'blocked';
 ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS font_size_pt numeric(4,1) NOT NULL DEFAULT 12;
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS passage_font_family text NOT NULL DEFAULT 'system';
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS passage_alignment text NOT NULL DEFAULT 'left';
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS passage_line_spacing numeric(3,1) NOT NULL DEFAULT 1.5;
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS passage_paragraph_spacing numeric(4,1) NOT NULL DEFAULT 8;
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS print_page_size text NOT NULL DEFAULT 'A4';
 
 CREATE TABLE IF NOT EXISTS institutions (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
