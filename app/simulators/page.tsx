@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/clientApi";
 import ExamEmblem from "@/components/ExamEmblem";
 
@@ -29,16 +29,25 @@ export default function SimulatorsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<"en" | "hi" | "all">("all");
-  useEffect(() => {
-    let active = true;
-    api("/api/simulators").then(r => {
-      if (!active) return;
+  const loadSimulators = useCallback(async (isActive: () => boolean = () => true) => {
+    setLoading(true);
+    setError("");
+    try {
+      const r = await api("/api/simulators");
+      if (!isActive()) return;
       if (r.ok && Array.isArray(r.data)) setSims(r.data);
       else setError(r.data?.error ?? "We couldn't load exam options.");
-    }).catch(() => { if (active) setError("Connection issue. Please try again."); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+    } catch {
+      if (isActive()) setError("Connection issue. Please check your connection and try again.");
+    } finally {
+      if (isActive()) setLoading(false);
+    }
   }, []);
+  useEffect(() => {
+    let active = true;
+    void loadSimulators(() => active);
+    return () => { active = false; };
+  }, [loadSimulators]);
   const usingFallback = sims.some(s => s.description?.includes("Temporary local fallback"));
   const filtered = useMemo(() => filter === "all" ? sims : sims.filter(s => s.language === filter), [filter, sims]);
   return (
@@ -56,7 +65,7 @@ export default function SimulatorsPage() {
       </div>
       {usingFallback && !loading && <div className="data-source-notice" role="status"><strong>Temporary catalogue mode</strong><p>The built-in exam presets are available for practice, but database-backed exam configuration and saved result history are unavailable. The database connection/schema needs repair.</p></div>}
       {loading ? <div className="exam-loading"><span className="loading-pulse" /> Loading exam options…</div> :
-        error ? <div className="empty-state"><b>Exam options couldn't be loaded.</b><p>{error}</p><button className="go alt" onClick={() => {setLoading(true);setError("");api("/api/simulators").then(r=>{if(r.ok&&Array.isArray(r.data))setSims(r.data);else setError(r.data?.error??"Unable to load exams.");}).catch(()=>setError("Connection issue. Please try again.")).finally(()=>setLoading(false));}}>Try again</button></div> :
+        error ? <div className="empty-state"><b>Exam options couldn't be loaded.</b><p>{error}</p><button className="go alt" type="button" onClick={() => void loadSimulators()} disabled={loading}>Try again</button></div> :
         !filtered.length ? <div className="empty-state"><b>No exams match this language.</b><p>Choose another language to see more exam options.</p><button className="go alt" onClick={() => setFilter("all")}>Show all exams</button></div> :
         <div className="sim-page-grid sim-page-grid-v2">{filtered.map(sim => {
           const mark = examMark(sim.slug);
