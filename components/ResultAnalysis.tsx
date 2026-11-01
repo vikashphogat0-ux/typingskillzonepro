@@ -42,8 +42,8 @@ export default function ResultAnalysis({ reference, events, score: s, evaluation
   };
 
   return (
-    <div className="dash">
-      <div className="tiles">
+    <div className="dash result-analysis">
+      <div className="tiles result-metrics">
         <div><b>{s.netWpm}</b><span>Net WPM</span></div>
         <div><b>{s.grossWpm}</b><span>Gross WPM</span></div>
         <div><b>{s.accuracy}%</b><span>Accuracy</span></div>
