@@ -898,3 +898,48 @@ body:has(.home-reference){background:#071225!important;color:#edf5ff!important}
  .admin-generation-panel{padding:15px}
  .admin-generation-panel .cta-group button{flex:1 1 100%}
 }
+
+
+/* Fix exam workspace emblem sizing: the compact catalogue rule used !important
+   and was unintentionally shrinking the larger simulator identity mark. */
+.exam-workspace-hero .exam-card-emblem{
+  width:clamp(88px,12vw,150px)!important;
+  height:clamp(88px,12vw,150px)!important;
+  min-width:clamp(88px,12vw,150px)!important;
+  flex:0 0 clamp(88px,12vw,150px)!important;
+  padding:9px!important;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+}
+.exam-workspace-hero .exam-card-emblem img{
+  display:block;
+  width:100%;
+  height:100%;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  padding:4px;
+}
+.exam-workspace-hero .exam-card-fallback{
+  display:grid;
+  place-content:center;
+  justify-items:center;
+  gap:5px;
+  width:100%;
+  height:100%;
+  text-align:center;
+  overflow-wrap:anywhere;
+}
+@media(max-width:760px){
+  .exam-workspace-hero .exam-card-emblem{
+    width:76px!important;height:76px!important;min-width:76px!important;
+    flex:0 0 76px!important;padding:7px!important;border-radius:12px!important;
+  }
+}
+@media(max-width:420px){
+  .exam-workspace-hero .exam-card-emblem{
+    width:64px!important;height:64px!important;min-width:64px!important;
+    flex-basis:64px!important;
+  }
+}
