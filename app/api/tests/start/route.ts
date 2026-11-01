@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   const access = await getStudentAccess(uid);
   if (access.testsLeft !== null && access.testsLeft <= 0) return Response.json({ error: "You have used your free tests for today.", upgrade: true }, { status: 402 });
   const db = sql();
-  const [t] = await db`SELECT id, slug, name, language, duration_sec, display_mode, backspace, scoring, font_size_pt, passage_layout, enter_key_policy, tab_key_policy FROM exam_templates WHERE slug = ${String(b.slug)} AND is_active`;
+  const [t] = await db`SELECT id, slug, name, language, duration_sec, display_mode, backspace, scoring, font_size_pt, passage_layout, enter_key_policy, tab_key_policy, passage_font_family, passage_alignment, passage_line_spacing, passage_paragraph_spacing, print_page_size FROM exam_templates WHERE slug = ${String(b.slug)} AND is_active`;
   if (!t) return Response.json({ error: "Simulator not found." }, { status: 404 });
 
   const verified = getBuiltInPreset(String(t.slug));
