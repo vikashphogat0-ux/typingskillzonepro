@@ -1598,3 +1598,16 @@ body:has(.home-reference){background:#071225!important;color:#edf5ff!important}
 .pricing-v2 button:focus-visible,.pricing-v2 input:focus-visible{outline:2px solid #43d9ed;outline-offset:3px}
 @media(max-width:720px){.pricing-v2{padding-top:22px!important}.pricing-v2-header{padding:24px 19px!important}.pricing-value-points{display:grid;grid-template-columns:1fr;gap:9px}.pricing-v2-phone{grid-template-columns:1fr;padding:15px}.pricing-v2-phone p{grid-column:1}.pricing-plan-intro{align-items:flex-start;flex-direction:column;gap:8px;margin-top:28px}.pricing-v2-grid{grid-template-columns:1fr!important}.pricing-v2-card{min-height:0}.pricing-v2-features{flex:none}}
 @media(prefers-reduced-motion:reduce){.pricing-v2-card{transition:none}.pricing-v2-card:hover{transform:none}}
+
+
+/* Improvement 21 — admin passage repository controls */
+.passage-repository-toolbar{display:grid;grid-template-columns:minmax(220px,1.4fr) minmax(140px,.6fr) minmax(200px,.8fr);gap:10px;margin:18px 0 12px}
+.passage-repository-toolbar input,.passage-repository-toolbar select{width:100%;min-width:0;min-height:42px;padding:10px 12px;border:1px solid var(--tsz-line,rgba(140,170,210,.22));border-radius:8px;background:rgba(255,255,255,.035);color:var(--tsz-text,#eaf2ff);font:inherit;font-size:12px}
+.passage-repository-toolbar select option{background:#14233d;color:#eaf2ff}
+.passage-repository-summary{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 15px}
+.passage-repository-summary span{padding:7px 10px;border:1px solid var(--tsz-line,rgba(140,170,210,.18));border-radius:6px;color:var(--tsz-muted,#9aaac0);font-size:10px}
+.passage-repository-summary strong{color:var(--tsz-text,#eaf2ff);font-size:12px;margin-right:3px}
+.admin-generation-panel .tbl td small{display:block;max-width:360px;margin-top:4px;color:var(--tsz-muted,#9aaac0);font-size:10px;line-height:1.55;white-space:normal}
+.passage-repository-toolbar input:focus-visible,.passage-repository-toolbar select:focus-visible{outline:2px solid #43d9ed;outline-offset:2px}
+@media(max-width:760px){.passage-repository-toolbar{grid-template-columns:1fr 1fr}.passage-repository-toolbar input{grid-column:1/-1}.passage-repository-summary{gap:6px}.passage-repository-summary span{font-size:9px;padding:6px 8px}}
+@media(max-width:420px){.passage-repository-toolbar{grid-template-columns:1fr}.passage-repository-toolbar input{grid-column:auto}}
