@@ -4,6 +4,7 @@
 
 CREATE TABLE IF NOT EXISTS passage_sources (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ingest_key uuid UNIQUE,
   title text NOT NULL,
   language text NOT NULL CHECK (language IN ('en', 'hi')),
   body text NOT NULL,
