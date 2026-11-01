@@ -10,7 +10,7 @@ export function getRkcPassageLayout(slug: string): RkcPassageLayout {
 
 /** Normalize only the visual text shape; do not alter stored passage content. */
 export function formatRkcPassage(text: string, layout: RkcPassageLayout | string): string {
-  if (layout === "continuous") return text.replace(/\\s+/gu, " ").trim();
+  if (layout === "continuous") return text.replace(/\s+/gu, " ").trim();
   // Keep the source's paragraph and tab boundaries when the RKC-style source has them.
-  return text.replace(/\\r\\n?/gu, "\\n").replace(/[ \\t]+\\n/gu, "\\n").trim();
+  return text.replace(/\r\n?/gu, "\n").replace(/[ \t]+\n/gu, "\n").trim();
 }
