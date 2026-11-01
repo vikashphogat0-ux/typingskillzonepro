@@ -65,7 +65,7 @@ export default function Home() {
             <p>One focused platform for competitive typing examinations. Choose your exam, practise in its actual pattern, and measure every improvement.</p>
             <div className="tsz-home-actions">
               <Link href="/exams" className="tsz-primary-button">Explore examinations <span>↗</span></Link>
-              <Link href="/test" className="tsz-secondary-button">Start free practice</Link>
+              
             </div>
             <div className="tsz-home-proof"><span><b>EN</b> English</span><i /><span><b>हि</b> Hindi</span><i /><span><b>CBT</b> Exam-style interface</span></div>
           </div>
