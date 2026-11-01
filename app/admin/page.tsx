@@ -35,7 +35,7 @@ export default function Admin() {
 
   const runGeneration = async (slot: "morning" | "afternoon" | "live") => {
     const label = slot === "morning" ? "7 AM batch (5 passages)" : slot === "afternoon" ? "1 PM batch (5 passages)" : "7 PM live batch (2 passages)";
-    if (!confirm(`Generate ${label} for ${selectedExamSlug || "the selected simulator"}? This uses the configured AI provider and saves passages only to that simulator folder.`)) return;
+    if (!confirm(`Generate ${label} for ${selectedExamSlug || "the selected simulator"}? This uses the configured AI provider and publishes each generated source to all active matching-language simulators.`)) return;
     setGenerationBusy(slot); setGenerationMsg("");
     try {
       const r = await post("/api/admin/passages/generate", { slot, templateSlug: selectedExamSlug });
@@ -205,7 +205,7 @@ export default function Admin() {
       <nav className="admin-management-nav" aria-label="Administration"><a href="/admin/users">Users &amp; roles</a> · <a href="/admin/institutions">Institutes</a> · <a href="/admin/subscribers">Subscriptions</a> · <a href="/admin/payments">Payments</a> · <a href="/admin/passage-studio">Passage Studio</a> · <a href="/admin">Simulator settings</a></nav>
       <section className="admin-generation-panel">
         <h2>Daily Passage Automation</h2>
-        <p className="hint">Generate passages for one selected simulator at a time. Each generated passage is saved directly into that simulator folder and uses its language.</p>
+        <p className="hint">Generate original passages for the selected language. Each passage is saved once in the master repository and distributed to every active simulator using that language; each simulator applies its own presentation profile.</p>
         <div className="cta-group">
           <button className="go" disabled={!!generationBusy} onClick={() => runGeneration("morning")}>{generationBusy === "morning" ? "Generating…" : "Generate 7 AM · 5 passages"}</button>
           <button className="go" disabled={!!generationBusy} onClick={() => runGeneration("afternoon")}>{generationBusy === "afternoon" ? "Generating…" : "Generate 1 PM · 5 passages"}</button>
