@@ -18,7 +18,7 @@ export default function CoachPage() {
   const [data,setData]=useState<Data|null>(null); const [error,setError]=useState("");
   const [goals,setGoals]=useState<Goals>(DEFAULT_GOALS);
   const [goalsReady,setGoalsReady]=useState(false);
-  useEffect(()=>{try{const saved=localStorage.getItem("tsz-coach-daily-goals-v1");if(saved){const parsed=JSON.parse(saved) as Partial<Goals>;setGoals({sessions:Math.min(10,Math.max(1,Math.round(Number(parsed.sessions)||3))),targetWpm:Math.min(200,Math.max(1,Number(parsed.targetWpm)||50)),targetAccuracy:Math.min(100,Math.max(1,Number(parsed.targetAccuracy)||95)});}}catch{/* Keep safe defaults. */}setGoalsReady(true);},[]);
+  useEffect(()=>{try{const saved=localStorage.getItem("tsz-coach-daily-goals-v1");if(saved){const parsed=JSON.parse(saved) as Partial<Goals>;setGoals({sessions:Math.min(10,Math.max(1,Math.round(Number(parsed.sessions)||3))),targetWpm:Math.min(200,Math.max(1,Number(parsed.targetWpm)||50)),targetAccuracy:Math.min(100,Math.max(1,Number(parsed.targetAccuracy)||95))});}}catch{/* Keep safe defaults. */}setGoalsReady(true);},[]);
   useEffect(()=>{if(goalsReady)try{localStorage.setItem("tsz-coach-daily-goals-v1",JSON.stringify(goals));}catch{/* Goals remain available for this visit. */}},[goals,goalsReady]);
   useEffect(()=>{fetch("/api/coach/insights").then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error||"Could not load coaching insights.");setData(d);}).catch(e=>setError(e.message));},[]);
   if(error)return <main className="page"><h1>Intelligent Typing Coach</h1><p><a className="go" href="/coach/drills">Start targeted typing drills →</a></p><p>{error} <a href="/login">Sign in</a></p></main>;
