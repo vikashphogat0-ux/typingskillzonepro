@@ -38,3 +38,15 @@ export async function requireAdmin(req: Request): Promise<string | null> {
 
   return row.role === "admin" || isAllowlistedSuperAdmin ? identity.uid : null;
 }
+
+
+/** Only explicitly allowlisted owner accounts may change user roles. */
+export async function requireSuperAdmin(req: Request): Promise<string | null> {
+  const identity = await getIdentity(req);
+  if (!identity) return null;
+  const [row] = await sql()`SELECT email FROM users WHERE id = ${identity.uid} LIMIT 1`;
+  if (!row) return null;
+  const allowlist = (process.env.SUPER_ADMIN_EMAILS ?? "")
+    .split(",").map((email) => email.trim().toLowerCase()).filter(Boolean);
+  return allowlist.includes(String(row.email ?? "").trim().toLowerCase()) ? identity.uid : null;
+}
