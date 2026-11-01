@@ -32,9 +32,8 @@ export async function POST(req: Request) {
   if (!Array.isArray(b?.items) || !b.items.length) return Response.json({ error: "Send between 1 and 50 passages." }, { status: 400 });
   if (b.items.length > 50) return Response.json({ error: "Upload at most 50 passages per batch." }, { status: 413 });
 
-  const rawSlugs = Array.isArray(b.templateSlugs) ? b.templateSlugs : (b.templateSlug ? [b.templateSlug] : []);
-  const slugs = [...new Set(rawSlugs.map((s: unknown) => String(s).trim()).filter(Boolean))];
-  if (slugs.length > 40) return Response.json({ error: "Select at most 40 exam directories per upload." }, { status: 400 });
+  const slug = typeof b.templateSlug === "string" ? b.templateSlug.trim() : "";
+  if (!slug) return Response.json({ error: "Choose exactly one simulator folder before uploading passages." }, { status: 400 });
 
   const checked = b.items.map((it: any, i: number) => {
     const item = it && typeof it === "object" && !Array.isArray(it) ? it : {};
@@ -47,15 +46,11 @@ export async function POST(req: Request) {
     const db = sql();
     const languages = new Set(checked.map((item: any) => item.clean.language));
     if (languages.size !== 1) return Response.json({ error: "All passages in one upload batch must use the same language." }, { status: 422 });
-    const targetTemplates: { id: string; slug: string; name: string; language: string }[] = [];
-    for (const slug of slugs) {
-      const [template] = await db`SELECT id, slug, name, language FROM exam_templates WHERE slug = ${slug} AND is_active = true LIMIT 1`;
-      if (!template) return Response.json({ error: `The selected exam directory "${slug}" does not exist or is inactive.` }, { status: 422 });
-      targetTemplates.push({ id: String(template.id), slug: String(template.slug), name: String(template.name), language: String(template.language) });
-    }
+    const [template] = await db`SELECT id, slug, name, language, passage_layout, font_size_pt FROM exam_templates WHERE slug = ${slug} AND is_active = true LIMIT 1`;
+    if (!template) return Response.json({ error: `The selected exam directory "${slug}" does not exist or is inactive.` }, { status: 422 });
+    const destination = { id: String(template.id), slug: String(template.slug), name: String(template.name), language: String(template.language) };
     const language = checked[0].clean.language;
-    const wrongLanguage = targetTemplates.filter((template) => template.language !== language);
-    if (wrongLanguage.length) return Response.json({ error: `Passage language does not match these exam directories: ${wrongLanguage.map((x) => x.slug).join(", ")}. Select only ${language === "hi" ? "Hindi" : "English"} directories.` }, { status: 422 });
+    if (destination.language !== language) return Response.json({ error: `Passage language does not match ${destination.name}. Select ${destination.language === "hi" ? "Hindi" : "English"}.` }, { status: 422 });
 
     const basePayload = checked.map((item: any) => ({
       language: item.clean.language,
@@ -63,33 +58,23 @@ export async function POST(req: Request) {
       body: item.clean.body,
       word_count: countWords(item.clean.body),
     }));
-    const destinations: { id: string | null; slug: string; name: string }[] = targetTemplates.length
-      ? targetTemplates.map((template) => ({ id: template.id, slug: template.slug, name: String((template as any).name ?? template.slug) }))
-      : [{ id: null, slug: "general", name: "TypingSkillZone" }];
-    const statements = destinations.map((destination) => {
-      const payload = basePayload.map((item: any) => {
-        const match = /^Passage\s+(\d+)$/i.exec(item.title.trim());
-        const title = match
-          ? `${destination.name} — Passage ${String(Number(match[1])).padStart(2, "0")}`
-          : item.title;
-        return { ...item, title: title.slice(0, 120) };
-      });
-      return db`
-        INSERT INTO passages (template_id, language, title, body, word_count, created_by)
-        SELECT ${destination.id}::uuid, item.language, item.title, item.body, item.word_count, ${uid}
-        FROM jsonb_to_recordset(${JSON.stringify(payload)}::jsonb)
-          AS item(language text, title text, body text, word_count integer)
-        RETURNING id
-      `;
+    const payload = basePayload.map((item: any) => {
+      const match = /^Passage\\s+(\\d+)$/i.exec(item.title.trim());
+      const title = match ? `${destination.name} — Passage ${String(Number(match[1])).padStart(2, "0")}` : item.title;
+      return { ...item, title: title.slice(0, 120) };
     });
-    const insertedBatches = await db.transaction(statements);
-    const insertedCount = insertedBatches.reduce((total: number, rows: any) => total + rows.length, 0);
-    const expected = basePayload.length * destinations.length;
-    if (insertedCount !== expected) {
-      console.error("Multi-directory passage insert count mismatch", { expected, insertedCount });
-      return Response.json({ error: "Passage publication was incomplete. Refresh the passage list before retrying.", saved: 0 }, { status: 500 });
-    }
-    return Response.json({ ok: true, saved: basePayload.length, publications: insertedCount, directories: targetTemplates.map((x) => x.slug) });
+    const inserted = await db`
+      INSERT INTO passages (template_id, language, title, body, word_count, created_by, format_metadata)
+      SELECT ${destination.id}::uuid, item.language, item.title, item.body, item.word_count, ${uid},
+        ${JSON.stringify({ simulatorSlug: destination.slug, examSpecific: true })}::jsonb
+      FROM jsonb_to_recordset(${JSON.stringify(payload)}::jsonb)
+        AS item(language text, title text, body text, word_count integer)
+      RETURNING id
+    `;
+    const insertedCount = inserted.length;
+    const expected = basePayload.length;
+    if (insertedCount !== expected) return Response.json({ error: "Passage publication was incomplete. Refresh before retrying.", saved: 0 }, { status: 500 });
+    return Response.json({ ok: true, saved: basePayload.length, publications: insertedCount, directory: destination.slug });
   } catch (error) {
     console.error("POST /api/admin/passages multi-directory save failed:", error);
     const detail = error instanceof Error ? error.message : "Unknown database error";
