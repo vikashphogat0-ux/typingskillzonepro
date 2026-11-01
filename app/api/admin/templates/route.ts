@@ -35,21 +35,23 @@ export async function POST(req: Request) {
   await sql()`INSERT INTO exam_templates (
       slug, name, language, duration_sec, display_mode, backspace, scoring, is_active,
       passage_layout, font_size_pt, passage_font_family, passage_alignment,
-      passage_line_spacing, passage_paragraph_spacing, print_page_size
+      passage_line_spacing, passage_paragraph_spacing, print_page_size, enter_key_policy, tab_key_policy
     )
     VALUES (
       ${t.slug}, ${t.name.trim()}, ${t.language}, ${t.durationSec}, ${t.displayMode}, ${t.backspace},
       ${JSON.stringify(scoring)}::jsonb, ${t.isActive ?? true},
       ${t.passageLayout ?? "continuous"}, ${t.fontSizePt ?? 12}, ${t.passageFontFamily ?? "system"},
       ${t.passageAlignment ?? "left"}, ${t.passageLineSpacing ?? 1.5},
-      ${t.passageParagraphSpacing ?? 8}, ${t.printPageSize ?? "A4"}
+      ${t.passageParagraphSpacing ?? 8}, ${t.printPageSize ?? "A4"},
+      ${t.enterKeyPolicy ?? "newline"}, ${t.tabKeyPolicy ?? "blocked"}
     )
     ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, language = EXCLUDED.language, duration_sec = EXCLUDED.duration_sec,
       display_mode = EXCLUDED.display_mode, backspace = EXCLUDED.backspace, scoring = EXCLUDED.scoring, is_active = EXCLUDED.is_active,
       passage_layout = EXCLUDED.passage_layout, font_size_pt = EXCLUDED.font_size_pt,
       passage_font_family = EXCLUDED.passage_font_family, passage_alignment = EXCLUDED.passage_alignment,
       passage_line_spacing = EXCLUDED.passage_line_spacing, passage_paragraph_spacing = EXCLUDED.passage_paragraph_spacing,
-      print_page_size = EXCLUDED.print_page_size`;
+      print_page_size = EXCLUDED.print_page_size, enter_key_policy = EXCLUDED.enter_key_policy,
+      tab_key_policy = EXCLUDED.tab_key_policy`;
   return Response.json({ ok: true });
 }
 
