@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 
-type Data = { error?: string; role?: string; attempts?: {netWpm:number;accuracy:number;createdAt:string;simulator:string|null}[]; summary?: {tests:number;avgNetWpm:number;avgAccuracy:number;bestNetWpm:number}; patterns?: {weakKeys:{label:string;attempts:number;errors:number;errorRate:number}[];weakPairs:{label:string;attempts:number;errors:number;errorRate:number}[]}; recommendations?: string[] };
+type Data = { error?: string; role?: string; attempts?: {netWpm:number;accuracy:number;createdAt:string;simulator:string|null}[]; weeklyReport?: {recent:{attempts:number;avgNetWpm:number;bestNetWpm:number;avgAccuracy:number};previous:{attempts:number;avgNetWpm:number;avgAccuracy:number};changes:{avgNetWpm:number|null;avgAccuracy:number|null};coverage:{days:number;attemptsAnalysed:number;capped:boolean}}; summary?: {tests:number;avgNetWpm:number;avgAccuracy:number;bestNetWpm:number}; patterns?: {weakKeys:{label:string;attempts:number;errors:number;errorRate:number}[];weakPairs:{label:string;attempts:number;errors:number;errorRate:number}[]}; recommendations?: string[] };
 
 type Goals={sessions:number;targetWpm:number;targetAccuracy:number};
 const DEFAULT_GOALS:Goals={sessions:3,targetWpm:50,targetAccuracy:95};
@@ -44,6 +44,28 @@ export default function CoachPage() {
     <header><p className="hint">TYPINGSKILLZONE · PERSONAL PERFORMANCE</p><h1>Intelligent Typing Coach</h1><p>Evidence-based coaching from your saved attempts. Your exam settings and scoring rules are not modified.</p><p><a className="go" href="/coach/drills">Start targeted typing drills →</a></p></header>
     <section className="tiles">
       <div><b>{s?.tests??0}</b><span>Recent attempts</span></div><div><b>{s?.avgNetWpm??0}</b><span>Average net WPM</span></div><div><b>{s?.avgAccuracy??0}%</b><span>Average accuracy</span></div><div><b>{s?.bestNetWpm??0}</b><span>Best net WPM</span></div>
+    </section>
+    <section className="admin-generation-panel">
+      <h2>Weekly performance report</h2>
+      {data.weeklyReport?<>
+        <p className="hint">Rolling 7-day comparison against the preceding 7 days. Only saved simulator attempts are included.</p>
+        <div className="tiles">
+          <div><b>{data.weeklyReport.recent.attempts}</b><span>Attempts · last 7 days</span></div>
+          <div><b>{data.weeklyReport.recent.avgNetWpm}</b><span>Average net WPM</span></div>
+          <div><b>{data.weeklyReport.recent.bestNetWpm}</b><span>Best net WPM</span></div>
+          <div><b>{data.weeklyReport.recent.avgAccuracy}%</b><span>Average accuracy</span></div>
+        </div>
+        <h3 style={{marginTop:"1rem"}}>Compared with previous week</h3>
+        <div className="tiles">
+          <div><b>{data.weeklyReport.changes.avgNetWpm===null?"Not enough data":(data.weeklyReport.changes.avgNetWpm>0?"+":"")+data.weeklyReport.changes.avgNetWpm}</b><span>Average net WPM change</span></div>
+          <div><b>{data.weeklyReport.changes.avgAccuracy===null?"Not enough data":(data.weeklyReport.changes.avgAccuracy>0?"+":"")+data.weeklyReport.changes.avgAccuracy+"%"}</b><span>Average accuracy change</span></div>
+          <div><b>{data.weeklyReport.previous.attempts}</b><span>Attempts · previous 7 days</span></div>
+          <div><b>{data.weeklyReport.coverage.attemptsAnalysed}</b><span>Attempts analysed · 14 days</span></div>
+        </div>
+        {data.weeklyReport.coverage.capped&&<p className="hint">The report reached its 500-attempt analysis limit. Older attempts within this period may not be included.</p>}
+        {!data.weeklyReport.previous.attempts&&<p className="hint">Complete tests in both periods to see a meaningful week-over-week comparison.</p>}
+        {data.weeklyReport.recent.attempts===0&&<p className="hint">No saved simulator attempts were found in the last 7 days.</p>}
+      </>:<p className="hint">Weekly report is not available yet. Refresh after your next saved test.</p>}
     </section>
     <section className="admin-generation-panel">
       <h2>Daily practice goals</h2>
