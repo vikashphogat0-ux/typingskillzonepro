@@ -32,8 +32,9 @@ export async function POST(req: Request) {
   if (!Array.isArray(b?.items) || !b.items.length) return Response.json({ error: "Send between 1 and 50 passages." }, { status: 400 });
   if (b.items.length > 50) return Response.json({ error: "Upload at most 50 passages per batch." }, { status: 413 });
 
+  const publishToAll = b.publishToAll === true;
   const slug = typeof b.templateSlug === "string" ? b.templateSlug.trim() : "";
-  if (!slug) return Response.json({ error: "Choose exactly one simulator folder before uploading passages." }, { status: 400 });
+  if (!publishToAll && !slug) return Response.json({ error: "Choose a simulator or enable publish to all matching simulators." }, { status: 400 });
 
   const checked = b.items.map((it: any, i: number) => {
     const item = it && typeof it === "object" && !Array.isArray(it) ? it : {};
@@ -46,11 +47,12 @@ export async function POST(req: Request) {
     const db = sql();
     const languages = new Set(checked.map((item: any) => item.clean.language));
     if (languages.size !== 1) return Response.json({ error: "All passages in one upload batch must use the same language." }, { status: 422 });
-    const [template] = await db`SELECT id, slug, name, language, passage_layout, font_size_pt FROM exam_templates WHERE slug = ${slug} AND is_active = true LIMIT 1`;
-    if (!template) return Response.json({ error: `The selected exam directory "${slug}" does not exist or is inactive.` }, { status: 422 });
-    const destination = { id: String(template.id), slug: String(template.slug), name: String(template.name), language: String(template.language) };
     const language = checked[0].clean.language;
-    if (destination.language !== language) return Response.json({ error: `Passage language does not match ${destination.name}. Select ${destination.language === "hi" ? "Hindi" : "English"}.` }, { status: 422 });
+    const destinations = publishToAll
+      ? await db`SELECT id, slug, name, language FROM exam_templates WHERE is_active = true AND language = ${language} ORDER BY name`
+      : await db`SELECT id, slug, name, language FROM exam_templates WHERE slug = ${slug} AND is_active = true LIMIT 1`;
+    if (!destinations.length) return Response.json({ error: publishToAll ? "No active simulators exist for this language." : `The selected exam directory "${slug}" does not exist or is inactive.` }, { status: 422 });
+    if (!publishToAll && destinations[0].language !== language) return Response.json({ error: `Passage language does not match ${destinations[0].name}. Select ${destinations[0].language === "hi" ? "Hindi" : "English"}.` }, { status: 422 });
 
     const basePayload = checked.map((item: any) => ({
       language: item.clean.language,
@@ -58,23 +60,26 @@ export async function POST(req: Request) {
       body: item.clean.body,
       word_count: countWords(item.clean.body),
     }));
-    const payload = basePayload.map((item: any) => {
-      const match = /^Passage\s+(\d+)$/i.exec(item.title.trim());
-      const title = match ? `${destination.name} — Passage ${String(Number(match[1])).padStart(2, "0")}` : item.title;
-      return { ...item, title: title.slice(0, 120) };
-    });
-    const inserted = await db`
+    const payload = basePayload.map((item: any, index: number) => ({
+      ...item,
+      title: /^Passage\s+\d+$/i.test(item.title.trim()) ? \`Passage \${String(index + 1).padStart(2, "0")}\` : item.title,
+    }));
+    const records = destinations.flatMap((destination: any) => payload.map((item: any, index: number) => ({
+      template_id: String(destination.id), language: item.language,
+      title: \`\${String(destination.name)} — Passage \${String(index + 1).padStart(2, "0")}\`.slice(0, 120),
+      body: item.body, word_count: item.word_count,
+      simulator_slug: String(destination.slug), source_title: item.title,
+    })));
+    const inserted = await db\`
       INSERT INTO passages (template_id, language, title, body, word_count, created_by, format_metadata)
-      SELECT ${destination.id}::uuid, item.language, item.title, item.body, item.word_count, ${uid},
-        ${JSON.stringify({ simulatorSlug: destination.slug, examSpecific: true })}::jsonb
-      FROM jsonb_to_recordset(${JSON.stringify(payload)}::jsonb)
-        AS item(language text, title text, body text, word_count integer)
+      SELECT item.template_id::uuid, item.language, item.title, item.body, item.word_count, \${uid},
+        jsonb_build_object('importType', 'multi-simulator-pdf', 'source', 'admin-upload', 'simulatorSlug', item.simulator_slug, 'sourceTitle', item.source_title)
+      FROM jsonb_to_recordset(\${JSON.stringify(records)}::jsonb)
+        AS item(template_id text, language text, title text, body text, word_count integer, simulator_slug text, source_title text)
       RETURNING id
-    `;
-    const insertedCount = inserted.length;
-    const expected = basePayload.length;
-    if (insertedCount !== expected) return Response.json({ error: "Passage publication was incomplete. Refresh before retrying.", saved: 0 }, { status: 500 });
-    return Response.json({ ok: true, saved: basePayload.length, publications: insertedCount, directory: destination.slug });
+    \`;
+    if (inserted.length !== records.length) return Response.json({ error: "Passage publication was incomplete. Refresh before retrying.", saved: 0 }, { status: 500 });
+    return Response.json({ ok: true, saved: payload.length, publications: inserted.length, destinations: destinations.map((d: any) => d.slug), simulatorCount: destinations.length });
   } catch (error) {
     console.error("POST /api/admin/passages multi-directory save failed:", error);
     const detail = error instanceof Error ? error.message : "Unknown database error";
