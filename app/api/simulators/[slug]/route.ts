@@ -35,9 +35,30 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     });
   } catch (error) {
     console.error("GET /api/simulators/[slug] failed; serving built-in preset as a temporary fallback:", error);
-    {
-      const preset = PRESETS.find((p) => p.slug === slug);
-      if (!preset) return Response.json({ error: "Simulator not found." }, { status: 404 });
-      return Response.json({ slug: preset.slug, name: preset.name, language: preset.lang, duration_sec: preset.durationSec, display_mode: preset.mode, backspace: preset.backspace, scoring: preset.profile ?? { id: preset.profileId }, description: "Temporary fallback: database-backed exam details are unavailable; saved results require the database.", passage_layout: getRkcPassageLayout(String(preset.slug)), passage_font_family: "system", passage_alignment: "left", passage_line_spacing: 1.5, passage_paragraph_spacing: 8, print_page_size: "A4", formattingSettingsAvailable: false, formattingWarning: "Showing default presentation settings because database settings could not be loaded. Check the database connection and apply the simulator passage-formatting migration.", enter_key_policy: "newline", tab_key_policy: "blocked", font_size_pt: 12, participants: 0, my_best: null });
+    const preset = PRESETS.find((p) => p.slug === slug);
+    if (!preset) return Response.json({ error: "Simulator not found." }, { status: 404 });
+    return Response.json({
+      slug: preset.slug,
+      name: preset.name,
+      language: preset.lang,
+      duration_sec: preset.durationSec,
+      display_mode: preset.mode,
+      backspace: preset.backspace,
+      scoring: preset.profile ?? { id: preset.profileId },
+      description: "Temporary fallback: database-backed exam details are unavailable; saved results require the database.",
+      passage_layout: getRkcPassageLayout(String(preset.slug)),
+      passage_font_family: "system",
+      passage_alignment: "left",
+      passage_line_spacing: 1.5,
+      passage_paragraph_spacing: 8,
+      print_page_size: "A4",
+      formattingSettingsAvailable: false,
+      formattingWarning: "Showing default presentation settings because database settings could not be loaded. Check the database connection and apply the simulator passage-formatting migration.",
+      enter_key_policy: "newline",
+      tab_key_policy: "blocked",
+      font_size_pt: 12,
+      participants: 0,
+      my_best: null
+    });
   }
 }
