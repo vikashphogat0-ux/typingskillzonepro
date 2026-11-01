@@ -78,11 +78,11 @@ export function validateAttempt(a: { typed: string; events: KeyEvent[]; elapsedS
   // Enforce the selected exam's control-character policy on the server too.
   // The browser is not trusted: a caller must not bypass blocked Enter/Tab via a direct API request.
   if (typeof a.typed === "string") {
-    if (a.enterKeyPolicy === "blocked" && a.typed.includes("\\n")) {
+    if (a.enterKeyPolicy === "blocked" && a.typed.includes("\n")) {
       tampered = true;
       reasons.push("Enter is disabled for this simulator.");
     }
-    if (a.tabKeyPolicy === "blocked" && a.typed.includes("\\t")) {
+    if (a.tabKeyPolicy === "blocked" && a.typed.includes("\t")) {
       tampered = true;
       reasons.push("Tab is disabled for this simulator.");
     }
