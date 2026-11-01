@@ -741,3 +741,42 @@ body:has(.exam-catalogue) .tsz-content{max-width:none}.exam-catalogue{max-width:
 .results-page .tbl:focus-visible{outline:2px solid #72d5f3;outline-offset:3px}
 @media(max-width:640px){.results-page{padding:20px 12px 42px}.results-page-heading{padding:22px 18px}.results-notice{align-items:flex-start;flex-direction:column}.results-loading{margin:40px auto}}
 @media(prefers-reduced-motion:reduce){.results-loading-mark{animation:none}}
+
+/* Homepage exam logos use the shared ExamEmblem component markup. */
+.tsz-home-exam-card .exam-card-emblem{
+  display:flex;
+  flex:0 0 64px;
+  width:64px;
+  height:64px;
+  max-width:64px;
+  max-height:64px;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  padding:8px;
+  border:1px solid rgba(126,190,235,.28);
+  border-radius:13px;
+  background:linear-gradient(145deg,#f4f8ff,#dce9f8);
+}
+.tsz-home-exam-card .exam-card-emblem img{
+  display:block;
+  width:100%;
+  height:100%;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+}
+.tsz-home-exam-card .exam-card-fallback{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  color:#102b4b;
+  text-align:center;
+}
+.tsz-home-exam-card .exam-card-fallback strong{font-size:15px;line-height:1.1;font-weight:950}
+.tsz-home-exam-card .exam-card-fallback small{color:#426486;font-size:7px;line-height:1.2;font-weight:850;letter-spacing:.04em;text-transform:uppercase}
+@media(max-width:520px){
+  .tsz-home-exam-card .exam-card-emblem{flex-basis:56px;width:56px;height:56px;padding:6px}
+}
