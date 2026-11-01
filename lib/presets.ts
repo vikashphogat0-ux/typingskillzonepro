@@ -51,7 +51,6 @@ export const PRESETS: ExamPreset[] = [
 const VERIFIED_EXAM_SLUGS = new Set([
   "ssc-chsl-en", "ssc-chsl-hi",
   "rrb-ntpc-en", "rrb-ntpc-hi", "dp-hcm-en", "dp-hcm-hi",
-  "bsf-hcm-en", "bsf-hcm-hi", "crpf-hcm-en", "crpf-hcm-hi", "cisf-hcm-en", "cisf-hcm-hi",
   "delhi-high-court-jja-en",
 ]);
 
