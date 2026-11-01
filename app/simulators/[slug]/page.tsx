@@ -6,6 +6,7 @@ import TypingSimulator, { type SimResult } from "@/components/TypingSimulator";
 import Leaderboard from "@/components/Leaderboard";
 import { api, fmtDate } from "@/lib/clientApi";
 import ExamEmblem from "@/components/ExamEmblem";
+import { formatRkcPassage, getRkcPassageLayout } from "@/lib/rkc-passage-format";
 
 interface SimInfo {
   slug: string; name: string; language: "en" | "hi"; duration_sec: number;
@@ -214,7 +215,7 @@ export default function SimulatorPage() {
       const formattedBody = isBsfPassage ? rawBody.replace(/\\s+/gu, " ").trim() : rawBody;
       const body = escapeHtml(formattedBody);
       target.document.open();
-      target.document.write(`<!doctype html><html lang="${sim?.language ?? "en"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${exam} — ${title}</title><style>body{font-family:Arial,"Noto Sans Devanagari",sans-serif;max-width:850px;margin:32px auto;padding:0 24px;color:#172033;line-height:1.5}h1{font-size:18pt;margin:0 0 5px}h2{font-size:13pt;font-weight:500;margin:0 0 22px;color:#526176}.passage{font-size:${Math.max(10,Math.min(18,sim?.font_size_pt ?? 12))}pt;white-space:normal;overflow-wrap:anywhere;line-height:1.5}@page{size:A4;margin:20mm}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${exam}</h1><h2>${title} · ID ${escapeHtml(full.id)}</h2><div class="passage">${body}</div><script>window.onload=()=>window.print()<\/script></body></html>`);
+      target.document.write(`<!doctype html><html lang="${sim?.language ?? "en"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${exam} — ${title}</title><style>body{font-family:Arial,"Noto Sans Devanagari",sans-serif;max-width:850px;margin:32px auto;padding:0 24px;color:#172033;line-height:1.5}h1{font-size:18pt;margin:0 0 5px}h2{font-size:13pt;font-weight:500;margin:0 0 22px;color:#526176}.passage{font-size:${Math.max(10,Math.min(18,sim?.font_size_pt ?? 12))}pt;white-space:${layout === "continuous" ? "normal" : "pre-wrap"};overflow-wrap:anywhere;line-height:1.5}@page{size:A4;margin:20mm}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${exam}</h1><h2>${title} · ID ${escapeHtml(full.id)}</h2><div class="passage">${body}</div><script>window.onload=()=>window.print()<\/script></body></html>`);
       target.document.close();
       target.focus();
     } catch (error) {
