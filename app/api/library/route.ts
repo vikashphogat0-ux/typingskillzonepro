@@ -13,7 +13,15 @@ export async function GET(req: Request) {
     const one = u.searchParams.get("id");
     if (one) {
       if (!/^[0-9a-f-]{36}$/i.test(one)) return Response.json({ error: "Not found." }, { status: 404 });
-      const [p] = await db`SELECT id, title, language, word_count, body FROM passages WHERE id = ${one}`;
+      const [p] = await db`WITH ranked AS (
+        SELECT p.id, p.title, p.language, p.word_count, p.body,
+          row_number() OVER (
+            PARTITION BY p.template_id, p.language, date_trunc('month', p.created_at AT TIME ZONE 'Asia/Kolkata')
+            ORDER BY p.created_at ASC, p.id ASC
+          ) AS passage_number
+        FROM passages p
+      )
+      SELECT id, title, language, word_count, body, passage_number FROM ranked WHERE id = ${one}`;
       return p ? Response.json(p) : Response.json({ error: "Not found." }, { status: 404 });
     }
 
