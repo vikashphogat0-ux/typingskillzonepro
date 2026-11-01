@@ -1423,3 +1423,18 @@ body:has(.home-reference){background:#071225!important;color:#edf5ff!important}
 @media(max-width:850px){.learn-lesson-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.learn-page{padding-top:22px!important}.learn-track{padding:14px;border-radius:14px}.learn-lesson-grid{grid-template-columns:1fr;gap:8px}.learn-lesson-grid>.lesson{min-height:76px;gap:8px;padding:13px}.learn-page .learn-summary{padding:16px}}
 @media(prefers-reduced-motion:reduce){.learn-page *{transition:none!important}}
+
+
+
+/* Improvement 16: exam directory overview and discovery metrics */
+.exam-catalogue-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;width:min(820px,100%);margin:18px 0 8px}
+.exam-catalogue-stats>div{display:grid;gap:4px;min-width:0;padding:13px 15px;border:1px solid var(--tsz-line,rgba(140,170,210,.18));border-radius:12px;background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.012))}
+.exam-catalogue-stats strong{color:var(--tsz-text,#eaf2ff);font-size:clamp(20px,2.4vw,27px);letter-spacing:-.04em}
+.exam-catalogue-stats span{color:var(--tsz-muted,#9aaac0);font-size:10px;line-height:1.4}
+.exam-catalogue-toolbar input:focus-visible,.exam-catalogue-toolbar select:focus-visible,.exam-popular button:focus-visible,.exam-catalogue-card a:focus-visible{outline:2px solid #43d9ed;outline-offset:3px}
+.exam-catalogue-card{transition:transform .18s,border-color .18s,box-shadow .18s}
+.exam-catalogue-card:hover{transform:translateY(-2px);border-color:rgba(76,207,239,.32);box-shadow:0 16px 38px rgba(0,0,0,.18)}
+.exam-catalogue-card-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.exam-start-link{white-space:nowrap}
+@media(max-width:700px){.exam-catalogue-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.exam-catalogue-stats>div{padding:11px 12px}.exam-catalogue-card-actions{align-items:stretch}.exam-catalogue-card-actions>*{flex:1;justify-content:center;text-align:center}}
+@media(prefers-reduced-motion:reduce){.exam-catalogue-card{transition:none}.exam-catalogue-card:hover{transform:none}}
