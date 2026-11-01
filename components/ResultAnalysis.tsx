@@ -14,6 +14,10 @@ interface Evaluation {
   profileLabel: string;
   unit: "words" | "keystrokes";
   charsPerWord: number;
+  fullErrorWeight: number;
+  halfErrorWeight: number;
+  halfRules: { caseOnly: boolean; punctuationOnly: boolean };
+  errorPercentBasis: "typedWords" | "referenceWordsReached" | "referenceWords";
   netMethod: "penalty" | "accuracy" | "per-error" | "rrb";
   qualificationBasis: "gross" | "net";
   qualifyingWpm: number | null;
@@ -43,7 +47,7 @@ export default function ResultAnalysis({ reference, events, score: s, evaluation
         <div><b>{s.netWpm}</b><span>Net WPM</span></div>
         <div><b>{s.grossWpm}</b><span>Gross WPM</span></div>
         <div><b>{s.accuracy}%</b><span>Accuracy</span></div>
-        <div><b>{s.fullErrors} + {s.halfErrors}/2</b><span>Full + half mistakes</span></div>
+        <div><b>{s.errorUnits}</b><span>Weighted error units</span></div>
         <div><b>{s.fixedErrors} / {s.ignoredErrors}</b><span>Fixed / ignored characters</span></div>
         <div><b>−{s.penaltyWpm}</b><span>Penalty WPM</span></div>
         {typeof s.marks === "number" && <div><b>{s.marks}/25</b><span>Delhi Police HCM marks</span></div>}
@@ -63,6 +67,17 @@ export default function ResultAnalysis({ reference, events, score: s, evaluation
             {evaluation.minWords !== null && <div><b>{evaluation.minWords}</b><span>Minimum words required</span></div>}
             {evaluation.targetKeystrokes !== null && <div><b>{evaluation.targetKeystrokes}</b><span>Target key depressions</span></div>}
           </div>
+          <div className="tiles">
+            <div><b>{s.fullErrors}</b><span>Full errors · weight {evaluation.fullErrorWeight}</span></div>
+            {evaluation.halfErrorWeight > 0 && <div><b>{s.halfErrors}</b><span>Half errors · weight {evaluation.halfErrorWeight}</span></div>}
+            <div><b>{s.errorUnits}</b><span>Total weighted error units</span></div>
+          </div>
+          <p className="hint">Error percentage is measured against {evaluation.errorPercentBasis === "referenceWords" ? "all reference words" : evaluation.errorPercentBasis === "referenceWordsReached" ? "reference words reached" : "typed words"}.</p>
+          <p className="hint">{evaluation.halfErrorWeight === 0
+            ? "This profile does not award half-error treatment; differences are evaluated as full errors."
+            : evaluation.halfErrorWeight === evaluation.fullErrorWeight
+              ? "Half-classified differences carry the same scoring weight as full errors in this profile."
+              : "Half-classified differences use a reduced weight under this profile."}</p>
           <p className="hint">{evaluation.netMethod === "rrb"
             ? "This profile applies its configured error allowance before calculating the net speed."
             : evaluation.netMethod === "per-error"
@@ -77,12 +92,16 @@ export default function ResultAnalysis({ reference, events, score: s, evaluation
       <h2>Your text against the reference</h2>
       <ComparisonView ops={s.wordOps} hindi={hindi} />
 
-      <h2>Your mistake pattern</h2>
+      <h2>Mistakes under this exam's scoring rules</h2>
       <div className="pat">
-        <div><h3>Letters you mix up</h3>{pat.confusions.length ? <ul>{pat.confusions.map((c) => <li key={c.from + c.to}>should be <b>{c.from}</b>, typed <b>{c.to}</b> ×{c.count}</li>)}</ul> : <p className="hint">None found.</p>}</div>
-        <div><h3>Letters you drop</h3>{pat.missingLetters.length ? <ul>{pat.missingLetters.map((c) => <li key={c.ch}><b>{c.ch}</b> ×{c.count}</li>)}</ul> : <p className="hint">None found.</p>}</div>
-        <div><h3>Extra letters</h3>{pat.extraLetters.length ? <ul>{pat.extraLetters.map((c) => <li key={c.ch}><b>{c.ch}</b> ×{c.count}</li>)}</ul> : <p className="hint">None found.</p>}</div>
-        <div><h3>Words you got wrong</h3>{pat.wrongWords.length ? <ul>{pat.wrongWords.map((w) => <li key={w.ref + w.typed}><b>{w.ref}</b> → <s>{w.typed}</s></li>)}</ul> : <p className="hint">None found.</p>}</div>
+        {(!evaluation || evaluation.fullErrorWeight > 0) && <div><h3>Full-error letter patterns</h3>{pat.confusions.length || pat.missingLetters.length || pat.extraLetters.length ? <>
+          {pat.confusions.length > 0 && <ul>{pat.confusions.map((item) => <li key={item.from + item.to}>Expected <b>{item.from}</b>, typed <b>{item.to}</b> ×{item.count}</li>)}</ul>}
+          {pat.missingLetters.length > 0 && <p>Missing: {pat.missingLetters.map((item) => `${item.ch} ×${item.count}`).join(", ")}</p>}
+          {pat.extraLetters.length > 0 && <p>Extra: {pat.extraLetters.map((item) => `${item.ch} ×${item.count}`).join(", ")}</p>}
+        </> : <p className="hint">No full-error letter patterns found.</p>}</div>}
+        <div><h3>Full-error words</h3>{pat.wrongWords.length ? <ul>{pat.wrongWords.map((w) => <li key={w.ref + w.typed}><b>{w.ref}</b> → <s>{w.typed}</s></li>)}</ul> : <p className="hint">None found.</p>}</div>
+        {evaluation && evaluation.halfErrorWeight > 0 && <div><h3>Half-error words</h3>{s.wordOps.filter((op) => op.op === "half").length ? <ul>{s.wordOps.filter((op) => op.op === "half").map((op, i) => op.op === "half" ? <li key={i}><b>{op.ref}</b> → <s>{op.typed}</s></li> : null)}</ul> : <p className="hint">None found.</p>}</div>}
+        <div><h3>Omitted and extra words</h3>{pat.omitted || pat.extra ? <p>{pat.omitted} omitted · {pat.extra} extra</p> : <p className="hint">None found.</p>}</div>
       </div>
       {(pat.omitted > 0 || pat.extra > 0) && <p>You skipped {pat.omitted} word{pat.omitted === 1 ? "" : "s"} and added {pat.extra} extra.</p>}
 
