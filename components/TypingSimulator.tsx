@@ -79,6 +79,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, prac
   const events = useRef<KeyEvent[]>([]);
   const startRef = useRef<number | null>(null);
   const doneRef = useRef(false);
+  const composingRef = useRef(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -136,12 +137,13 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, prac
       box.scrollTop = Math.max(0, cur.offsetTop - 40);
   }, [value]);
 
-  const onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const commitInput = (candidate: string, input: HTMLTextAreaElement) => {
     if (doneRef.current || phase === "break") return;
     const prev = valueRef.current;
-    const res = checkEdit(prev, e.target.value, backspace);
-    if (!res.ok) { e.target.value = prev; return; }
+    const res = checkEdit(prev, candidate, backspace);
+    if (!res.ok) { input.value = prev; setValue(prev); return; }
     const next = res.value;
+    if (next === prev) { setValue(next); return; }
     if (startRef.current === null) startRef.current = Date.now();
     const t = Date.now() - startRef.current;
     const a = Array.from(prev), b = Array.from(next);
@@ -152,6 +154,21 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, prac
     valueRef.current = next;
     setValue(next);
     if (phase === "test" && b.length >= refChars.length) finish();
+  };
+
+  // IME composition can emit several provisional Hindi/Indic strings. Show them
+  // while composing, but record only the committed final text as typing events.
+  const onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (composingRef.current) {
+      setValue(e.target.value);
+      return;
+    }
+    commitInput(e.target.value, e.currentTarget);
+  };
+  const onCompositionStart = () => { composingRef.current = true; };
+  const onCompositionEnd = (e: React.CompositionEvent<HTMLTextAreaElement>) => {
+    composingRef.current = false;
+    commitInput(e.currentTarget.value, e.currentTarget);
   };
 
   // exam rules: caret stays at the end, no arrow keys, no paste, no drag
@@ -242,6 +259,8 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, prac
         lang={lang}
         readOnly={done || phase === "break"}
         onChange={onChange}
+        onCompositionStart={onCompositionStart}
+        onCompositionEnd={onCompositionEnd}
         onKeyDown={onKeyDown}
         onSelect={lockCaret}
         onClick={lockCaret}
