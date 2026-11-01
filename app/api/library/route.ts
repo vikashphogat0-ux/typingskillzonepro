@@ -13,23 +13,23 @@ export async function GET(req: Request) {
     const one = u.searchParams.get("id");
     if (one) {
       if (!/^[0-9a-f-]{36}$/i.test(one)) return Response.json({ error: "Not found." }, { status: 404 });
-      const [p] = await db\`SELECT id, title, language, word_count, body FROM passages WHERE id = \${one}\`;
+      const [p] = await db`SELECT id, title, language, word_count, body FROM passages WHERE id = ${one}`;
       return p ? Response.json(p) : Response.json({ error: "Not found." }, { status: 404 });
     }
 
     const today = istDate();
     const currentMonth = today.slice(0, 7);
     const requestedMonth = u.searchParams.get("month") ?? "";
-    const monthRows = await db\`SELECT DISTINCT to_char(p.created_at, 'YYYY-MM') AS month
+    const monthRows = await db`SELECT DISTINCT to_char(p.created_at, 'YYYY-MM') AS month
       FROM passages p LEFT JOIN exam_templates et ON et.id = p.template_id
-      WHERE to_char(p.created_at, 'YYYY-MM') < \${currentMonth}
-        AND (\${tpl} = '' OR et.slug = \${tpl})
-      ORDER BY month DESC\`;
+      WHERE to_char(p.created_at, 'YYYY-MM') < ${currentMonth}
+        AND (${tpl} = '' OR et.slug = ${tpl})
+      ORDER BY month DESC`;
     const months = monthRows.map((row: any) => String(row.month));
-    const safeMonth = /^\\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth) && months.includes(requestedMonth)
+    const safeMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth) && months.includes(requestedMonth)
       ? requestedMonth : (months[0] ?? "");
 
-    const dailyItems = await db\`WITH ranked AS (
+    const dailyItems = await db`WITH ranked AS (
         SELECT p.*, row_number() OVER (
           PARTITION BY p.template_id, p.language, date_trunc('month', p.created_at)
           ORDER BY p.created_at ASC, p.id ASC
@@ -43,13 +43,13 @@ export async function GET(req: Request) {
         p.language, p.word_count, p.month_passage_number AS passage_number,
         p.created_at::date::text AS date, et.name AS exam
       FROM ranked p LEFT JOIN exam_templates et ON et.id = p.template_id
-      WHERE p.created_at::date = \${today}::date
-        AND (\${lang}::text IS NULL OR p.language = \${lang})
-        AND (\${tpl} = '' OR et.slug = \${tpl})
-      ORDER BY p.created_at ASC, p.id ASC\`;
+      WHERE p.created_at::date = ${today}::date
+        AND (${lang}::text IS NULL OR p.language = ${lang})
+        AND (${tpl} = '' OR et.slug = ${tpl})
+      ORDER BY p.created_at ASC, p.id ASC`;
 
-    const like = \`%\${q.replace(/[%_]/g, "")}%\`;
-    const list = await db\`WITH ranked AS (
+    const like = `%${q.replace(/[%_]/g, "")}%`;
+    const list = await db`WITH ranked AS (
         SELECT p.*, row_number() OVER (
           PARTITION BY p.template_id, p.language, date_trunc('month', p.created_at)
           ORDER BY p.created_at ASC, p.id ASC
@@ -62,15 +62,15 @@ export async function GET(req: Request) {
           ELSE p.title END AS title,
         p.language, p.word_count, left(p.body, 140) AS preview, et.name AS exam
       FROM ranked p LEFT JOIN exam_templates et ON et.id = p.template_id
-      WHERE (\${lang}::text IS NULL OR p.language = \${lang})
-        AND (\${q} = '' OR p.title ILIKE \${like} OR p.id::text ILIKE \${like}
-          OR p.month_passage_number::text = ltrim(\${q}, '0') OR p.body ILIKE \${like})
-        AND (\${tpl} = '' OR et.slug = \${tpl})
-      ORDER BY p.created_at ASC, p.id ASC\`;
+      WHERE (${lang}::text IS NULL OR p.language = ${lang})
+        AND (${q} = '' OR p.title ILIKE ${like} OR p.id::text ILIKE ${like}
+          OR p.month_passage_number::text = ltrim(${q}, '0') OR p.body ILIKE ${like})
+        AND (${tpl} = '' OR et.slug = ${tpl})
+      ORDER BY p.created_at ASC, p.id ASC`;
 
     let monthly: any[] = [];
     if (safeMonth) {
-      monthly = await db\`WITH ranked AS (
+      monthly = await db`WITH ranked AS (
           SELECT p.*, row_number() OVER (
             PARTITION BY p.template_id, p.language, date_trunc('month', p.created_at)
             ORDER BY p.created_at ASC, p.id ASC
@@ -84,10 +84,10 @@ export async function GET(req: Request) {
           p.month_passage_number AS passage_number, p.language, p.word_count,
           p.body, p.created_at::date::text AS date, et.name AS exam
         FROM ranked p LEFT JOIN exam_templates et ON et.id = p.template_id
-        WHERE to_char(p.created_at, 'YYYY-MM') = \${safeMonth}
-          AND (\${lang}::text IS NULL OR p.language = \${lang})
-          AND (\${tpl} = '' OR et.slug = \${tpl})
-        ORDER BY p.created_at ASC, p.id ASC\`;
+        WHERE to_char(p.created_at, 'YYYY-MM') = ${safeMonth}
+          AND (${lang}::text IS NULL OR p.language = ${lang})
+          AND (${tpl} = '' OR et.slug = ${tpl})
+        ORDER BY p.created_at ASC, p.id ASC`;
     }
 
     return Response.json({
