@@ -228,10 +228,10 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, prac
           ? tokens.map((tk, i) => {
               const slice = typedChars.slice(tk.start, tk.start + tk.len).join("");
               const active = !tk.space && activeIdx >= tk.start && activeIdx <= tk.start + tk.len && !done;
-              return tk.space ? <span key={i}>{tk.text}</span> : <Word key={i} text={tk.text} typed={slice} active={active} />;
+              return tk.space ? <span key={i} style={tk.text.includes("\\n\\n") ? { display: "block", marginBottom: `${Math.max(0, Math.min(32, passageParagraphSpacing))}px` } : undefined}>{tk.text}</span> : <Word key={i} text={tk.text} typed={slice} active={active} />;
             })
           : displayMode === "unhighlighted"
-            ? <span className="plain">{reference}</span>
+            ? <span className="plain">{reference.split(/\\n{2,}/u).map((paragraph, index) => <span key={index} style={{ display: "block", marginBottom: `${Math.max(0, Math.min(32, passageParagraphSpacing))}px` }}>{paragraph}</span>)}</span>
             : <div className="offscreen-placeholder">Paper-to-screen mode · passage hidden</div>}
       </div>
 
