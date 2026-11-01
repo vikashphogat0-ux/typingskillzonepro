@@ -521,3 +521,16 @@ test("server anti-cheat enforces exam-specific Enter and Tab policies", () => {
   assert.equal(make("a" + newline, newlineEvents, "newline", "blocked").tampered, false);
   assert.equal(make("a" + tab, tabEvents, "blocked", "insert").tampered, false);
 });
+
+
+test("anti-cheat rejects invalid attempt timing metadata", () => {
+  const events: KeyEvent[] = [{ t: 1, type: "ins", ch: "a" }];
+  const base = { typed: "a", events, elapsedSec: 1, durationSec: 60 };
+  assert.equal(validateAttempt({ ...base, durationSec: 0 }).tampered, true);
+  assert.equal(validateAttempt({ ...base, durationSec: Number.NaN }).tampered, true);
+  assert.equal(validateAttempt({ ...base, durationSec: Number.POSITIVE_INFINITY }).tampered, true);
+  assert.equal(validateAttempt({ ...base, elapsedSec: -1 }).tampered, true);
+  assert.equal(validateAttempt({ ...base, elapsedSec: Number.NaN }).tampered, true);
+  assert.equal(validateAttempt({ ...base, elapsedSec: Number.POSITIVE_INFINITY }).tampered, true);
+  assert.equal(validateAttempt(base).tampered, false);
+});
