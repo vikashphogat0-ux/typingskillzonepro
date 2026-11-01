@@ -54,10 +54,21 @@ export async function GET(req: Request) {
   }
   const rows = await db`SELECT r.id, r.created_at, r.net_wpm, r.gross_wpm, r.accuracy, et.name AS simulator, r.keystrokes, r.reference_text
     FROM results r LEFT JOIN exam_templates et ON et.id = r.template_id
-    WHERE r.user_id = ${uid} ORDER BY r.created_at DESC LIMIT 30`;
+    WHERE r.user_id = ${uid} AND r.created_at >= now() - interval '14 days'
+    ORDER BY r.created_at DESC LIMIT 500`;
   const attempts = rows as Attempt[];
-  const nums = attempts.map(r => ({ netWpm: Number(r.net_wpm), grossWpm: Number(r.gross_wpm), accuracy: Number(r.accuracy), createdAt: r.created_at, simulator: r.simulator }));
+  const allNums = attempts.map(r => ({ netWpm: Number(r.net_wpm), grossWpm: Number(r.gross_wpm), accuracy: Number(r.accuracy), createdAt: r.created_at, simulator: r.simulator }));
+  const nums = allNums.slice(0, 30);
+  const now = Date.now();
+  const recentWeek = allNums.filter(x => now - new Date(x.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000);
+  const previousWeek = allNums.filter(x => { const age = now - new Date(x.createdAt).getTime(); return age >= 7 * 24 * 60 * 60 * 1000 && age < 14 * 24 * 60 * 60 * 1000; });
   const avg = (values: number[]) => values.length ? Math.round(values.reduce((a,b) => a+b, 0) / values.length * 10) / 10 : 0;
+  const weeklyReport = {
+    recent: { attempts: recentWeek.length, avgNetWpm: avg(recentWeek.map(x=>x.netWpm)), bestNetWpm: recentWeek.length ? Math.max(...recentWeek.map(x=>x.netWpm)) : 0, avgAccuracy: avg(recentWeek.map(x=>x.accuracy)) },
+    previous: { attempts: previousWeek.length, avgNetWpm: avg(previousWeek.map(x=>x.netWpm)), avgAccuracy: avg(previousWeek.map(x=>x.accuracy)) },
+    changes: { avgNetWpm: avg(recentWeek.map(x=>x.netWpm)) - avg(previousWeek.map(x=>x.netWpm)), avgAccuracy: avg(recentWeek.map(x=>x.accuracy)) - avg(previousWeek.map(x=>x.accuracy)) },
+    coverage: { days: 14, attemptsAnalysed: allNums.length, capped: allNums.length === 500 }
+  };
   const patterns = insights(attempts);
   const recommendations: string[] = [];
   const meanAccuracy = avg(nums.map(x => x.accuracy));
@@ -71,5 +82,5 @@ export async function GET(req: Request) {
     if (nums.length >= 4 && nums[0].netWpm < avg(nums.slice(1).map(x => x.netWpm)) - 2) recommendations.push("Your latest speed is below your previous-session average. Use a short warm-up and prioritise rhythm.");
     if (recommendations.length === 1) recommendations.push("Keep a consistent practice schedule and review your trend after a few more attempts.");
   }
-  return Response.json({ role: "student", attempts: nums, summary: { tests: nums.length, avgNetWpm: meanSpeed, avgAccuracy: meanAccuracy, bestNetWpm: nums.length ? Math.max(...nums.map(x => x.netWpm)) : 0 }, patterns, recommendations });
+  return Response.json({ role: "student", attempts: nums, weeklyReport, summary: { tests: nums.length, avgNetWpm: meanSpeed, avgAccuracy: meanAccuracy, bestNetWpm: nums.length ? Math.max(...nums.map(x => x.netWpm)) : 0 }, patterns, recommendations });
 }
