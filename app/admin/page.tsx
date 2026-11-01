@@ -4,7 +4,7 @@ import { cleanBody, countWords, defaultScoring, parseBulk, validatePassage } fro
 import { PROFILES, type Lang } from "@/lib/wpmCalculator";
 import { PRESETS } from "@/lib/presets";
 
-type Tpl = { slug: string; name: string; language: Lang; duration_sec: number; display_mode: string; backspace: string; scoring: any; is_active: boolean };
+type Tpl = { slug: string; name: string; language: Lang; duration_sec: number; display_mode: string; backspace: string; scoring: any; is_active: boolean; passage_layout?: string; font_size_pt?: number; passage_font_family?: string; passage_alignment?: string; passage_line_spacing?: number; passage_paragraph_spacing?: number; print_page_size?: string };
 type Row = { id: string; title: string; language: Lang; word_count: number; preview: string; template: string | null; template_name: string; passage_layout: string; font_size_pt: number; passage_number: number; created_at?: string };
 
 async function api(url: string, init?: RequestInit) {
@@ -14,7 +14,7 @@ async function api(url: string, init?: RequestInit) {
 }
 const post = (url: string, body: unknown) => api(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
-const emptyTpl = { slug: "", name: "", language: "en" as Lang, minutes: 10, displayMode: "highlighted", backspace: "full", base: "practice", unit: "words", netMethod: "penalty", qualifying: "", maxErr: "", caseOnly: true, punctOnly: true };
+const emptyTpl = { slug: "", name: "", language: "en" as Lang, minutes: 10, displayMode: "highlighted", backspace: "full", base: "practice", unit: "words", netMethod: "penalty", qualifying: "", maxErr: "", caseOnly: true, punctOnly: true, passageLayout: "continuous", fontSizePt: 12, passageFontFamily: "system", passageAlignment: "left", passageLineSpacing: 1.5, passageParagraphSpacing: 8, printPageSize: "A4" };
 
 export default function Admin() {
   const [tab, setTab] = useState<"passages" | "templates">("templates");
@@ -191,10 +191,10 @@ export default function Admin() {
   const selectedProfile = PROFILES[t.base] ?? PROFILES.practice;
   const saveTpl = async () => {
     const scoring = { ...defaultScoring(t.base), id: t.slug, label: t.name, unit: t.unit, netMethod: t.netMethod, halfRules: { caseOnly: t.caseOnly, punctuationOnly: t.punctOnly }, qualifyingWpm: t.qualifying === "" ? undefined : Number(t.qualifying), maxErrorPercent: t.maxErr === "" ? undefined : Number(t.maxErr) };
-    const r = await post("/api/admin/templates", { slug: t.slug.trim(), name: t.name, language: t.language, durationSec: Math.round(t.minutes * 60), displayMode: t.displayMode, backspace: t.backspace, scoring });
+    const r = await post("/api/admin/templates", { slug: t.slug.trim(), name: t.name, language: t.language, durationSec: Math.round(t.minutes * 60), displayMode: t.displayMode, backspace: t.backspace, scoring, passageLayout: t.passageLayout, fontSizePt: t.fontSizePt, passageFontFamily: t.passageFontFamily, passageAlignment: t.passageAlignment, passageLineSpacing: t.passageLineSpacing, passageParagraphSpacing: t.passageParagraphSpacing, printPageSize: t.printPageSize });
     setMsg(r.ok ? "Template saved." : r.data.error ?? "Could not save."); if (r.ok) { setT(emptyTpl); load(); }
   };
-  const editTpl = (x: Tpl) => setT({ slug: x.slug, name: x.name, language: x.language, minutes: x.duration_sec / 60, displayMode: x.display_mode, backspace: x.backspace, base: (PROFILES[x.scoring.id] ? x.scoring.id : "practice"), unit: x.scoring.unit, netMethod: x.scoring.netMethod, qualifying: x.scoring.qualifyingWpm?.toString() ?? "", maxErr: x.scoring.maxErrorPercent?.toString() ?? "", caseOnly: !!x.scoring.halfRules?.caseOnly, punctOnly: !!x.scoring.halfRules?.punctuationOnly });
+  const editTpl = (x: Tpl) => setT({ slug: x.slug, name: x.name, language: x.language, minutes: x.duration_sec / 60, displayMode: x.display_mode, backspace: x.backspace, base: (PROFILES[x.scoring.id] ? x.scoring.id : "practice"), unit: x.scoring.unit, netMethod: x.scoring.netMethod, qualifying: x.scoring.qualifyingWpm?.toString() ?? "", maxErr: x.scoring.maxErrorPercent?.toString() ?? "", caseOnly: !!x.scoring.halfRules?.caseOnly, punctOnly: !!x.scoring.halfRules?.punctuationOnly, passageLayout: x.passage_layout ?? "continuous", fontSizePt: Number(x.font_size_pt ?? 12), passageFontFamily: x.passage_font_family ?? "system", passageAlignment: x.passage_alignment ?? "left", passageLineSpacing: Number(x.passage_line_spacing ?? 1.5), passageParagraphSpacing: Number(x.passage_paragraph_spacing ?? 8), printPageSize: x.print_page_size ?? "A4" });
   const delTpl = async (slug: string) => { if (confirm(`Delete template ${slug}? Passages stay but lose the link.`)) { await api(`/api/admin/templates?slug=${slug}`, { method: "DELETE" }); load(); } };
 
   if (denied) return <div className="page"><h1>Admin</h1><p>Admin access is required. Sign in with an admin account (users.role = &apos;admin&apos;).</p></div>;
@@ -296,6 +296,15 @@ export default function Admin() {
             <label>Duration (minutes)<input type="number" min={0.5} max={60} step={0.5} value={t.minutes} onChange={(e) => upd("minutes", Number(e.target.value))} /></label>
             <label>Passage display<select value={t.displayMode} onChange={(e) => upd("displayMode", e.target.value)}><option value="highlighted">Highlighted</option><option value="unhighlighted">Unhighlighted</option><option value="offscreen">Paper to screen</option></select></label>
             <label>Backspace<select value={t.backspace} onChange={(e) => upd("backspace", e.target.value)}><option value="full">Full</option><option value="word">Current word only</option><option value="disabled">Disabled</option></select></label>
+            <h3>Passage presentation profile</h3>
+            <p className="hint">These settings change only how passage text is displayed and printed. They do not change test timing, scoring or keyboard rules.</p>
+            <label>Passage layout<select value={t.passageLayout} onChange={(e) => upd("passageLayout", e.target.value)}><option value="continuous">Continuous text</option><option value="paragraph-tab">Paragraphs with source spacing</option><option value="source-preserved">Preserve source line breaks</option></select></label>
+            <label>Font size (pt)<input type="number" min="8" max="24" step="0.5" value={t.fontSizePt} onChange={(e) => upd("fontSizePt", Number(e.target.value))} /></label>
+            <label>Font family<select value={t.passageFontFamily} onChange={(e) => upd("passageFontFamily", e.target.value)}><option value="system">System sans-serif</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></label>
+            <label>Text alignment<select value={t.passageAlignment} onChange={(e) => upd("passageAlignment", e.target.value)}><option value="left">Left</option><option value="justify">Justified</option><option value="center">Center</option></select></label>
+            <label>Line spacing<input type="number" min="1.1" max="2.5" step="0.1" value={t.passageLineSpacing} onChange={(e) => upd("passageLineSpacing", Number(e.target.value))} /></label>
+            <label>Paragraph spacing (px)<input type="number" min="0" max="32" step="1" value={t.passageParagraphSpacing} onChange={(e) => upd("passageParagraphSpacing", Number(e.target.value))} /></label>
+            <label>Print page size<select value={t.printPageSize} onChange={(e) => upd("printPageSize", e.target.value)}><option value="A4">A4</option><option value="Letter">Letter</option><option value="Legal">Legal</option></select></label>
             <label>Start scoring from<select value={t.base} onChange={(e) => { const p = PROFILES[e.target.value]; setT({ ...t, base: e.target.value, unit: p.unit, netMethod: p.netMethod, qualifying: p.qualifyingWpm?.toString() ?? "", maxErr: p.maxErrorPercent?.toString() ?? "", minutes: p.durationSec ? p.durationSec / 60 : t.minutes, language: p.language ?? t.language, displayMode: p.id.startsWith("delhi-police-hcm-") ? "offscreen" : t.displayMode }); }}>{Object.values(PROFILES).map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select></label>
             <label>Count speed by<select value={t.unit} onChange={(e) => upd("unit", e.target.value)}><option value="words">Words (5 characters = 1 word)</option><option value="keystrokes">Key depressions</option></select></label>
             <label>Net speed<select value={t.netMethod} onChange={(e) => upd("netMethod", e.target.value)}><option value="penalty">Gross minus error penalty</option><option value="accuracy">Gross times accuracy</option><option value="per-error">One WPM per error (DP HCM)</option><option value="rrb">RRB CBTST error-adjusted formula</option></select></label>
