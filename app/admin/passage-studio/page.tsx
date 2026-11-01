@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { cleanBody, countWords, validatePassage } from "@/lib/adminValidation";
+import { cleanBody, countWords, parseBulk, validatePassage } from "@/lib/adminValidation";
 import type { Lang } from "@/lib/wpmCalculator";
 
 type Template = { slug: string; name: string; language: Lang; is_active: boolean };
@@ -103,6 +103,37 @@ export default function PassageStudioPage() {
     finally { setBusy(false); }
   };
 
+  const importFile = async (file?: File) => {
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) { setMessage("Upload limit is 20 MB."); return; }
+    setFileName(file.name);
+    setExtracted([]);
+    setMessage("");
+    if (/\\.txt$/i.test(file.name) || file.type === "text/plain") {
+      setBusy(true);
+      try {
+        const parsed = parseBulk(await file.text());
+        if (!parsed.length) throw new Error("No passages found. Separate passages with a line containing ---.");
+        setExtracted(parsed);
+        setMessage("Imported " + parsed.length + " text passages. Review and edit each passage before publishing.");
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : "Text import failed.");
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    if (file.type !== "application/pdf" && !/\\.pdf$/i.test(file.name)) {
+      setMessage("Choose a PDF or UTF-8 TXT file.");
+      return;
+    }
+    await extractPdf(file);
+  };
+
+  const updateExtracted = (index: number, patch: Partial<{ title: string; body: string }>) => {
+    setExtracted(current => current.map((item, i) => i === index ? { ...item, ...patch } : item));
+  };
+
   const publish = async (items: { title: string; body: string }[], sourceType: "manual" | "pdf-import") => {
     if (!items.length || busy) return;
     const checked = items.map(item => validatePassage({ ...item, language }));
@@ -194,14 +225,24 @@ export default function PassageStudioPage() {
 
       <section className="admin-generation-panel">
         <h2>Import a passage collection</h2>
-        <p className="hint">Upload a selectable-text PDF with one passage per page. Every extracted page is reviewed before publication. Scanned image PDFs require OCR and are not silently accepted.</p>
-        <label>PDF file<input type="file" accept="application/pdf,.pdf" disabled={busy} onChange={e => void extractPdf(e.target.files?.[0])} /></label>
+        <p className="hint">Upload a selectable-text PDF (one passage per page) or a UTF-8 TXT collection. In TXT files, separate passages with a line containing --- and optionally start each passage with # Title. Review and edit every imported passage before publication. Scanned PDFs require OCR before import.</p>
+        <label>Passage file (PDF or TXT)<input type="file" accept="application/pdf,.pdf,text/plain,.txt" disabled={busy} onChange={e => { void importFile(e.target.files?.[0]); e.currentTarget.value = ""; }} /></label>
         {fileName && <p className="hint">Source file: {fileName}</p>}
         {extracted.length > 0 && <>
           <h3>Import preview · {extracted.length} passages</h3>
-          <div className="tbl"><table><thead><tr><th>Passage ID</th><th>Words</th><th>Preview</th><th>Validation</th></tr></thead><tbody>
-            {extracted.map((item, index) => { const checked = validatePassage({ ...item, language }); return <tr key={index}><td>{String(index + 1).padStart(2, "0")}</td><td>{countWords(item.body)}</td><td>{item.body.slice(0, 160)}…</td><td>{checked.ok ? "Ready" : checked.errors.join(" ")}</td></tr>; })}
-          </tbody></table></div>
+          <div className="passage-import-review">
+            {extracted.map((item, index) => {
+              const checked = validatePassage({ ...item, language });
+              return <article className="passage-import-card" key={index}>
+                <header><strong>Passage {String(index + 1).padStart(2, "0")}</strong><span>{countWords(item.body)} words · {item.body.length} characters</span></header>
+                <label>Passage title<input value={item.title} maxLength={120} onChange={e => updateExtracted(index, { title: e.target.value })} /></label>
+                <label>Passage text<textarea rows={5} lang={language} value={item.body} onChange={e => updateExtracted(index, { body: e.target.value })} onBlur={() => updateExtracted(index, { body: cleanBody(item.body) })} /></label>
+                {checked.errors.map(error => <p className="err" key={error}>{error}</p>)}
+                {checked.warnings.map(warning => <p className="warn" key={warning}>{warning}</p>)}
+                {checked.ok && <p className="passage-import-ready">Ready to publish</p>}
+              </article>;
+            })}
+          </div>
           <button className="go" disabled={busy || extracted.some(item => !validatePassage({ ...item, language }).ok)} onClick={() => void publish(extracted, "pdf-import")}>{busy ? "Publishing…" : "Publish all " + extracted.length + " passages"}</button>
         </>}
       </section>
