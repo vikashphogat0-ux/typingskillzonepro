@@ -150,6 +150,28 @@ test("backspace policies", () => {
 });
 
 import { analyzeEvents } from "../lib/analytics.ts";
+test("analytics removes corrected mistakes from their original time bucket and key", () => {
+  const ev: KeyEvent[] = [
+    { t: 100, type: "ins", ch: "t" },
+    { t: 200, type: "ins", ch: "x" },
+    { t: 31_000, type: "del" },
+    { t: 31_100, type: "ins", ch: "h" },
+  ];
+  const result = analyzeEvents(ev, "the", 30);
+  assert.equal(result.timeline[0].typed, 2);
+  assert.equal(result.timeline[0].wrong, 0);
+  assert.equal(result.timeline[0].accuracy, 100);
+  assert.equal(result.timeline[1].typed, 1);
+  assert.equal(result.timeline[1].wrong, 0);
+  assert.equal(result.keys.h.attempts, 2);
+  assert.equal(result.keys.h.errors, 0);
+  assert.equal(result.weakCombos.length, 0);
+});
+
+test("analytics validates its timeline bucket size", () => {
+  assert.throws(() => analyzeEvents([], "hello", 0), /bucketSec/);
+});
+
 test("analytics finds weak keys from the key log", () => {
   const ev: KeyEvent[] = [
     { t: 100, type: "ins", ch: "t" }, { t: 200, type: "ins", ch: "x" }, { t: 300, type: "ins", ch: "e" },
