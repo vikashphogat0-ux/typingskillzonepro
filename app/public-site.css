@@ -1611,3 +1611,17 @@ body:has(.home-reference){background:#071225!important;color:#edf5ff!important}
 .passage-repository-toolbar input:focus-visible,.passage-repository-toolbar select:focus-visible{outline:2px solid #43d9ed;outline-offset:2px}
 @media(max-width:760px){.passage-repository-toolbar{grid-template-columns:1fr 1fr}.passage-repository-toolbar input{grid-column:1/-1}.passage-repository-summary{gap:6px}.passage-repository-summary span{font-size:9px;padding:6px 8px}}
 @media(max-width:420px){.passage-repository-toolbar{grid-template-columns:1fr}.passage-repository-toolbar input{grid-column:auto}}
+
+
+/* Passage Studio import review */
+.passage-import-review{display:grid;gap:14px;margin:16px 0}
+.passage-import-card{min-width:0;padding:16px;border:1px solid var(--site-line,#e3e9f2);border-radius:9px;background:#fff}
+.passage-import-card>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.passage-import-card>header strong{font-size:13px;color:var(--site-ink,#17243b)}
+.passage-import-card>header span{font-size:11px;color:var(--site-muted,#64748b)}
+.passage-import-card label{display:grid;gap:6px;margin:10px 0;font-size:12px;font-weight:700;color:#40516b}
+.passage-import-card input,.passage-import-card textarea{width:100%;min-width:0;border:1px solid #d4deeb;border-radius:6px;padding:10px 11px;background:#fff;color:#17243b;font:inherit;font-size:13px;line-height:1.65}
+.passage-import-card textarea{resize:vertical;white-space:pre-wrap}
+.passage-import-card input:focus,.passage-import-card textarea:focus{outline:3px solid rgba(49,94,170,.14);border-color:#4775bd}
+.passage-import-ready{margin:8px 0 0;color:#18734d;font-size:12px;font-weight:750}
+@media(max-width:600px){.passage-import-card{padding:12px}.passage-import-card>header{align-items:flex-start;flex-direction:column;gap:3px}}
