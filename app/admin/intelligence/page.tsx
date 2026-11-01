@@ -13,8 +13,8 @@ export default function IntelligenceAdminPage(){
   const headers=["learner_ref","case_status","admin_note","updated_at"];
   const rows=Object.entries(caseNotes).map(([ref,item])=>[ref,item.status,item.note,item.updatedAt]);
   const quote=(value:string)=>"\""+String(value??"").replace(/"/g,'""')+"\"";
-  const csv=[headers,...rows].map(row=>row.map(value=>quote(String(value))).join(",")).join("\\r\\n");
-  const blob=new Blob(["\\uFEFF",csv],{type:"text/csv;charset=utf-8;"});
+  const csv=[headers,...rows].map(row=>row.map(value=>quote(String(value))).join(",")).join("\r\n");
+  const blob=new Blob(["\uFEFF",csv],{type:"text/csv;charset=utf-8;"});
   const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download="typingskillzone-support-cases.csv";document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);
  };
 
