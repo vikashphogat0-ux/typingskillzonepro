@@ -30,7 +30,7 @@ function groupExams(exams: Exam[]): ExamGroup[] {
     if (existing) existing.exams.push(exam);
     else groups.set(key, { key, name: exam.name.replace(/\s*[—-]\s*(English|Hindi).*$/i, "").replace(/\s*\((English|Hindi).*$/i, ""), exams: [exam], ...info });
   }
-  return [...groups.values()].slice(0, 9);
+  return [...groups.values()];
 }
 
 const features = [
