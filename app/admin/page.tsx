@@ -134,11 +134,11 @@ export default function Admin() {
         const content = await page.getTextContent();
         const text = cleanBody(content.items.map((item: any) => typeof item.str === "string" ? item.str : "").join(" "));
         if (!text || countWords(text) < 30) continue;
-        extracted.push({ title: \`Passage \${String(extracted.length + 1).padStart(2, "0")}\`, body: text });
+        extracted.push({ title: `Passage \${String(extracted.length + 1).padStart(2, "0")}`, body: text });
       }
       if (!extracted.length) throw new Error("No selectable passage text was found. This PDF may be scanned; OCR is not included.");
       setBulk(extracted);
-      setMsg(\`Extracted \${extracted.length} passage(s) from \${pdf.numPages} PDF pages. Review the preview, then publish.\`);
+      setMsg(`Extracted \${extracted.length} passage(s) from \${pdf.numPages} PDF pages. Review the preview, then publish.`);
     } catch (error) {
       setMsg(error instanceof Error ? error.message : "Could not extract text from this PDF.");
     } finally { setPdfBusy(false); }
@@ -234,7 +234,7 @@ export default function Admin() {
             <label><input type="checkbox" checked={publishToAll} onChange={e => setPublishToAll(e.target.checked)} /> Publish automatically to every active simulator with this language</label>
             <p className="hint">Each simulator receives its own passage copy. Its own RKC-referenced layout is applied at display time. Exam rules and scoring are not changed.</p>
             {pdfBusy && <p role="status">Extracting PDF pages…</p>}
-            {bulk.length > 0 && <><p>{bulk.length} passages extracted · {bulkChecks.filter(c => c.ok).length} valid · {bulkChecks.filter(c => !c.ok).length} need review</p><ol>{bulkChecks.slice(0, 12).map((c, i) => <li key={i}>{String(i + 1).padStart(2, "0")} · {c.clean.title} · {countWords(c.clean.body)} words {c.ok ? "✓" : c.errors.join(" ")}</li>)}</ol>{bulk.length > 12 && <p className="hint">Showing first 12 passages.</p>}<button className="go" disabled={pdfBusy || savingPassages || bulkChecks.some(c => !c.ok)} onClick={() => void savePassages(bulkChecks.map(c => ({ ...c.clean, language: lang })), publishToAll)}>{savingPassages ? "Publishing…" : \`Publish \${bulk.length} passages \${publishToAll ? "to all matching simulators" : "to selected simulator"}\`}</button></>}
+            {bulk.length > 0 && <><p>{bulk.length} passages extracted · {bulkChecks.filter(c => c.ok).length} valid · {bulkChecks.filter(c => !c.ok).length} need review</p><ol>{bulkChecks.slice(0, 12).map((c, i) => <li key={i}>{String(i + 1).padStart(2, "0")} · {c.clean.title} · {countWords(c.clean.body)} words {c.ok ? "✓" : c.errors.join(" ")}</li>)}</ol>{bulk.length > 12 && <p className="hint">Showing first 12 passages.</p>}<button className="go" disabled={pdfBusy || savingPassages || bulkChecks.some(c => !c.ok)} onClick={() => void savePassages(bulkChecks.map(c => ({ ...c.clean, language: lang })), publishToAll)}>{savingPassages ? "Publishing…" : `Publish \${bulk.length} passages \${publishToAll ? "to all matching simulators" : "to selected simulator"}`}</button></>}
           </section>
 
           <h2>Upload many at once</h2>
