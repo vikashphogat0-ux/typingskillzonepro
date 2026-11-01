@@ -249,7 +249,6 @@ export default function SimulatorPage() {
   const identity = examIdentity(sim.slug);
   const scoring = sim.scoring ?? {};
   const visiblePassages = passageOptions.filter(p => !passageSearch.trim() || p.id.toLowerCase().includes(passageSearch.trim().toLowerCase()) || String(p.passage_number ?? "").padStart(2, "0").includes(passageSearch.trim().toLowerCase()) || p.title.toLowerCase().includes(passageSearch.trim().toLowerCase()));
-  const todayPassage = library?.daily?.[sim.language];
   const monthlyItems = library?.monthly ?? [];
   const relevantResults = results.filter(r => !r.simulator || r.simulator.toLowerCase() === sim.name.toLowerCase());
   const bestNet = relevantResults.length ? Math.max(...relevantResults.map(r => Number(r.net_wpm) || 0)) : 0;
