@@ -149,7 +149,7 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, prac
     while (common < before.length && common < after.length && before[common] === after[common]) common++;
     const inserted = after.slice(common).join("");
     if ((enterKeyPolicy === "blocked" && inserted.includes("\n")) ||
-        (tabKeyPolicy === "blocked" && inserted.includes("\\t"))) {
+        (tabKeyPolicy === "blocked" && inserted.includes("\t"))) {
       input.value = prev;
       setValue(prev);
       return;
