@@ -6,8 +6,17 @@ const deny = () => Response.json({ error: "Admin access required." }, { status: 
 
 export async function GET(req: Request) {
   if (!(await requireAdmin(req))) return deny();
-  const rows = await sql()`SELECT p.id, p.title, p.language, p.word_count, p.created_at, left(p.body, 90) AS preview, t.slug AS template
-    FROM passages p LEFT JOIN exam_templates t ON t.id = p.template_id ORDER BY p.created_at DESC LIMIT 200`;
+  const rows = await sql()`WITH numbered AS (
+      SELECT p.id, p.title, p.language, p.word_count, p.created_at, left(p.body, 120) AS preview,
+        p.template_id, row_number() OVER (PARTITION BY p.template_id, p.language ORDER BY p.created_at, p.id) AS passage_number
+      FROM passages p
+    )
+    SELECT n.id, n.title, n.language, n.word_count, n.created_at, n.preview,
+      t.slug AS template, COALESCE(t.name, 'General library') AS template_name,
+      COALESCE(t.passage_layout, 'continuous') AS passage_layout,
+      COALESCE(t.font_size_pt, 12) AS font_size_pt, n.passage_number
+    FROM numbered n LEFT JOIN exam_templates t ON t.id = n.template_id
+    ORDER BY template_name, n.language, n.passage_number LIMIT 1000`;
   return Response.json(rows);
 }
 
@@ -90,16 +99,17 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   if (!(await requireAdmin(req))) return deny();
-  const id = new URL(req.url).searchParams.get("id");
-  if (!id) return Response.json({ error: "Missing id." }, { status: 400 });
+  const url = new URL(req.url);
+  const ids = [...new Set(url.searchParams.getAll("id").concat((url.searchParams.get("ids") ?? "").split(",")).map(x => x.trim()).filter(Boolean))];
+  if (!ids.length || ids.length > 200 || ids.some(id => !/^[0-9a-f-]{36}$/i.test(id))) return Response.json({ error: "Select between 1 and 200 valid passage IDs." }, { status: 400 });
   try {
-    const [referenced] = await sql()`SELECT 1 AS used FROM tests WHERE passage_id = ${id} LIMIT 1`;
-    if (referenced) return Response.json({ error: "This passage is attached to a test record and cannot be deleted safely." }, { status: 409 });
-    const deleted = await sql()`DELETE FROM passages WHERE id = ${id} RETURNING id`;
-    if (!deleted.length) return Response.json({ error: "Passage not found." }, { status: 404 });
-    return Response.json({ ok: true });
+    const db = sql();
+    const used = await db`SELECT DISTINCT passage_id FROM tests WHERE passage_id = ANY(${ids}::uuid[])`;
+    if (used.length) return Response.json({ error: `${used.length} selected passage(s) are attached to test history and cannot be deleted. Remove them from selection and retry.`, protectedIds: used.map((x:any) => x.passage_id) }, { status: 409 });
+    const deleted = await db`DELETE FROM passages WHERE id = ANY(${ids}::uuid[]) RETURNING id`;
+    return Response.json({ ok: true, deleted: deleted.length });
   } catch (error) {
     console.error("DELETE /api/admin/passages failed:", error);
-    return Response.json({ error: "Passage could not be deleted. Check whether it is in use." }, { status: 409 });
+    return Response.json({ error: "Passages could not be deleted. Check whether they are in use." }, { status: 409 });
   }
 }
