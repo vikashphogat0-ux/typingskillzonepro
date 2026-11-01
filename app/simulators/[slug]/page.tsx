@@ -221,7 +221,7 @@ export default function SimulatorPage() {
   if (error || !sim) return <div className="page"><h1>Simulator not found</h1><p>{error}</p><a href="/simulators" className="go alt">Back to simulators</a></div>;
 
   if (testState === "running" && testData) return (
-    <div className="page"><TypingSimulator key={testData.testId} passage={testData.reference} lang={testData.lang} durationSec={testData.durationSec} mode={testData.mode} backspace={testData.backspace} profile={testData.profile} fontSizePt={testData.fontSizePt ?? 12} passageLayout={testData.passageLayout ?? "continuous"} examName={testData.name ?? sim.name} enterKeyPolicy={testData.enterKeyPolicy ?? "newline"} tabKeyPolicy={testData.tabKeyPolicy ?? "blocked"} onFinish={onFinish} /></div>
+    <div className="page"><TypingSimulator key={testData.testId} passage={testData.reference} lang={testData.lang} durationSec={testData.durationSec} mode={testData.mode} practiceMode={testData.practiceMode} backspace={testData.backspace} profile={testData.profile} fontSizePt={testData.fontSizePt ?? 12} passageLayout={testData.passageLayout ?? "continuous"} examName={testData.name ?? sim.name} enterKeyPolicy={testData.enterKeyPolicy ?? "newline"} tabKeyPolicy={testData.tabKeyPolicy ?? "blocked"} onFinish={onFinish} /></div>
   );
 
   const identity = examIdentity(sim.slug);
