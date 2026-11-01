@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 
-type Report = {error?:string;role?:string;periodDays?:number;totals?:Record<string,number|string>;interventions?:{active_learners:number;accuracy_support:number;speed_support:number;low_engagement:number;inactive_14_days:number};learnerQueue?:{learner_ref:string;attempts:number;avg_net_wpm:number;avg_accuracy:number;last_attempt:string;flags:string[];suggested_action:string}[];simulators?:{slug:string;name:string;attempts:number;avg_net_wpm:number;avg_accuracy:number}[];patterns?:{weakKeys:{label:string;attempts:number;errors:number;errorRate:number}[];weakPairs:{label:string;attempts:number;errors:number;errorRate:number}[]};sampleAttempts?:number};
+type Report = {error?:string;role?:string;periodDays?:number;totals?:Record<string,number|string>;previousTotals?:Record<string,number|string>;interventions?:{active_learners:number;accuracy_support:number;speed_support:number;low_engagement:number;inactive_14_days:number};learnerQueue?:{learner_ref:string;attempts:number;avg_net_wpm:number;avg_accuracy:number;last_attempt:string;flags:string[];suggested_action:string}[];simulators?:{slug:string;name:string;attempts:number;avg_net_wpm:number;avg_accuracy:number}[];patterns?:{weakKeys:{label:string;attempts:number;errors:number;errorRate:number}[];weakPairs:{label:string;attempts:number;errors:number;errorRate:number}[]};sampleAttempts?:number};
 export default function IntelligenceAdminPage(){
  const [data,setData]=useState<Report|null>(null);const [error,setError]=useState("");const [periodDays,setPeriodDays]=useState(30);const [refreshKey,setRefreshKey]=useState(0);const [queueFilter,setQueueFilter]=useState("all");const [queueSearch,setQueueSearch]=useState("");const [caseStatusFilter,setCaseStatusFilter]=useState("all");
  const [caseNotes,setCaseNotes]=useState<Record<string,{status:"new"|"contacted"|"resolved";note:string;updatedAt:string}>>({});
@@ -13,7 +13,7 @@ export default function IntelligenceAdminPage(){
  const [scheduleReady,setScheduleReady]=useState(false);
  useEffect(()=>{try{const raw=localStorage.getItem("tsz-admin-support-cases-v1");if(raw){const parsed=JSON.parse(raw);if(parsed&&typeof parsed==="object")setCaseNotes(parsed);}}catch{/* Start with an empty local support log. */}setCaseReady(true);},[]);
  useEffect(()=>{if(caseReady)try{localStorage.setItem("tsz-admin-support-cases-v1",JSON.stringify(caseNotes));}catch{/* Local case notes remain available for this visit. */}},[caseNotes,caseReady]);
- useEffect(()=>{try{const raw=localStorage.getItem("tsz-admin-report-schedule-v1");if(raw){const saved=JSON.parse(raw);if(saved&&typeof saved==="object"){if(["1","5","10","15","20","25"].includes(String(saved.day)))setScheduleDay(String(saved.day));if(typeof saved.time==="string"&&/^([01]\\d|2[0-3]):[0-5]\\d$/.test(saved.time))setScheduleTime(saved.time);setScheduleEnabled(saved.enabled===true);}}}catch{/* Keep default schedule draft. */}setScheduleReady(true);},[]);
+ useEffect(()=>{try{const raw=localStorage.getItem("tsz-admin-report-schedule-v1");if(raw){const saved=JSON.parse(raw);if(saved&&typeof saved==="object"){if(["1","5","10","15","20","25"].includes(String(saved.day)))setScheduleDay(String(saved.day));if(typeof saved.time==="string"&&/^([01]\d|2[0-3]):[0-5]\d$/.test(saved.time))setScheduleTime(saved.time);setScheduleEnabled(saved.enabled===true);}}}catch{/* Keep default schedule draft. */}setScheduleReady(true);},[]);
  const saveScheduleDraft=()=>{try{localStorage.setItem("tsz-admin-report-schedule-v1",JSON.stringify({day:scheduleDay,time:scheduleTime,enabled:scheduleEnabled,updatedAt:new Date().toISOString(),mode:"draft-only"}));setScheduleSaved(true);}catch{setScheduleSaved(false);}};
  const nextSchedulePreview=()=>{const now=new Date();const day=Number(scheduleDay);let next=new Date(now.getFullYear(),now.getMonth(),day,Number(scheduleTime.slice(0,2)),Number(scheduleTime.slice(3,5)));if(next<=now)next=new Date(now.getFullYear(),now.getMonth()+1,day,Number(scheduleTime.slice(0,2)),Number(scheduleTime.slice(3,5)));return next;};
 
@@ -42,6 +42,9 @@ export default function IntelligenceAdminPage(){
  if(error)return <main className="page"><h1>Intelligence Centre</h1><p>{error}</p><a href="/admin">Back to admin</a></main>;
  if(!data)return <main className="page"><p>Preparing platform insights…</p></main>;
  const t=data.totals??{};
+ const previous=data.previousTotals??{};
+ const delta=(current:unknown,prior:unknown)=>{const a=Number(current??0);const b=Number(prior??0);if(!Number.isFinite(a)||!Number.isFinite(b))return "—";const d=Math.round((a-b)*10)/10;return (d>0?"+":"")+d.toFixed(1);};
+ const comparisonLabel="versus the preceding "+data.periodDays+" days";
  const exportPerformanceReport=()=>{
   const rows=[
    ["TypingSkillZone Admin Performance Report"],
@@ -78,6 +81,14 @@ export default function IntelligenceAdminPage(){
  };
 
  return <main className="page admin"><nav><a href="/admin">Administration</a> · <a href="/admin/passage-studio">Passage Studio</a></nav><header className="admin-generation-panel"><p className="hint">TYPINGSKILLZONE · ADMIN INTELLIGENCE</p><h1>Intelligence Centre</h1><p>Aggregated, privacy-conscious learning and content insights for the selected reporting period. No student names, emails or individual records are exposed here.</p><div className="form report-controls"><label>Reporting period<select value={periodDays} onChange={e=>setPeriodDays(Number(e.target.value))}><option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={90}>Last 90 days</option></select></label><button type="button" className="go alt" onClick={()=>setRefreshKey(x=>x+1)}>Refresh report</button><button type="button" className="go alt" onClick={exportPerformanceReport}>Export performance CSV</button><button type="button" className="go" onClick={()=>window.print()}>Print / Save PDF</button></div><p className="hint print-only">TypingSkillZone · Admin performance report · {data.periodDays}-day period · Generated {new Date().toLocaleString()}</p></header>
+ <section className="admin-generation-panel"><h2>Period-over-period comparison</h2><p className="hint">Current {data.periodDays}-day period {comparisonLabel}. Values below are absolute changes, not percentage changes.</p><div className="tiles">
+ <div><b>{delta(t.attempts,previous.attempts)}</b><span>Attempts change</span></div>
+ <div><b>{delta(t.learners,previous.learners)}</b><span>Active learners change</span></div>
+ <div><b>{delta(t.avg_net_wpm,previous.avg_net_wpm)}</b><span>Average net WPM change</span></div>
+ <div><b>{delta(t.avg_accuracy,previous.avg_accuracy)}</b><span>Average accuracy change (percentage points)</span></div>
+ <div><b>{delta(t.passed,previous.passed)}</b><span>Passed results change</span></div>
+ <div><b>{delta(t.not_passed,previous.not_passed)}</b><span>Not-passed results change</span></div>
+ </div></section>
  <section className="tiles"><div><b>{t.attempts??0}</b><span>Attempts</span></div><div><b>{t.learners??0}</b><span>Active learners</span></div><div><b>{t.avg_net_wpm??0}</b><span>Average net WPM</span></div><div><b>{t.avg_accuracy??0}%</b><span>Average accuracy</span></div><div><b>{t.passed??0}</b><span>Passed by saved profile</span></div><div><b>{t.not_passed??0}</b><span>Not passed by saved profile</span></div></section>
  <section className="admin-generation-panel"><h2>Student progress · intervention indicators</h2>
  <p className="hint">Aggregated counts for learners with saved attempts in the last {data.periodDays} days. These are coaching signals, not diagnoses or disciplinary labels. No student identities or individual records are shown.</p>
