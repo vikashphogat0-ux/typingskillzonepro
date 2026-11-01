@@ -11,7 +11,7 @@ import { formatRkcPassage, getRkcPassageLayout } from "@/lib/rkc-passage-format"
 interface SimInfo {
   slug: string; name: string; language: "en" | "hi"; duration_sec: number;
   display_mode: string; backspace: string; scoring: any; description?: string;
-  passage_layout?: string; enter_key_policy?: "newline" | "blocked"; tab_key_policy?: "insert" | "blocked"; font_size_pt?: number;
+  passage_layout?: string; enter_key_policy?: "newline" | "blocked"; tab_key_policy?: "insert" | "blocked"; font_size_pt?: number; passage_font_family?: string; passage_alignment?: string; passage_line_spacing?: number; passage_paragraph_spacing?: number; print_page_size?: string;
   participants?: number; my_best?: string | null;
 }
 interface PassageItem { id: string; title: string; language?: string; word_count: number; preview?: string; date?: string; exam?: string; passage_number?: number; body?: string }
@@ -243,7 +243,7 @@ export default function SimulatorPage() {
   if (error || !sim) return <div className="page"><h1>Simulator not found</h1><p>{error}</p><a href="/simulators" className="go alt">Back to simulators</a></div>;
 
   if (testState === "running" && testData) return (
-    <div className="page"><TypingSimulator key={testData.testId} passage={testData.reference} lang={testData.lang} durationSec={testData.durationSec} mode={testData.mode} practiceMode={testData.practiceMode} backspace={testData.backspace} profile={testData.profile} fontSizePt={testData.fontSizePt ?? 12} passageLayout={testData.passageLayout ?? "continuous"} examName={testData.name ?? sim.name} enterKeyPolicy={testData.enterKeyPolicy ?? "newline"} tabKeyPolicy={testData.tabKeyPolicy ?? "blocked"} onFinish={onFinish} /></div>
+    <div className="page"><TypingSimulator key={testData.testId} passage={testData.reference} lang={testData.lang} durationSec={testData.durationSec} mode={testData.mode} practiceMode={testData.practiceMode} backspace={testData.backspace} profile={testData.profile} fontSizePt={testData.fontSizePt ?? 12} passageLayout={testData.passageLayout ?? "continuous"} passageFontFamily={testData.passageFontFamily ?? "system"} passageAlignment={testData.passageAlignment ?? "left"} passageLineSpacing={testData.passageLineSpacing ?? 1.5} passageParagraphSpacing={testData.passageParagraphSpacing ?? 8} printPageSize={testData.printPageSize ?? "A4"} examName={testData.name ?? sim.name} enterKeyPolicy={testData.enterKeyPolicy ?? "newline"} tabKeyPolicy={testData.tabKeyPolicy ?? "blocked"} onFinish={onFinish} /></div>
   );
 
   const identity = examIdentity(sim.slug);
