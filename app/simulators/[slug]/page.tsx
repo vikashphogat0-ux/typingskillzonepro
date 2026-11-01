@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TypingSimulator, { type SimResult } from "@/components/TypingSimulator";
 import Leaderboard from "@/components/Leaderboard";
 import { api, fmtDate } from "@/lib/clientApi";
@@ -82,6 +82,8 @@ export default function SimulatorPage() {
   const [month, setMonth] = useState("");
   const [selectedPreview, setSelectedPreview] = useState<PassageItem | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
+  const previewRequestId = useRef(0);
   const [results, setResults] = useState<ResultItem[]>([]);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [resultsError, setResultsError] = useState("");
@@ -184,15 +186,21 @@ export default function SimulatorPage() {
   }, [router, testData]);
 
   const fetchPreview = async (passage: PassageItem) => {
+    const requestId = ++previewRequestId.current;
     setSelectedPreview(passage);
-    if (passage.body) return;
+    setPreviewError("");
+    if (passage.body) { setPreviewLoading(false); return; }
     setPreviewLoading(true);
     try {
       const response = await api(`/api/library?id=${encodeURIComponent(passage.id)}`);
-      if (response.ok) setSelectedPreview({ ...passage, ...response.data });
-      else setLibraryError(response.data?.error ?? "Unable to open this passage.");
-    } catch { setLibraryError("Unable to open this passage."); }
-    finally { setPreviewLoading(false); }
+      if (requestId !== previewRequestId.current) return;
+      if (response.ok && response.data?.body) setSelectedPreview({ ...passage, ...response.data });
+      else setPreviewError(response.data?.error ?? "The full passage text was not returned. Please try again.");
+    } catch {
+      if (requestId === previewRequestId.current) setPreviewError("Connection issue while opening this passage. Please try again.");
+    } finally {
+      if (requestId === previewRequestId.current) setPreviewLoading(false);
+    }
   };
 
   const printMonthlyBundle = () => {
@@ -271,7 +279,7 @@ export default function SimulatorPage() {
       </section>
 
       <nav className="exam-workspace-tabs" aria-label="Exam workspace navigation">
-        {TABS.map(item => <button key={item.id} type="button" className={tab === item.id ? "active" : ""} aria-current={tab === item.id ? "page" : undefined} onClick={() => { setTab(item.id); setSelectedPreview(null); }}>{item.label}</button>)}
+        {TABS.map(item => <button key={item.id} type="button" className={tab === item.id ? "active" : ""} aria-current={tab === item.id ? "page" : undefined} onClick={() => { setTab(item.id); setSelectedPreview(null); setPreviewError(""); previewRequestId.current += 1; setPreviewLoading(false); }}>{item.label}</button>)}
       </nav>
 
       {tab === "dashboard" && <section className="exam-workspace-panel">
@@ -322,7 +330,7 @@ export default function SimulatorPage() {
         {libraryLoading && <div className="exam-workspace-state">Loading today’s passages…</div>}
         {libraryError && <div className="exam-workspace-error">{libraryError}</div>}
         {!libraryLoading && !libraryError && <div className="exam-passage-list">{dailyItems.map(item => <article className="exam-passage-row" key={item.id}><div className="exam-passage-row-main"><span className="exam-passage-row-exam">{sim.name}</span><strong>{item.title}</strong><small>{item.date ?? "This month"} · {item.word_count} words · Passage ID: {String(item.passage_number ?? 1).padStart(2, "0")}</small></div><div className="exam-passage-row-actions"><button onClick={() => void fetchPreview(item)}>View</button><button onClick={() => void printPassage(item)}>Print</button><button className="exam-row-practice" onClick={() => { setPassageSource("library"); setSelectedPassageId(item.id); setTab("practice"); }}>Practise</button></div></article>)}{!dailyItems.length && <div className="exam-workspace-state">No passages have been uploaded for this exam during the current month.</div>}</div>}
-        {selectedPreview && <div className="exam-passage-preview"><div><h3>{selectedPreview.title} · Passage ID: {String(selectedPreview.passage_number ?? 1).padStart(2, "0")}</h3><div className="exam-passage-row-actions"><button onClick={() => void printPassage(selectedPreview)}>Print</button><button onClick={() => setSelectedPreview(null)}>Close ×</button></div></div>{previewLoading ? <p>Loading passage…</p> : <p>{selectedPreview.body ?? selectedPreview.preview}</p>}<button className="exam-action-primary" onClick={() => { setSelectedPassageId(selectedPreview.id); setPassageSource("library"); setTab("practice"); }}>Practise this passage →</button></div>}
+        {selectedPreview && <div className="exam-passage-preview"><div><h3>{selectedPreview.title} · Passage ID: {String(selectedPreview.passage_number ?? 1).padStart(2, "0")}</h3><div className="exam-passage-row-actions"><button onClick={() => void printPassage(selectedPreview)}>Print</button><button onClick={() => { previewRequestId.current += 1; setSelectedPreview(null); setPreviewError(""); setPreviewLoading(false); }}>Close ×</button></div></div>{previewLoading ? <p role="status">Loading full passage…</p> : previewError ? <p className="exam-workspace-error" role="alert">{previewError} <button type="button" onClick={() => void fetchPreview(selectedPreview)}>Retry</button></p> : <p>{selectedPreview.body ?? selectedPreview.preview}</p>}<button className="exam-action-primary" onClick={() => { setSelectedPassageId(selectedPreview.id); setPassageSource("library"); setTab("practice"); }}>Practise this passage →</button></div>}
       </section>}
 
       {tab === "monthly" && <section className="exam-workspace-panel">
