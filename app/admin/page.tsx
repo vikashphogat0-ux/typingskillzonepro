@@ -201,6 +201,7 @@ export default function Admin() {
 
   return (
     <div className="page admin">
+      <nav className="admin-management-nav" aria-label="Admin navigation"><a href="/admin/intelligence">Intelligence Centre →</a></nav>
       <h1>Admin</h1>
       <nav className="admin-management-nav" aria-label="Administration"><a href="/admin/users">Users &amp; roles</a> · <a href="/admin/institutions">Institutes</a> · <a href="/admin/subscribers">Subscriptions</a> · <a href="/admin/payments">Payments</a> · <a href="/admin/passage-studio">Passage Studio</a> · <a href="/admin">Simulator settings</a></nav>
       <section className="admin-generation-panel">
