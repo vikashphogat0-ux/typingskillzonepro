@@ -47,7 +47,11 @@ export interface TemplateInput {
   slug: string; name: string; language: Lang; durationSec: number;
   displayMode: "highlighted" | "unhighlighted" | "offscreen";
   backspace: "full" | "word" | "disabled";
-  scoring: unknown; isActive?: boolean;\n  passageLayout?: "continuous" | "paragraph-tab" | "source-preserved";\n  fontSizePt?: number; passageFontFamily?: "system" | "serif" | "mono";\n  passageAlignment?: "left" | "center" | "justify"; passageLineSpacing?: number;\n  passageParagraphSpacing?: number; printPageSize?: "A4" | "Letter" | "Legal";
+  scoring: unknown; isActive?: boolean;
+  passageLayout?: "continuous" | "paragraph-tab" | "source-preserved";
+  fontSizePt?: number; passageFontFamily?: "system" | "serif" | "mono";
+  passageAlignment?: "left" | "center" | "justify"; passageLineSpacing?: number;
+  passageParagraphSpacing?: number; printPageSize?: "A4" | "Letter" | "Legal";
 }
 
 const num = (v: unknown, min: number, max: number) => typeof v === "number" && Number.isFinite(v) && v >= min && v <= max;
@@ -89,7 +93,14 @@ export function validateTemplate(t: TemplateInput): { errors: string[]; scoring?
   if (t.language !== "en" && t.language !== "hi") errors.push("Choose English or Hindi.");
   if (!num(t.durationSec, 30, 3600)) errors.push("Duration must be between 30 seconds and 60 minutes.");
   if (!["highlighted", "unhighlighted", "offscreen"].includes(t.displayMode)) errors.push("Unknown display mode.");
-  if (!["full", "word", "disabled"].includes(t.backspace)) errors.push("Unknown backspace rule.");\n  if (t.passageLayout !== undefined && !["continuous", "paragraph-tab", "source-preserved"].includes(t.passageLayout)) errors.push("Unknown passage layout.");\n  if (t.fontSizePt !== undefined && !num(t.fontSizePt, 8, 24)) errors.push("Passage font size must be between 8 and 24 pt.");\n  if (t.passageFontFamily !== undefined && !["system", "serif", "mono"].includes(t.passageFontFamily)) errors.push("Unknown passage font family.");\n  if (t.passageAlignment !== undefined && !["left", "center", "justify"].includes(t.passageAlignment)) errors.push("Unknown passage alignment.");\n  if (t.passageLineSpacing !== undefined && !num(t.passageLineSpacing, 1.1, 2.5)) errors.push("Passage line spacing must be between 1.1 and 2.5.");\n  if (t.passageParagraphSpacing !== undefined && !num(t.passageParagraphSpacing, 0, 32)) errors.push("Paragraph spacing must be between 0 and 32 pt.");\n  if (t.printPageSize !== undefined && !["A4", "Letter", "Legal"].includes(t.printPageSize)) errors.push("Unknown print page size.");
+  if (!["full", "word", "disabled"].includes(t.backspace)) errors.push("Unknown backspace rule.");
+  if (t.passageLayout !== undefined && !["continuous", "paragraph-tab", "source-preserved"].includes(t.passageLayout)) errors.push("Unknown passage layout.");
+  if (t.fontSizePt !== undefined && !num(t.fontSizePt, 8, 24)) errors.push("Passage font size must be between 8 and 24 pt.");
+  if (t.passageFontFamily !== undefined && !["system", "serif", "mono"].includes(t.passageFontFamily)) errors.push("Unknown passage font family.");
+  if (t.passageAlignment !== undefined && !["left", "center", "justify"].includes(t.passageAlignment)) errors.push("Unknown passage alignment.");
+  if (t.passageLineSpacing !== undefined && !num(t.passageLineSpacing, 1.1, 2.5)) errors.push("Passage line spacing must be between 1.1 and 2.5.");
+  if (t.passageParagraphSpacing !== undefined && !num(t.passageParagraphSpacing, 0, 32)) errors.push("Paragraph spacing must be between 0 and 32 pt.");
+  if (t.printPageSize !== undefined && !["A4", "Letter", "Legal"].includes(t.printPageSize)) errors.push("Unknown print page size.");
   const sc = validateScoring(t.scoring);
   if (sc.error) errors.push(sc.error);
   return { errors, scoring: sc.scoring };
