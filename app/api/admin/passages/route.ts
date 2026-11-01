@@ -54,32 +54,76 @@ export async function POST(req: Request) {
     if (!destinations.length) return Response.json({ error: publishToAll ? "No active simulators exist for this language." : `The selected exam directory "${slug}" does not exist or is inactive.` }, { status: 422 });
     if (!publishToAll && destinations[0].language !== language) return Response.json({ error: `Passage language does not match ${destinations[0].name}. Select ${destinations[0].language === "hi" ? "Hindi" : "English"}.` }, { status: 422 });
 
-    const basePayload = checked.map((item: any) => ({
+    const basePayload = checked.map((item: any, index: number) => ({
+      ingest_key: crypto.randomUUID(),
+      source_order: index + 1,
       language: item.clean.language,
       title: item.clean.title,
       body: item.clean.body,
       word_count: countWords(item.clean.body),
     }));
-    const payload = basePayload.map((item: any, index: number) => ({
+    const sourceType = b.sourceType === "pdf-import" ? "pdf-import" : "manual";
+    const filename = typeof b.sourceFilename === "string" ? b.sourceFilename.slice(0, 255) : null;
+    const records = basePayload.map((item: any) => ({
       ...item,
-      title: /^Passage\s+\d+$/i.test(item.title.trim()) ? `Passage ${String(index + 1).padStart(2, "0")}` : item.title,
+      destinations: destinations.map((d: any) => ({
+        template_id: String(d.id),
+        simulator_slug: String(d.slug),
+        simulator_name: String(d.name),
+      })),
     }));
-    const records = destinations.flatMap((destination: any) => payload.map((item: any, index: number) => ({
-      template_id: String(destination.id), language: item.language,
-      title: `${String(destination.name)} — Passage ${String(index + 1).padStart(2, "0")}`.slice(0, 120),
-      body: item.body, word_count: item.word_count,
-      simulator_slug: String(destination.slug), source_title: item.title,
-    })));
-    const inserted = await db`
-      INSERT INTO passages (template_id, language, title, body, word_count, created_by, format_metadata)
-      SELECT item.template_id::uuid, item.language, item.title, item.body, item.word_count, ${uid},
-        jsonb_build_object('importType', 'multi-simulator-pdf', 'source', 'admin-upload', 'simulatorSlug', item.simulator_slug, 'sourceTitle', item.source_title)
-      FROM jsonb_to_recordset(${JSON.stringify(records)}::jsonb)
-        AS item(template_id text, language text, title text, body text, word_count integer, simulator_slug text, source_title text)
-      RETURNING id
+    const result = await db`
+      WITH input AS (
+        SELECT * FROM jsonb_to_recordset(${JSON.stringify(records)}::jsonb)
+          AS x(ingest_key text, source_order integer, language text, title text, body text, word_count integer, destinations jsonb)
+      ),
+      inserted_sources AS (
+        INSERT INTO passage_sources (ingest_key, title, language, body, word_count, source_type, source_filename, created_by)
+        SELECT ingest_key::uuid, title, language, body, word_count, ${sourceType}, ${filename}, ${uid}
+        FROM input
+        RETURNING id, ingest_key
+      ),
+      target_rows AS (
+        SELECT src.id AS source_id, src.ingest_key, i.source_order, i.language, i.title, i.body, i.word_count,
+          dest.template_id, dest.simulator_slug, dest.simulator_name
+        FROM inserted_sources src
+        JOIN input i ON i.ingest_key::uuid = src.ingest_key
+        CROSS JOIN LATERAL jsonb_to_recordset(i.destinations)
+          AS dest(template_id text, simulator_slug text, simulator_name text)
+      ),
+      inserted_passages AS (
+        INSERT INTO passages (template_id, language, title, body, word_count, created_by, format_metadata)
+        SELECT target.template_id::uuid, target.language,
+          (target.simulator_name || ' — Passage ' || lpad(target.source_order::text, 2, '0'))::text,
+          target.body, target.word_count, ${uid},
+          jsonb_build_object('sourceId', target.source_id::text, 'sourceOrder', target.source_order,
+            'sourceType', ${sourceType}, 'simulatorSlug', target.simulator_slug)
+        FROM target_rows target
+        RETURNING id, template_id, format_metadata, created_at
+      ),
+      inserted_distributions AS (
+        INSERT INTO passage_distributions (source_id, template_id, passage_id, status, published_at)
+        SELECT (p.format_metadata->>'sourceId')::uuid, p.template_id, p.id, 'published', p.created_at
+        FROM inserted_passages p
+        RETURNING id
+      )
+      SELECT
+        (SELECT count(*)::int FROM inserted_sources) AS source_count,
+        (SELECT count(*)::int FROM inserted_passages) AS publication_count,
+        (SELECT count(*)::int FROM inserted_distributions) AS distribution_count
     `;
-    if (inserted.length !== records.length) return Response.json({ error: "Passage publication was incomplete. Refresh before retrying.", saved: 0 }, { status: 500 });
-    return Response.json({ ok: true, saved: payload.length, publications: inserted.length, destinations: destinations.map((d: any) => d.slug), simulatorCount: destinations.length });
+    const stats = result[0] ?? { source_count: 0, publication_count: 0, distribution_count: 0 };
+    if (Number(stats.source_count) !== basePayload.length || Number(stats.distribution_count) !== basePayload.length * destinations.length) {
+      return Response.json({ error: "Passage publication was incomplete. Refresh the studio before retrying.", saved: 0 }, { status: 500 });
+    }
+    return Response.json({
+      ok: true,
+      saved: basePayload.length,
+      sourcesCreated: Number(stats.source_count),
+      publications: Number(stats.publication_count),
+      destinations: destinations.map((d: any) => d.slug),
+      simulatorCount: destinations.length,
+    });
   } catch (error) {
     console.error("POST /api/admin/passages multi-directory save failed:", error);
     const detail = error instanceof Error ? error.message : "Unknown database error";
