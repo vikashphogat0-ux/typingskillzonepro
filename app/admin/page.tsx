@@ -124,7 +124,7 @@ export default function Admin() {
   return (
     <div className="page admin">
       <h1>Admin</h1>
-      <p><a href="/admin/subscribers">Manage subscribers</a> · <a href="/admin/institutions">Manage institutes</a></p>
+      <nav className="admin-management-nav" aria-label="Administration"><a href="/admin/users">Users &amp; roles</a> · <a href="/admin/institutions">Institutes</a> · <a href="/admin/subscribers">Subscriptions</a> · <a href="/admin/payments">Payments</a> · <a href="/admin">Passages &amp; simulators</a></nav>
       <section className="admin-generation-panel">
         <h2>Daily Passage Automation</h2>
         <p className="hint">Each batch generates original passages of at least 500 words and stores them as shared library content. Simulator templates control only presentation and exam rules.</p>
