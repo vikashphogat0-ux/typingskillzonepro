@@ -80,7 +80,9 @@ JOIN passage_sources s
  AND s.source_type = 'legacy-import'
 WHERE p.template_id IS NOT NULL
   AND NOT EXISTS (SELECT 1 FROM passage_distributions d WHERE d.passage_id = p.id)
-ORDER BY p.id, s.created_at\nON CONFLICT (source_id, template_id) DO UPDATE\n  SET passage_id = COALESCE(passage_distributions.passage_id, EXCLUDED.passage_id);
+ORDER BY p.id, s.created_at
+ON CONFLICT (source_id, template_id) DO UPDATE
+  SET passage_id = COALESCE(passage_distributions.passage_id, EXCLUDED.passage_id);
 
 -- Establish initial display-only layouts. Administrators can subsequently tune each profile.
 UPDATE exam_templates SET passage_layout = 'continuous' WHERE slug LIKE 'bsf-hcm-%' OR slug LIKE 'crpf-hcm-%';
