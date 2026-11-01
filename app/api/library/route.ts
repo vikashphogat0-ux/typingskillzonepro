@@ -21,6 +21,16 @@ export async function GET(req: Request) {
           ) AS passage_number
         FROM passages p
         WHERE NOT EXISTS (SELECT 1 FROM passage_distributions d WHERE d.passage_id = p.id AND d.status = 'archived')
+          AND NOT EXISTS (
+            SELECT 1
+            FROM passage_sources source
+            WHERE source.id = CASE
+              WHEN p.format_metadata->>'sourceId' ~* '^[0-9a-f-]{36}$'
+              THEN (p.format_metadata->>'sourceId')::uuid
+              ELSE NULL
+            END
+              AND COALESCE((p.format_metadata->>'sourceVersion')::integer, source.version) < source.version
+          )
       )
       SELECT id, title, language, word_count, body, passage_number FROM ranked WHERE id = ${one}`;
       return p ? Response.json(p) : Response.json({ error: "Not found." }, { status: 404 });
@@ -32,6 +42,16 @@ export async function GET(req: Request) {
     const monthRows = await db`SELECT DISTINCT to_char(p.created_at AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM') AS month
       FROM passages p LEFT JOIN exam_templates et ON et.id = p.template_id
       WHERE NOT EXISTS (SELECT 1 FROM passage_distributions d WHERE d.passage_id = p.id AND d.status = 'archived')
+          AND NOT EXISTS (
+            SELECT 1
+            FROM passage_sources source
+            WHERE source.id = CASE
+              WHEN p.format_metadata->>'sourceId' ~* '^[0-9a-f-]{36}$'
+              THEN (p.format_metadata->>'sourceId')::uuid
+              ELSE NULL
+            END
+              AND COALESCE((p.format_metadata->>'sourceVersion')::integer, source.version) < source.version
+          )
         AND to_char(p.created_at AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM') < ${currentMonth}
         AND (${tpl} = '' OR et.slug = ${tpl})
         AND (${lang}::text IS NULL OR p.language = ${lang})
@@ -47,6 +67,16 @@ export async function GET(req: Request) {
         ) AS month_passage_number
         FROM passages p
         WHERE NOT EXISTS (SELECT 1 FROM passage_distributions d WHERE d.passage_id = p.id AND d.status = 'archived')
+          AND NOT EXISTS (
+            SELECT 1
+            FROM passage_sources source
+            WHERE source.id = CASE
+              WHEN p.format_metadata->>'sourceId' ~* '^[0-9a-f-]{36}$'
+              THEN (p.format_metadata->>'sourceId')::uuid
+              ELSE NULL
+            END
+              AND COALESCE((p.format_metadata->>'sourceVersion')::integer, source.version) < source.version
+          )
       )
       SELECT p.id,
         CASE WHEN p.title ~* 'passage[[:space:]]+[0-9]+'
@@ -69,6 +99,16 @@ export async function GET(req: Request) {
         ) AS month_passage_number
         FROM passages p
           WHERE NOT EXISTS (SELECT 1 FROM passage_distributions d WHERE d.passage_id = p.id AND d.status = 'archived')
+          AND NOT EXISTS (
+            SELECT 1
+            FROM passage_sources source
+            WHERE source.id = CASE
+              WHEN p.format_metadata->>'sourceId' ~* '^[0-9a-f-]{36}$'
+              THEN (p.format_metadata->>'sourceId')::uuid
+              ELSE NULL
+            END
+              AND COALESCE((p.format_metadata->>'sourceVersion')::integer, source.version) < source.version
+          )
       )
       SELECT p.id, p.month_passage_number AS passage_number,
         CASE WHEN p.title ~* 'passage[[:space:]]+[0-9]+'
@@ -91,6 +131,16 @@ export async function GET(req: Request) {
           ) AS month_passage_number
           FROM passages p
           WHERE NOT EXISTS (SELECT 1 FROM passage_distributions d WHERE d.passage_id = p.id AND d.status = 'archived')
+          AND NOT EXISTS (
+            SELECT 1
+            FROM passage_sources source
+            WHERE source.id = CASE
+              WHEN p.format_metadata->>'sourceId' ~* '^[0-9a-f-]{36}$'
+              THEN (p.format_metadata->>'sourceId')::uuid
+              ELSE NULL
+            END
+              AND COALESCE((p.format_metadata->>'sourceVersion')::integer, source.version) < source.version
+          )
         )
         SELECT p.id,
           CASE WHEN p.title ~* 'passage[[:space:]]+[0-9]+'
