@@ -34,6 +34,8 @@ export default function PassageStudioPage() {
   const [fileName, setFileName] = useState("");
   const [extracted, setExtracted] = useState<{ title: string; body: string }[]>([]);
   const [query, setQuery] = useState("");
+  const [repositoryLanguage, setRepositoryLanguage] = useState<"all" | Lang>("all");
+  const [repositoryDestination, setRepositoryDestination] = useState("all");
   const [editing, setEditing] = useState<Source | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
@@ -55,9 +57,20 @@ export default function PassageStudioPage() {
   useEffect(() => { void load(); }, [load]);
 
   const availableTemplates = templates.filter(t => t.is_active && t.language === language);
-  const filtered = useMemo(() => sources.filter(s =>
-    (s.title + " " + s.id + " " + s.body).toLowerCase().includes(query.toLowerCase())
-  ), [sources, query]);
+  const filtered = useMemo(() => sources.filter(s => {
+    const searchMatch = (s.title + " " + s.id + " " + s.body).toLowerCase().includes(query.trim().toLowerCase());
+    const languageMatch = repositoryLanguage === "all" || s.language === repositoryLanguage;
+    const destinationMatch = repositoryDestination === "all" ||
+      s.distributions.some(distribution => distribution.slug === repositoryDestination);
+    return searchMatch && languageMatch && destinationMatch;
+  }), [sources, query, repositoryLanguage, repositoryDestination]);
+
+  const repositoryStats = useMemo(() => ({
+    english: sources.filter(source => !source.archived_at && source.language === "en").length,
+    hindi: sources.filter(source => !source.archived_at && source.language === "hi").length,
+    archived: sources.filter(source => Boolean(source.archived_at)).length,
+    unpublished: sources.filter(source => !source.archived_at && source.published_count === 0).length,
+  }), [sources]);
 
   const extractPdf = async (file?: File) => {
     if (!file) return;
@@ -129,10 +142,19 @@ export default function PassageStudioPage() {
   };
 
   const archive = async (source: Source) => {
-    if (!confirm("Archive " + source.title + "? It will disappear from active passage lists. Existing test history is retained.")) return;
-    const result = await request("/api/admin/passage-studio?id=" + encodeURIComponent(source.id), { method: "DELETE" });
-    setMessage(result.ok ? "Passage archived. Existing test history is preserved." : result.data.error ?? "Archive failed.");
-    await load();
+    if (busy || !confirm("Archive " + source.title + "? It will disappear from active passage lists. Existing test history is retained.")) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const result = await request("/api/admin/passage-studio?id=" + encodeURIComponent(source.id), { method: "DELETE" });
+      if (!result.ok) throw new Error(result.data.error ?? "Archive failed.");
+      setMessage("Passage archived. Existing test history is preserved.");
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Archive failed. Please retry.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const validation = validatePassage({ title, language, body });
@@ -189,7 +211,23 @@ export default function PassageStudioPage() {
           <div><h2>Master repository</h2><p className="hint">Edit a source to create a new version. Published simulator copies are refreshed without changing passages attached to historical tests.</p></div>
           <button type="button" onClick={() => setShowArchived(v => !v)}>{showArchived ? "Hide archived" : "Show archived"}</button>
         </div>
-        <input aria-label="Search master passages" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search title, content or source ID…" />
+        <div className="passage-repository-toolbar">
+          <input aria-label="Search master passages" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search title, content or source ID…" />
+          <select aria-label="Filter passages by language" value={repositoryLanguage} onChange={e => setRepositoryLanguage(e.target.value as "all" | Lang)}>
+            <option value="all">All languages</option><option value="en">English</option><option value="hi">Hindi</option>
+          </select>
+          <select aria-label="Filter by simulator destination" value={repositoryDestination} onChange={e => setRepositoryDestination(e.target.value)}>
+            <option value="all">All simulator destinations</option>
+            {templates.map(template => <option key={template.slug} value={template.slug}>{template.name}</option>)}
+          </select>
+        </div>
+        <div className="passage-repository-summary" aria-live="polite">
+          <span><strong>{filtered.length}</strong> matching records</span>
+          <span><strong>{repositoryStats.english}</strong> active English</span>
+          <span><strong>{repositoryStats.hindi}</strong> active Hindi</span>
+          <span><strong>{repositoryStats.unpublished}</strong> without publication</span>
+          <span><strong>{repositoryStats.archived}</strong> archived</span>
+        </div>
         {loading ? <p>Loading repository…</p> : <div className="tbl"><table><thead><tr><th>Passage ID</th><th>Master passage</th><th>Language</th><th>Words</th><th>Version</th><th>Distribution</th><th>Actions</th></tr></thead><tbody>
           {filtered.map(source => <tr key={source.id}>
             <td><code>{String(source.visible_number).padStart(2, "0")}</code></td>
@@ -197,7 +235,10 @@ export default function PassageStudioPage() {
             <td>{source.language === "hi" ? "Hindi" : "English"}</td>
             <td>{source.word_count}</td>
             <td>v{source.version}</td>
-            <td>{source.published_count}/{source.distribution_count} published</td>
+            <td>
+              <strong>{source.published_count}/{source.distribution_count} published</strong>
+              <small>{source.distributions.length ? source.distributions.map(item => item.name + " · " + item.status).join(" | ") : "No simulator destinations"}</small>
+            </td>
             <td><div className="admin-row-actions">
               {!source.archived_at && <button type="button" onClick={() => setEditing(source)}>Edit</button>}
               {!source.archived_at && <button type="button" className="danger" onClick={() => void archive(source)}>Archive</button>}
