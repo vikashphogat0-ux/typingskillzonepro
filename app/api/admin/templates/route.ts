@@ -15,8 +15,22 @@ export async function POST(req: Request) {
   if (!(await requireAdmin(req))) return deny();
   const t = (await req.json().catch(() => null)) as TemplateInput | null;
   if (!t) return Response.json({ error: "Invalid request." }, { status: 400 });
-  if (getBuiltInPreset(String(t.slug))) return Response.json({ error: "Built-in exam presets are code-managed to keep published rules consistent. Create a new custom slug to configure different rules." }, { status: 409 });
+  const builtIn = getBuiltInPreset(String(t.slug));
   const { errors, scoring } = validateTemplate(t);
+  if (builtIn && t.presentationOnly === true) {
+    if (errors.length) return Response.json({ error: errors.join(" ") }, { status: 422 });
+    await sql()`UPDATE exam_templates SET
+      passage_layout = ${t.passageLayout ?? "source-preserved"},
+      font_size_pt = ${t.fontSizePt ?? 12},
+      passage_font_family = ${t.passageFontFamily ?? "system"},
+      passage_alignment = ${t.passageAlignment ?? "left"},
+      passage_line_spacing = ${t.passageLineSpacing ?? 1.5},
+      passage_paragraph_spacing = ${t.passageParagraphSpacing ?? 8},
+      print_page_size = ${t.printPageSize ?? "A4"}
+      WHERE slug = ${t.slug}`;
+    return Response.json({ ok: true, presentationOnly: true });
+  }
+  if (builtIn) return Response.json({ error: "Built-in exam rules are protected. Use presentation-only editing to change passage appearance without changing exam rules." }, { status: 409 });
   if (errors.length || !scoring) return Response.json({ error: errors.join(" ") }, { status: 422 });
   await sql()`INSERT INTO exam_templates (
       slug, name, language, duration_sec, display_mode, backspace, scoring, is_active,
