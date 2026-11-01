@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { cleanBody, countWords, parseBulk, validatePassage } from "@/lib/adminValidation";
+import { cleanBody, countWords, parseBulk, validatePassage, validatePresentationSettings } from "@/lib/adminValidation";
+import { formatRkcPassage } from "@/lib/rkc-passage-format";
 import type { Lang } from "@/lib/wpmCalculator";
 
 type Template = { slug:string; name:string; language:Lang; is_active:boolean; duration_sec:number; display_mode:"highlighted"|"unhighlighted"|"offscreen"; backspace:"full"|"word"|"disabled"; scoring:unknown; passage_layout:"continuous"|"paragraph-tab"|"source-preserved"|null; font_size_pt:number|null; passage_font_family:"system"|"serif"|"mono"|null; passage_alignment:"left"|"center"|"justify"|null; passage_line_spacing:number|null; passage_paragraph_spacing:number|null; print_page_size:"A4"|"Letter"|"Legal"|null };
@@ -267,8 +268,25 @@ export default function PassageStudioPage() {
             <label>Paragraph spacing (pt)<input type="number" min="0" max="32" step="1" value={formatSettings.passageParagraphSpacing} onChange={e=>setFormatSettings(v=>({...v,passageParagraphSpacing:Number(e.target.value)}))}/></label>
             <label>Print page size<select value={formatSettings.printPageSize} onChange={e=>setFormatSettings(v=>({...v,printPageSize:e.target.value as typeof v.printPageSize}))}><option value="A4">A4</option><option value="Letter">Letter</option><option value="Legal">Legal</option></select></label>
           </div>
-          <div className="passage-format-preview-wrap"><div className="passage-format-preview-heading"><strong>Live preview</strong><span>{formatSettings.printPageSize} · {formatSettings.fontSizePt} pt</span></div><article className="passage-format-preview" lang={formatTemplate.language} style={{fontFamily:formatSettings.passageFontFamily==="serif"?"Georgia,serif":formatSettings.passageFontFamily==="mono"?"monospace":"Arial,sans-serif",fontSize:formatSettings.fontSizePt+"pt",textAlign:formatSettings.passageAlignment,lineHeight:formatSettings.passageLineSpacing}}><h3>{title.trim()||"Sample passage title"}</h3><p>{(body.trim()||(formatTemplate.language==="hi"?"यह एक नमूना अनुच्छेद है। ऊपर पाठ लिखकर प्रारूप देखें।":"This is a sample passage preview. Enter text above to inspect the selected simulator's presentation.")).split(/\n\s*\n/).map((v,i)=><span key={i} style={{display:"block",marginBottom:formatSettings.passageParagraphSpacing+"pt"}}>{v}</span>)}</p></article></div>
-          <button type="button" className="go" disabled={busy||!Number.isFinite(formatSettings.fontSizePt)||formatSettings.fontSizePt<8||formatSettings.fontSizePt>24||!Number.isFinite(formatSettings.passageLineSpacing)||formatSettings.passageLineSpacing<1.1||formatSettings.passageLineSpacing>2.5||!Number.isFinite(formatSettings.passageParagraphSpacing)||formatSettings.passageParagraphSpacing<0||formatSettings.passageParagraphSpacing>32} onClick={()=>void saveFormatting()}>{busy?"Saving…":"Save simulator formatting"}</button>
+          {(() => {
+            const sample = body.trim() || (formatTemplate.language === "hi"
+              ? "यह एक नमूना अनुच्छेद है। ऊपर पाठ लिखकर प्रारूप देखें।\n\nदूसरे अनुच्छेद में पंक्ति और अनुच्छेद का अंतर दिखाई देगा।"
+              : "This is a sample passage preview. Enter text above to inspect the selected simulator's presentation.\n\nA second paragraph demonstrates the selected paragraph spacing and line layout.");
+            const formatted = formatRkcPassage(sample, formatSettings.passageLayout);
+            const paragraphs = formatSettings.passageLayout === "continuous" ? [formatted] : formatted.split(/\n{2,}/u);
+            const validationErrors = validatePresentationSettings(formatSettings);
+            return <>
+              <div className="passage-format-preview-wrap">
+                <div className="passage-format-preview-heading"><strong>Live simulator preview · {formatTemplate.name}</strong><span>{formatSettings.printPageSize} · {formatSettings.fontSizePt} pt · {formatSettings.passageLayout}</span></div>
+                <article className="passage-format-preview" lang={formatTemplate.language} style={{fontFamily:formatSettings.passageFontFamily==="serif"?"Georgia,serif":formatSettings.passageFontFamily==="mono"?"monospace":"Arial,sans-serif",fontSize:formatSettings.fontSizePt+"pt",textAlign:formatSettings.passageAlignment,lineHeight:formatSettings.passageLineSpacing}}>
+                  <h3>{title.trim()||"Sample passage title"}</h3>
+                  {paragraphs.map((paragraph,i)=><p key={i} style={{marginBottom:formatSettings.passageParagraphSpacing+"pt",whiteSpace:formatSettings.passageLayout==="continuous"?"normal":"pre-wrap"}}>{paragraph}</p>)}
+                </article>
+              </div>
+              {validationErrors.map(error=><p className="err" role="alert" key={error}>{error}</p>)}
+              <button type="button" className="go" disabled={busy||validationErrors.length>0} onClick={()=>void saveFormatting()}>{busy?"Saving…":"Save simulator formatting"}</button>
+            </>;
+          })()}
         </>}
       </section>
       <section className="admin-generation-panel">
