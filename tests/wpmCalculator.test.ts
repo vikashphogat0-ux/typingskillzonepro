@@ -507,3 +507,17 @@ test("custom exam templates validate Enter and Tab policies independently", () =
   assert.ok(validateTemplate({ ...base, enterKeyPolicy: "sometimes" as any }).errors.some((e) => e.includes("Enter-key")));
   assert.ok(validateTemplate({ ...base, tabKeyPolicy: "sometimes" as any }).errors.some((e) => e.includes("Tab-key")));
 });
+
+
+test("server anti-cheat enforces exam-specific Enter and Tab policies", () => {
+  const make = (typed: string, events: KeyEvent[], enterKeyPolicy: "newline" | "blocked", tabKeyPolicy: "blocked" | "insert") =>
+    validateAttempt({ typed, events, elapsedSec: 1, durationSec: 60, enterKeyPolicy, tabKeyPolicy });
+  const newline = String.fromCharCode(10);
+  const tab = String.fromCharCode(9);
+  const newlineEvents: KeyEvent[] = [{ t: 1, type: "ins", ch: "a" }, { t: 2, type: "ins", ch: newline }];
+  const tabEvents: KeyEvent[] = [{ t: 1, type: "ins", ch: "a" }, { t: 2, type: "ins", ch: tab }];
+  assert.equal(make("a" + newline, newlineEvents, "blocked", "insert").tampered, true);
+  assert.equal(make("a" + tab, tabEvents, "newline", "blocked").tampered, true);
+  assert.equal(make("a" + newline, newlineEvents, "newline", "blocked").tampered, false);
+  assert.equal(make("a" + tab, tabEvents, "blocked", "insert").tampered, false);
+});
