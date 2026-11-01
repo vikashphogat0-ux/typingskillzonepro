@@ -19,6 +19,7 @@ interface Props {
   lang: Lang;
   durationSec: number;
   mode: DisplayMode;
+  practiceMode?: "highlighted" | "unhighlighted" | "exam";
   backspace: BackspaceMode;
   profile: ScoringProfile;
   fontSizePt?: number;
@@ -46,7 +47,9 @@ const Word = memo(function Word({ text, typed, active }: { text: string; typed: 
   );
 });
 
-export default function TypingSimulator({ passage, lang, durationSec, mode, backspace, profile, fontSizePt = 12, passageLayout = "continuous", examName = "Typing practice", enterKeyPolicy = "newline", tabKeyPolicy = "blocked", onFinish }: Props) {
+export default function TypingSimulator({ passage, lang, durationSec, mode, practiceMode = "exam", backspace, profile, fontSizePt = 12, passageLayout = "continuous", examName = "Typing practice", enterKeyPolicy = "newline", tabKeyPolicy = "blocked", onFinish }: Props) {
+  // Practice mode is a presentation override only. The exam preset remains authoritative for all rules.
+  const displayMode: DisplayMode = practiceMode === "exam" ? mode : practiceMode;
   const reference = useMemo(() => norm(passage), [passage]);
   const refChars = useMemo(() => Array.from(reference), [reference]);
   const tokens = useMemo(() => {
@@ -204,21 +207,21 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
         <div className={(phase === "test" ? left : phaseLeft) < 30 ? "clock low" : "clock"} role="timer" aria-live="off">{fmt(phase === "test" ? left : phaseLeft)}</div>
         <div className="meter" aria-hidden><i style={{ width: `${refChars.length ? Math.min(100, (typedChars.length / refChars.length) * 100) : 0}%` }} /></div>
         <div className="rules">
-          {mode === "highlighted" ? "Highlighted" : mode === "unhighlighted" ? "Unhighlighted" : "Paper to screen"} ·{" "}
+          {displayMode === "highlighted" ? "Highlighted" : displayMode === "unhighlighted" ? "Unhighlighted" : "Paper to screen"} ·{" "}
           {backspace === "full" ? "Backspace on" : backspace === "word" ? "Backspace in current word" : "Backspace off"}
         </div>
       </div>
 
       {hasRrbPhases && phase !== "test" && <div className="mode-note" role="status"><strong>{phase === "warmup" ? "RRB CBTST warm-up" : "Break before scored test"}</strong><p>{phase === "warmup" ? "Practise for one minute. This typing is not scored and will be cleared automatically." : "Your one-minute break is in progress. The scored 10-minute test starts automatically when it ends."}</p></div>}
-      {mode === "offscreen" && <div className="offscreen-print-tools"><p>The passage is hidden during this exam mode. Print it or choose “Save as PDF” before typing, then return here to start.</p><button type="button" className="go alt" onClick={printReference}>Print passage / Save as PDF</button></div>}
-      <div className={`sheet ${lang === "hi" ? "hi" : ""} ${mode} layout-${passageLayout}`} ref={boxRef} lang={lang} tabIndex={-1} onClick={() => taRef.current?.focus()} style={{ fontSize: `${Math.max(8, Math.min(24, fontSizePt))}pt`, whiteSpace: passageLayout === "continuous" ? "normal" : "pre-wrap" }}>
-        {mode === "highlighted"
+      {displayMode === "offscreen" && <div className="offscreen-print-tools"><p>The passage is hidden during this exam mode. Print it or choose “Save as PDF” before typing, then return here to start.</p><button type="button" className="go alt" onClick={printReference}>Print passage / Save as PDF</button></div>}
+      <div className={`sheet ${lang === "hi" ? "hi" : ""} ${displayMode} layout-${passageLayout}`} ref={boxRef} lang={lang} tabIndex={-1} onClick={() => taRef.current?.focus()} style={{ fontSize: `${Math.max(8, Math.min(24, fontSizePt))}pt`, whiteSpace: passageLayout === "continuous" ? "normal" : "pre-wrap" }}>
+        {displayMode === "highlighted"
           ? tokens.map((tk, i) => {
               const slice = typedChars.slice(tk.start, tk.start + tk.len).join("");
               const active = !tk.space && activeIdx >= tk.start && activeIdx <= tk.start + tk.len && !done;
               return tk.space ? <span key={i}>{tk.text}</span> : <Word key={i} text={tk.text} typed={slice} active={active} />;
             })
-          : mode === "unhighlighted"
+          : displayMode === "unhighlighted"
             ? <span className="plain">{reference}</span>
             : <div className="offscreen-placeholder">Paper-to-screen mode · passage hidden</div>}
       </div>
@@ -241,9 +244,9 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
         autoCorrect="off"
         autoCapitalize="off"
         autoComplete="off"
-        placeholder={phase === "warmup" ? "Warm-up only — this text will be cleared before the scored test." : phase === "break" ? "Break in progress — please wait for the scored test." : mode === "offscreen" ? "Type the printed passage here. The timer starts with your first key." : "Start typing. The timer starts with your first key."}
+        placeholder={phase === "warmup" ? "Warm-up only — this text will be cleared before the scored test." : phase === "break" ? "Break in progress — please wait for the scored test." : displayMode === "offscreen" ? "Type the printed passage here. The timer starts with your first key." : "Start typing. The timer starts with your first key."}
         aria-label="Type here"
-        rows={mode === "offscreen" ? 8 : 4}
+        rows={displayMode === "offscreen" ? 8 : 4}
       />
       {done && <p className="note">Time is up or the passage is complete. Calculating your result.</p>}
     </section>
