@@ -49,9 +49,11 @@ export default function ResultAnalysis({ reference, events, score: s }: { refere
       {(pat.omitted > 0 || pat.extra > 0) && <p>You skipped {pat.omitted} word{pat.omitted === 1 ? "" : "s"} and added {pat.extra} extra.</p>}
 
       {events.length > 0 && (<>
-        <h2>Speed and accuracy through the test</h2>
-        <LineChart labels={a.timeline.map((b) => mmss(b.startSec))} series={[{ label: "Net WPM", color: "#16233b", values: a.timeline.map((b) => b.wpm) }, { label: "Accuracy %", color: "#1f7a4d", values: a.timeline.map((b) => b.accuracy) }]} yMax={100} marks={a.timeline.map((b, i) => (drops.includes(b.startSec) ? i : -1)).filter((i) => i >= 0)} />
-        <p className="hint">Red bands mark stretches where accuracy dropped well below your average.</p>
+        <h2>Speed during the exam</h2>
+        <LineChart labels={a.timeline.map((b) => mmss(b.startSec))} series={[{ label: "Net WPM", color: "#16233b", values: a.timeline.map((b) => b.wpm) }]} />
+        <h2>Accuracy during the exam</h2>
+        <LineChart labels={a.timeline.map((b) => mmss(b.startSec))} series={[{ label: "Accuracy %", color: "#1f7a4d", values: a.timeline.map((b) => b.accuracy) }]} yMax={100} marks={a.timeline.map((b, i) => (drops.includes(b.startSec) ? i : -1)).filter((i) => i >= 0)} />
+        <p className="hint">Red bands mark time intervals where accuracy fell clearly below your overall exam accuracy.</p>
         <h2>Keys that cost you</h2>
         <KeyHeatmap keys={a.keys} hindi={hindi} />
         {a.weakCombos.length > 0 && <p>Weak letter pairs: {a.weakCombos.map((c) => `${c.pair} (${c.errors}/${c.attempts})`).join(", ")}</p>}
