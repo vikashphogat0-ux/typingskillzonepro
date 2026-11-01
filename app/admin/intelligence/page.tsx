@@ -23,7 +23,36 @@ export default function IntelligenceAdminPage(){
  if(error)return <main className="page"><h1>Intelligence Centre</h1><p>{error}</p><a href="/admin">Back to admin</a></main>;
  if(!data)return <main className="page"><p>Preparing platform insights…</p></main>;
  const t=data.totals??{};
- return <main className="page admin"><nav><a href="/admin">Administration</a> · <a href="/admin/passage-studio">Passage Studio</a></nav><header className="admin-generation-panel"><p className="hint">TYPINGSKILLZONE · ADMIN INTELLIGENCE</p><h1>Intelligence Centre</h1><p>Aggregated, privacy-conscious learning and content insights for the selected reporting period. No student names, emails or individual records are exposed here.</p><div className="form"><label>Reporting period<select value={periodDays} onChange={e=>setPeriodDays(Number(e.target.value))}><option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={90}>Last 90 days</option></select></label><button type="button" className="go alt" onClick={()=>setRefreshKey(x=>x+1)}>Refresh report</button></div></header>
+ const exportPerformanceReport=()=>{
+  const rows=[
+   ["TypingSkillZone Admin Performance Report"],
+   ["Reporting period (days)",String(data.periodDays??periodDays)],
+   ["Generated at",new Date().toISOString()],
+   [],
+   ["Platform metric","Value"],
+   ["Attempts",String(t.attempts??0)],
+   ["Active learners",String(t.learners??0)],
+   ["Average net WPM",String(t.avg_net_wpm??0)],
+   ["Average accuracy (%)",String(t.avg_accuracy??0)],
+   ["Passed by saved profile",String(t.passed??0)],
+   ["Not passed by saved profile",String(t.not_passed??0)],
+   [],
+   ["Intervention indicator","Learners"],
+   ["Accuracy support (<90%)",String(data.interventions?.accuracy_support??0)],
+   ["Speed support (<25 net WPM)",String(data.interventions?.speed_support??0)],
+   ["Low engagement (<=1 attempt)",String(data.interventions?.low_engagement??0)],
+   ["Inactive (14+ days)",String(data.interventions?.inactive_14_days??0)],
+   [],
+   ["Simulator","Attempts","Average net WPM","Average accuracy (%)"],
+   ...(data.simulators??[]).map(x=>[x.name,String(x.attempts),String(x.avg_net_wpm),String(x.avg_accuracy)])
+  ];
+  const quote=(value:string)=>"\""+String(value??"").replace(/"/g,'""')+"\"";
+  const csv=rows.map(row=>row.map(value=>quote(String(value??""))).join(",")).join("\r\n");
+  const blob=new Blob(["\uFEFF",csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download="typingskillzone-admin-performance-"+(data.periodDays??periodDays)+"-days.csv";document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);
+ };
+
+ return <main className="page admin"><nav><a href="/admin">Administration</a> · <a href="/admin/passage-studio">Passage Studio</a></nav><header className="admin-generation-panel"><p className="hint">TYPINGSKILLZONE · ADMIN INTELLIGENCE</p><h1>Intelligence Centre</h1><p>Aggregated, privacy-conscious learning and content insights for the selected reporting period. No student names, emails or individual records are exposed here.</p><div className="form report-controls"><label>Reporting period<select value={periodDays} onChange={e=>setPeriodDays(Number(e.target.value))}><option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={90}>Last 90 days</option></select></label><button type="button" className="go alt" onClick={()=>setRefreshKey(x=>x+1)}>Refresh report</button><button type="button" className="go alt" onClick={exportPerformanceReport}>Export performance CSV</button><button type="button" className="go" onClick={()=>window.print()}>Print / Save PDF</button></div><p className="hint print-only">TypingSkillZone · Admin performance report · {data.periodDays}-day period · Generated {new Date().toLocaleString()}</p></header>
  <section className="tiles"><div><b>{t.attempts??0}</b><span>Attempts</span></div><div><b>{t.learners??0}</b><span>Active learners</span></div><div><b>{t.avg_net_wpm??0}</b><span>Average net WPM</span></div><div><b>{t.avg_accuracy??0}%</b><span>Average accuracy</span></div><div><b>{t.passed??0}</b><span>Passed by saved profile</span></div><div><b>{t.not_passed??0}</b><span>Not passed by saved profile</span></div></section>
  <section className="admin-generation-panel"><h2>Student progress · intervention indicators</h2>
  <p className="hint">Aggregated counts for learners with saved attempts in the last {data.periodDays} days. These are coaching signals, not diagnoses or disciplinary labels. No student identities or individual records are shown.</p>
@@ -48,5 +77,5 @@ export default function IntelligenceAdminPage(){
  <section className="admin-generation-panel"><h2>Simulator performance</h2><div className="tbl"><table><thead><tr><th>Simulator</th><th>Attempts</th><th>Avg net WPM</th><th>Avg accuracy</th></tr></thead><tbody>{(data.simulators??[]).map(x=><tr key={x.slug}><td>{x.name}</td><td>{x.attempts}</td><td>{x.avg_net_wpm}</td><td>{x.avg_accuracy}%</td></tr>)}</tbody></table></div></section>
  <section className="admin-generation-panel"><h2>Platform-wide weak keys</h2>{data.patterns?.weakKeys.length?<div className="tbl"><table><thead><tr><th>Key</th><th>Errors</th><th>Attempts</th><th>Error rate</th></tr></thead><tbody>{data.patterns.weakKeys.map(x=><tr key={x.label}><td>{x.label}</td><td>{x.errors}</td><td>{x.attempts}</td><td>{x.errorRate}%</td></tr>)}</tbody></table></div>:<p className="hint">Insufficient key-log data in this period.</p>}</section>
  <section className="admin-generation-panel"><h2>Platform-wide weak pairs</h2>{data.patterns?.weakPairs.length?<div className="tbl"><table><thead><tr><th>Pair</th><th>Errors</th><th>Attempts</th><th>Error rate</th></tr></thead><tbody>{data.patterns.weakPairs.map(x=><tr key={x.label}><td>{x.label}</td><td>{x.errors}</td><td>{x.attempts}</td><td>{x.errorRate}%</td></tr>)}</tbody></table></div>:<p className="hint">Insufficient key-log data in this period.</p>}</section>
- <p className="hint">Key-level analysis processed up to {data.sampleAttempts??0} recent key-log records. Aggregate metrics cover all matching results.</p></main>;
+ <p className="hint">Key-level analysis processed up to {data.sampleAttempts??0} recent key-log records. Aggregate metrics cover all matching results.</p><style jsx global>{`@media print{@page{size:A4 portrait;margin:14mm}body{background:#fff!important;color:#111!important}nav,.report-controls,button,select,input,textarea{display:none!important}.page{max-width:none!important;padding:0!important}.admin-generation-panel,.tiles,section{break-inside:avoid;box-shadow:none!important;background:#fff!important;color:#111!important;border-color:#bbb!important}table{width:100%;border-collapse:collapse}th,td{border:1px solid #bbb!important;padding:6px!important;color:#111!important}.hint{color:#444!important}.print-only{display:block!important}}@media screen{.print-only{display:none!important}}`}</style></main>;
 }
