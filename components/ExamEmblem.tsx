@@ -39,7 +39,7 @@ export default function ExamEmblem({ slug, mark, short, family, tone }: Props) {
   const src = assetBySlug(slug);
 
   return (
-    <div className={`exam-card-emblem ${tone}`} role="img" aria-label={`${family} emblem`}>
+    <div className={`exam-card-emblem ${tone}${loaded && !failed ? " has-image" : ""}`} role="img" aria-label={`${family} emblem`}>
       {src && !failed ? (
         <img
           src={src}
@@ -48,6 +48,7 @@ export default function ExamEmblem({ slug, mark, short, family, tone }: Props) {
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
+          onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}
         />
       ) : (
