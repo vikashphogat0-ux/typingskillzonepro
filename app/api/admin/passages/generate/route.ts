@@ -87,6 +87,9 @@ export async function POST(req: Request) {
     if (!template || (template.language !== "en" && template.language !== "hi")) return Response.json({ error: "Selected simulator folder is unavailable." }, { status: 422 });
     const templateId = String(template.id);
     const language = template.language as PassageLanguage;
+    const destinations = await db`SELECT id, slug, name FROM exam_templates
+      WHERE is_active = true AND language = ${language} ORDER BY name`;
+    if (!destinations.length) return Response.json({ error: "No active compatible simulators are available for this language." }, { status: 422 });
 
     stage = "recording generation run";
     await db`INSERT INTO passage_generation_runs (generation_date, slot, requested_count, status)
@@ -118,16 +121,48 @@ export async function POST(req: Request) {
         continue;
       }
       try {
-        const generatedTitle = `${String(template.name)} — ${result.title}`;
-        const inserted = await db`INSERT INTO passages (template_id, language, title, body, word_count, source, generation_date, generation_slot, format_metadata)
-          VALUES (${templateId}::uuid, ${job.language}, ${generatedTitle.slice(0, 120)}, ${result.body}, ${result.wordCount}, 'scheduled-ai', ${date}::date, ${slot},
-          ${JSON.stringify({ topic: result.topic, minimumWords: 500, simulatorSlug: templateSlug, examSpecific: true, slotIndex: job.index })}::jsonb)
-          ON CONFLICT DO NOTHING RETURNING id`;
-        if (inserted.length) {
+        const ingestKey = crypto.randomUUID();
+        const distributionRecords = destinations.map((destination: any) => ({
+          template_id: String(destination.id),
+          simulator_slug: String(destination.slug),
+          simulator_name: String(destination.name),
+        }));
+        const inserted = await db`
+          WITH source AS (
+            INSERT INTO passage_sources (ingest_key, title, language, body, word_count, source_type, created_by)
+            VALUES (${ingestKey}::uuid, ${result.title}, ${job.language}, ${result.body}, ${result.wordCount}, 'scheduled-ai', ${uid})
+            RETURNING id
+          ),
+          destination_rows AS (
+            SELECT * FROM jsonb_to_recordset(${JSON.stringify(distributionRecords)}::jsonb)
+              AS d(template_id text, simulator_slug text, simulator_name text)
+          ),
+          new_passages AS (
+            INSERT INTO passages (template_id, language, title, body, word_count, created_by, source, generation_date, generation_slot, format_metadata)
+            SELECT d.template_id::uuid, ${job.language},
+              (d.simulator_name || ' — ' || ${result.title})::text,
+              ${result.body}, ${result.wordCount}, ${uid}, 'scheduled-ai', ${date}::date, ${slot},
+              jsonb_build_object('sourceId', source.id::text, 'topic', ${result.topic},
+                'minimumWords', 500, 'simulatorSlug', d.simulator_slug, 'examSpecific', true, 'slotIndex', ${job.index})
+            FROM source CROSS JOIN destination_rows d
+            RETURNING id, template_id, format_metadata, created_at
+          ),
+          new_distributions AS (
+            INSERT INTO passage_distributions (source_id, template_id, passage_id, status, published_at)
+            SELECT (p.format_metadata->>'sourceId')::uuid, p.template_id, p.id, 'published', p.created_at
+            FROM new_passages p
+            RETURNING id
+          )
+          SELECT count(*)::int AS publications,
+            (SELECT count(*)::int FROM new_distributions) AS distributions
+          FROM new_passages
+        `;
+        if (Number(inserted[0]?.publications ?? 0) === destinations.length &&
+            Number(inserted[0]?.distributions ?? 0) === destinations.length) {
           saved++;
           wordCounts.push(result.wordCount);
         } else {
-          failures.push(`${job.language} passage ${job.index + 1}: insert conflicted; verify existing batch records`);
+          failures.push(`${job.language} passage ${job.index + 1}: incomplete simulator distribution; inspect Passage Studio before retrying`);
         }
       } catch (error) {
         failures.push(`${job.language} passage ${job.index + 1}: ${error instanceof Error ? error.message : "database insert failed"}`);
