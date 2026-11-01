@@ -68,6 +68,7 @@ export async function GET(req: Request) {
           ORDER BY p.created_at ASC, p.id ASC
         ) AS month_passage_number
         FROM passages p
+          WHERE NOT EXISTS (SELECT 1 FROM passage_distributions d WHERE d.passage_id = p.id AND d.status = 'archived')
       )
       SELECT p.id, p.month_passage_number AS passage_number,
         CASE WHEN p.title ~* 'passage[[:space:]]+[0-9]+'
