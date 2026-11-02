@@ -117,6 +117,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS users_neon_auth_user_id_uidx ON users(neon_aut
 -- ===== Institutions, simulators, leaderboards (safe to re-run) =====
 ALTER TABLE users ADD COLUMN IF NOT EXISTS show_on_leaderboard boolean NOT NULL DEFAULT true;
 ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS description text;
+-- Exam-specific passage and keyboard presentation settings (additive and safe to re-run).
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS passage_layout text NOT NULL DEFAULT 'continuous';
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS enter_key_policy text NOT NULL DEFAULT 'newline';
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS tab_key_policy text NOT NULL DEFAULT 'blocked';
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS font_size_pt numeric(4,1) NOT NULL DEFAULT 12;
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS passage_font_family text NOT NULL DEFAULT 'system';
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS passage_alignment text NOT NULL DEFAULT 'left';
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS passage_line_spacing numeric(3,1) NOT NULL DEFAULT 1.5;
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS passage_paragraph_spacing numeric(4,1) NOT NULL DEFAULT 8;
+ALTER TABLE exam_templates ADD COLUMN IF NOT EXISTS print_page_size text NOT NULL DEFAULT 'A4';
 
 CREATE TABLE IF NOT EXISTS institutions (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -141,6 +151,33 @@ CREATE TABLE IF NOT EXISTS institute_subscriptions (
 );
 CREATE INDEX IF NOT EXISTS institute_subs_institute_idx ON institute_subscriptions(institute_id);
 CREATE INDEX IF NOT EXISTS institute_subs_plan_idx ON institute_subscriptions(plan_id);
+
+-- Invitation records reserve seats until accepted or expired.
+CREATE TABLE IF NOT EXISTS institute_invitations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  institution_id uuid NOT NULL REFERENCES institutions(id) ON DELETE CASCADE,
+  email text NOT NULL,
+  token_hash text NOT NULL UNIQUE,
+  invited_by uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at timestamptz NOT NULL DEFAULT (now() + interval '7 days'),
+  accepted_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS institute_invitations_email_idx
+  ON institute_invitations(lower(email), expires_at) WHERE accepted_at IS NULL;
+CREATE INDEX IF NOT EXISTS institute_invitations_institute_idx
+  ON institute_invitations(institution_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS institute_notification_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  institute_subscription_id uuid NOT NULL REFERENCES institute_subscriptions(id) ON DELETE CASCADE,
+  notification_key text NOT NULL,
+  recipient_email text NOT NULL,
+  sent_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (institute_subscription_id, notification_key)
+);
+CREATE INDEX IF NOT EXISTS institute_notification_log_sent_idx
+  ON institute_notification_log(sent_at DESC);
 
 
 /* Payment records -- stores verified payment details */
@@ -199,6 +236,7 @@ CREATE TABLE IF NOT EXISTS audit_events (
 
 CREATE INDEX IF NOT EXISTS payments_user_idx ON payments(user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS payments_idempotency_key_uidx ON payments(idempotency_key) WHERE idempotency_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS payments_institute_idx ON payments(institute_id);
 
 -- a person belongs to at most one institution
 CREATE TABLE IF NOT EXISTS institution_members (

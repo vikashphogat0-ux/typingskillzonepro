@@ -1,4 +1,5 @@
 import type { KeyEvent } from "./wpmCalculator.ts";
+import type { BackspaceMode } from "./backspacePolicy.ts";
 
 /** Runtime validation is required because key events arrive from untrusted JSON. */
 export function isValidKeyEvent(value: unknown): value is KeyEvent {
@@ -33,9 +34,17 @@ export interface AttemptCheck { tampered: boolean; flagged: boolean; reasons: st
  * flagged: saved, but kept off the leaderboards (impossible speed or time overrun).
  * Elapsed time can never be shorter than the last keystroke.
  */
-export function validateAttempt(a: { typed: string; events: KeyEvent[]; elapsedSec: number; durationSec: number }): AttemptCheck {
+export function validateAttempt(a: { typed: string; events: KeyEvent[]; elapsedSec: number; durationSec: number; backspaceMode?: BackspaceMode; enterKeyPolicy?: "newline" | "blocked"; tabKeyPolicy?: "blocked" | "insert" }): AttemptCheck {
   const reasons: string[] = [];
   let tampered = false, flagged = false;
+  // Fail closed on invalid timing metadata. NaN/Infinity would otherwise make
+  // elapsed-time and overrun comparisons silently evaluate to false.
+  if (!Number.isFinite(a.durationSec) || a.durationSec <= 0) {
+    return { tampered: true, flagged: false, reasons: ["Invalid test duration."], elapsedSec: 0 };
+  }
+  if (!Number.isFinite(a.elapsedSec) || a.elapsedSec < 0) {
+    return { tampered: true, flagged: false, reasons: ["Invalid elapsed time."], elapsedSec: 0 };
+  }
   const ev = Array.isArray(a.events) ? a.events : [];
   if (!Array.isArray(a.events)) { tampered = true; reasons.push("Invalid key log."); }
   if (ev.length > 40000) { tampered = true; reasons.push("Too many key events."); }
@@ -44,6 +53,49 @@ export function validateAttempt(a: { typed: string; events: KeyEvent[]; elapsedS
     reasons.push("Malformed key event.");
     return { tampered, flagged, reasons, elapsedSec: 0 };
   }
+  // Simulator policy is server-owned. Replay deletions against the text stack so
+  // clients cannot bypass disabled/word-only backspace by calling this API directly.
+  if (a.backspaceMode) {
+    const stack: string[] = [];
+    for (const e of ev) {
+      if (e.type === "ins" && e.ch !== undefined) {
+        stack.push(e.ch);
+        continue;
+      }
+      if (e.type !== "del") continue;
+      const count = e.n ?? 1;
+      if (a.backspaceMode === "disabled") {
+        tampered = true;
+        reasons.push("Backspace is disabled for this simulator.");
+        break;
+      }
+      if (count > stack.length) {
+        tampered = true;
+        reasons.push("Deletion exceeds the available typed text.");
+        break;
+      }
+      if (a.backspaceMode === "word" && stack.slice(stack.length - count).some((ch) => /\s/u.test(ch))) {
+        tampered = true;
+        reasons.push("Backspace cannot delete a word separator in this simulator.");
+        break;
+      }
+      stack.splice(stack.length - count, count);
+    }
+  }
+  if (tampered) return { tampered, flagged, reasons, elapsedSec: 0 };
+  // Enforce the selected exam's control-character policy on the server too.
+  // The browser is not trusted: a caller must not bypass blocked Enter/Tab via a direct API request.
+  if (typeof a.typed === "string") {
+    if (a.enterKeyPolicy === "blocked" && a.typed.includes("\n")) {
+      tampered = true;
+      reasons.push("Enter is disabled for this simulator.");
+    }
+    if (a.tabKeyPolicy === "blocked" && a.typed.includes("\t")) {
+      tampered = true;
+      reasons.push("Tab is disabled for this simulator.");
+    }
+  }
+  if (tampered) return { tampered, flagged, reasons, elapsedSec: 0 };
   if (typeof a.typed !== "string" || replayEvents(ev) !== a.typed) { tampered = true; reasons.push("Typed text does not match the key log."); }
   let prev = 0;
   for (const e of ev) { if (!(e.t >= prev)) { tampered = true; reasons.push("Key times are out of order."); break; } prev = e.t; }

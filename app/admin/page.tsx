@@ -4,8 +4,8 @@ import { cleanBody, countWords, defaultScoring, parseBulk, validatePassage } fro
 import { PROFILES, type Lang } from "@/lib/wpmCalculator";
 import { PRESETS } from "@/lib/presets";
 
-type Tpl = { slug: string; name: string; language: Lang; duration_sec: number; display_mode: string; backspace: string; scoring: any; is_active: boolean };
-type Row = { id: string; title: string; language: Lang; word_count: number; preview: string; template: string | null };
+type Tpl = { slug: string; name: string; language: Lang; duration_sec: number; display_mode: string; backspace: string; scoring: any; is_active: boolean; passage_layout?: string; font_size_pt?: number; passage_font_family?: string; passage_alignment?: string; passage_line_spacing?: number; passage_paragraph_spacing?: number; print_page_size?: string; enter_key_policy?: "newline" | "blocked"; tab_key_policy?: "blocked" | "insert" };
+type Row = { id: string; title: string; language: Lang; word_count: number; preview: string; template: string | null; template_name: string; passage_layout: string; font_size_pt: number; passage_number: number; created_at?: string };
 
 async function api(url: string, init?: RequestInit) {
   const r = await fetch(url, init);
@@ -14,10 +14,10 @@ async function api(url: string, init?: RequestInit) {
 }
 const post = (url: string, body: unknown) => api(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
-const emptyTpl = { slug: "", name: "", language: "en" as Lang, minutes: 10, displayMode: "highlighted", backspace: "full", base: "practice", unit: "words", netMethod: "penalty", qualifying: "", maxErr: "", caseOnly: true, punctOnly: true };
+const emptyTpl = { slug: "", name: "", language: "en" as Lang, minutes: 10, isActive: true, displayMode: "highlighted", backspace: "full", base: "practice", unit: "words", netMethod: "penalty", qualifying: "", maxErr: "", caseOnly: true, punctOnly: true, charsPerWord: 5, fullErrorWeight: 1, halfErrorWeight: 0.5, errorAllowancePercent: "", qualificationBasis: "net", minWords: "", targetKeystrokes: "", passageLayout: "continuous", fontSizePt: 12, passageFontFamily: "system", passageAlignment: "left", passageLineSpacing: 1.5, passageParagraphSpacing: 8, printPageSize: "A4", enterKeyPolicy: "newline" as "newline" | "blocked", tabKeyPolicy: "blocked" as "blocked" | "insert" };
 
 export default function Admin() {
-  const [tab, setTab] = useState<"passages" | "templates">("passages");
+  const [tab, setTab] = useState<"passages" | "templates">("templates");
   const [denied, setDenied] = useState(false);
   const [msg, setMsg] = useState("");
   const [tpls, setTpls] = useState<Tpl[]>([]);
@@ -25,15 +25,22 @@ export default function Admin() {
   const [generationBusy, setGenerationBusy] = useState("");
   const [generationMsg, setGenerationMsg] = useState("");
   const [savingPassages, setSavingPassages] = useState(false);
+  const [folder, setFolder] = useState("all");
+  const [selectedPassageIds, setSelectedPassageIds] = useState<string[]>([]);
+  const [deletingPassages, setDeletingPassages] = useState(false);
+  const [passageQuery, setPassageQuery] = useState("");
+  const [languageFilter, setLanguageFilter] = useState<"all" | Lang>("all");
+  const [previewPassage, setPreviewPassage] = useState<{ id: string; title: string; body: string; language: Lang } | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
 
   const runGeneration = async (slot: "morning" | "afternoon" | "live") => {
     const label = slot === "morning" ? "7 AM batch (5 passages)" : slot === "afternoon" ? "1 PM batch (5 passages)" : "7 PM live batch (2 passages)";
-    if (!confirm(`Generate ${label}? This uses the configured AI provider and saves new passages to the shared library.`)) return;
+    if (!confirm(`Generate ${label} for ${selectedExamSlug || "the selected simulator"}? This uses the configured AI provider and publishes each generated source to all active matching-language simulators.`)) return;
     setGenerationBusy(slot); setGenerationMsg("");
     try {
-      const r = await post("/api/admin/passages/generate", { slot });
+      const r = await post("/api/admin/passages/generate", { slot, templateSlug: selectedExamSlug });
       if (!r.ok) setGenerationMsg(r.data.error ?? "Generation failed. Check provider configuration and database migration.");
-      else { setGenerationMsg(`Generated ${r.data.generated} passage(s) for ${r.data.date} (${slot}). Word counts: ${(r.data.wordCounts ?? []).join(", ") || "already completed"}.`); await load(); }
+      else { setGenerationMsg(`Generated ${r.data.generatedThisRun ?? 0} this run; ${r.data.generatedTotal ?? 0} total for ${r.data.date} (${slot}). ${r.data.failures?.length ? r.data.failures.join(" · ") : "Generation complete."}`); await load(); }
     } catch { setGenerationMsg("Network error while generating passages."); }
     finally { setGenerationBusy(""); }
   };
@@ -42,16 +49,21 @@ export default function Admin() {
     const [a, b] = await Promise.all([api("/api/admin/templates"), api("/api/admin/passages")]);
     if (a.status === 403 || b.status === 403 || a.status === 500) { setDenied(true); return; }
     setTpls(a.data); setRows(b.data);
+    setSelectedExamSlug((current) => current && a.data.some((x: Tpl) => x.slug === current && x.is_active) ? current : (a.data.find((x: Tpl) => x.language === "en" && x.is_active)?.slug ?? ""));
   }, []);
   useEffect(() => { load(); }, [load]);
 
   /* ---------- passages ---------- */
-  const [title, setTitle] = useState(""); const [lang, setLang] = useState<Lang>("en"); const [body, setBody] = useState(""); const [tplSlug, setTplSlug] = useState("");
+  const [title, setTitle] = useState(""); const [lang, setLang] = useState<Lang>("en"); const [body, setBody] = useState(""); const [selectedExamSlug, setSelectedExamSlug] = useState("");
+  useEffect(() => { if (tpls.length && !tpls.some((x) => x.slug === selectedExamSlug && x.is_active)) setSelectedExamSlug(tpls.find((x) => x.language === lang && x.is_active)?.slug ?? ""); }, [tpls, selectedExamSlug, lang]);
   const check = useMemo(() => validatePassage({ title, language: lang, body }), [title, lang, body]);
   const [bulk, setBulk] = useState<{ title: string; body: string }[]>([]);
+  const [publishToAll, setPublishToAll] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfName, setPdfName] = useState("");
   const bulkChecks = useMemo(() => bulk.map((b) => validatePassage({ ...b, language: lang })), [bulk, lang]);
 
-  const savePassages = async (items: { title: string; language: Lang; body: string }[]) => {
+  const savePassages = async (items: { title: string; language: Lang; body: string }[], allMatching = false) => {
     if (savingPassages || !items.length) return;
     setSavingPassages(true);
     let saved = 0;
@@ -63,7 +75,7 @@ export default function Admin() {
       let chunk: typeof items = [];
       for (const item of items) {
         const candidate = [...chunk, item];
-        const bytes = new TextEncoder().encode(JSON.stringify({ items: candidate, templateSlug: tplSlug || undefined })).byteLength;
+        const bytes = new TextEncoder().encode(JSON.stringify({ items: candidate, templateSlug: selectedExamSlug })).byteLength;
         if (chunk.length && (bytes > maxChunkBytes || candidate.length > 10)) {
           chunks.push(chunk);
           chunk = [item];
@@ -76,7 +88,7 @@ export default function Admin() {
       for (let index = 0; index < chunks.length; index++) {
         const batch = chunks[index];
         setMsg(`Saving passages: ${saved} of ${items.length} complete (batch ${index + 1}/${chunks.length})…`);
-        const r = await post("/api/admin/passages", { items: batch, templateSlug: tplSlug || undefined });
+        const r = await post("/api/admin/passages", { items: batch, templateSlug: selectedExamSlug, publishToAll: allMatching });
         if (!r.ok || Number(r.data.saved) !== batch.length) {
           const details = Array.isArray(r.data.problems)
             ? r.data.problems.map((p: any) => `Passage ${p.index + 1}: ${(p.errors ?? []).join(" ")}`).join(" | ")
@@ -91,7 +103,7 @@ export default function Admin() {
         if (bulk.length) setBulk(remaining.map(({ title, body }) => ({ title, body })));
       }
 
-      setMsg(`Successfully saved all ${saved} passage(s).`);
+      setMsg(`Successfully published ${saved} passage(s)${allMatching ? " to all active matching-language simulators" : ""}.`);
       setTitle(""); setBody(""); setBulk([]);
       await load();
     } catch (error) {
@@ -103,29 +115,155 @@ export default function Admin() {
     }
   };
   const onFile = async (f?: File) => { if (f) setBulk(parseBulk(await f.text())); };
-  const delPassage = async (id: string) => { if (confirm("Delete this passage?")) { await api(`/api/admin/passages?id=${id}`, { method: "DELETE" }); load(); } };
+  const onPdfFile = async (file?: File) => {
+    if (!file) return;
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      setMsg("Choose a PDF file."); return;
+    }
+    if (file.size > 20 * 1024 * 1024) { setMsg("PDF must be 20 MB or smaller."); return; }
+    setPdfBusy(true); setMsg(""); setBulk([]); setPdfName(file.name);
+    try {
+      const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+      pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/legacy/build/pdf.worker.mjs", import.meta.url).toString();
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const task = pdfjs.getDocument({ data: bytes, useSystemFonts: true });
+      const pdf = await task.promise;
+      if (pdf.numPages > 200) throw new Error("PDF has more than 200 pages. Split it into smaller monthly files.");
+      const extracted: { title: string; body: string }[] = [];
+      for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
+        const page = await pdf.getPage(pageNo);
+        const content = await page.getTextContent();
+        let previousY: number | null = null;
+        const pageText = content.items.map((item: any) => {
+          if (typeof item.str !== "string" || !item.str.trim()) return "";
+          const y = Array.isArray(item.transform) ? Number(item.transform[5]) : null;
+          const lineBreak = previousY !== null && y !== null && Math.abs(previousY - y) > 2.5;
+          if (y !== null) previousY = y;
+          return (lineBreak ? "\n" : " ") + item.str;
+        }).join("");
+        const text = cleanBody(pageText);
+        if (!text || countWords(text) < 30) continue;
+        extracted.push({ title: `Passage ${String(extracted.length + 1).padStart(2, "0")}`, body: text });
+      }
+      if (!extracted.length) throw new Error("No selectable passage text was found. This PDF may be scanned; OCR is not included.");
+      setBulk(extracted);
+      setMsg(`Extracted ${extracted.length} passage(s) from ${pdf.numPages} PDF pages. Review the preview, then publish.`);
+    } catch (error) {
+      setMsg(error instanceof Error ? error.message : "Could not extract text from this PDF.");
+    } finally { setPdfBusy(false); }
+  };
+  const folderRows = rows.filter((row) =>
+    (folder === "all" || (row.template ?? "general") === folder) &&
+    (languageFilter === "all" || row.language === languageFilter) &&
+    (!passageQuery.trim() || row.title.toLowerCase().includes(passageQuery.trim().toLowerCase()) || row.id.toLowerCase().includes(passageQuery.trim().toLowerCase()) || String(row.passage_number).includes(passageQuery.trim()))
+  );
+  const folderOptions = [...tpls.map((item) => ({ slug: item.slug, name: item.name, count: rows.filter((row) => row.template === item.slug).length })), ...(rows.some((row) => !row.template) ? [{ slug: "general", name: "General library", count: rows.filter((row) => !row.template).length }] : [])];
+  const togglePassage = (id: string, checked: boolean) => setSelectedPassageIds((current) => checked ? [...new Set([...current, id])] : current.filter((x) => x !== id));
+  const openPassagePreview = async (row: Row) => {
+    setPreviewBusy(true);
+    try {
+      const result = await api(`/api/library?id=${encodeURIComponent(row.id)}`);
+      if (!result.ok) throw new Error(result.data.error ?? "Unable to load passage.");
+      setPreviewPassage({ id: row.id, title: row.title, body: result.data.body ?? "", language: row.language });
+    } catch (error) { setMsg(error instanceof Error ? error.message : "Unable to load passage."); }
+    finally { setPreviewBusy(false); }
+  };
+  const bulkDeletePassages = async () => {
+    const ids = selectedPassageIds.filter((id) => folderRows.some((row) => row.id === id));
+    if (!ids.length || !confirm(`Delete ${ids.length} selected passage(s)? Passages linked to test history will be protected.`)) return;
+    setDeletingPassages(true);
+    const result = await api("/api/admin/passages?ids=" + encodeURIComponent(ids.join(",")), { method: "DELETE" });
+    setMsg(result.ok ? `Deleted ${result.data.deleted} passage(s).` : result.data.error ?? "Bulk delete failed.");
+    setSelectedPassageIds([]);
+    setDeletingPassages(false);
+    await load();
+  };
+  const delPassage = async (id: string) => {
+    if (!confirm("Delete this passage?")) return;
+    const result = await api(`/api/admin/passages?id=${id}`, { method: "DELETE" });
+    setMsg(result.ok ? "Passage deleted." : result.data.error ?? "Could not delete passage.");
+    await load();
+  };
 
   /* ---------- templates ---------- */
   const [t, setT] = useState(emptyTpl);
+  const [allowBuiltInRuleEdit, setAllowBuiltInRuleEdit] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
   const upd = (k: keyof typeof emptyTpl, v: any) => setT((x) => ({ ...x, [k]: v }));
   const selectedProfile = PROFILES[t.base] ?? PROFILES.practice;
   const saveTpl = async () => {
-    const scoring = { ...defaultScoring(t.base), id: t.slug, label: t.name, unit: t.unit, netMethod: t.netMethod, halfRules: { caseOnly: t.caseOnly, punctuationOnly: t.punctOnly }, qualifyingWpm: t.qualifying === "" ? undefined : Number(t.qualifying), maxErrorPercent: t.maxErr === "" ? undefined : Number(t.maxErr) };
-    const r = await post("/api/admin/templates", { slug: t.slug.trim(), name: t.name, language: t.language, durationSec: Math.round(t.minutes * 60), displayMode: t.displayMode, backspace: t.backspace, scoring });
-    setMsg(r.ok ? "Template saved." : r.data.error ?? "Could not save."); if (r.ok) { setT(emptyTpl); load(); }
+    if (savingTemplate) return;
+    const slug = t.slug.trim();
+    const name = t.name.trim();
+    if (!name || !slug) { setMsg("Enter both a template name and slug."); return; }
+    setSavingTemplate(true);
+    setMsg("Saving template…");
+    try {
+      const scoring = {
+        ...defaultScoring(t.base), id: slug, label: name, unit: t.unit, netMethod: t.netMethod,
+        charsPerWord: Number(t.charsPerWord), fullErrorWeight: Number(t.fullErrorWeight),
+        halfErrorWeight: Number(t.halfErrorWeight),
+        halfRules: { caseOnly: t.caseOnly, punctuationOnly: t.punctOnly },
+        errorAllowancePercent: t.errorAllowancePercent === "" ? undefined : Number(t.errorAllowancePercent),
+        qualificationBasis: t.qualificationBasis,
+        minWords: t.minWords === "" ? undefined : Number(t.minWords),
+        targetKeystrokes: t.targetKeystrokes === "" ? undefined : Number(t.targetKeystrokes),
+        qualifyingWpm: t.qualifying === "" ? undefined : Number(t.qualifying),
+        maxErrorPercent: t.maxErr === "" ? undefined : Number(t.maxErr),
+      };
+      const r = await post("/api/admin/templates", {
+        slug, name, language: t.language, durationSec: Math.round(t.minutes * 60),
+        displayMode: t.displayMode, backspace: t.backspace, scoring,
+        passageLayout: t.passageLayout, fontSizePt: t.fontSizePt,
+        passageFontFamily: t.passageFontFamily, passageAlignment: t.passageAlignment,
+        passageLineSpacing: t.passageLineSpacing, passageParagraphSpacing: t.passageParagraphSpacing,
+        printPageSize: t.printPageSize, enterKeyPolicy: t.enterKeyPolicy, tabKeyPolicy: t.tabKeyPolicy,
+        isActive: t.isActive,
+        presentationOnly: PRESETS.some((p) => p.slug === slug) && !allowBuiltInRuleEdit,
+        allowBuiltInRuleEdit,
+      });
+      if (!r.ok) {
+        setMsg(r.data?.error ?? `Could not save template (HTTP ${r.status}).`);
+        return;
+      }
+      setMsg("Template saved successfully. Saved templates are being refreshed…");
+      setAllowBuiltInRuleEdit(false);
+      await load();
+      setT(emptyTpl);
+      setMsg("Template saved successfully.");
+    } catch (error) {
+      setMsg(error instanceof Error ? `Template save failed: ${error.message}` : "Template save failed. Check the connection and try again.");
+    } finally {
+      setSavingTemplate(false);
+    }
   };
-  const editTpl = (x: Tpl) => setT({ slug: x.slug, name: x.name, language: x.language, minutes: x.duration_sec / 60, displayMode: x.display_mode, backspace: x.backspace, base: (PROFILES[x.scoring.id] ? x.scoring.id : "practice"), unit: x.scoring.unit, netMethod: x.scoring.netMethod, qualifying: x.scoring.qualifyingWpm?.toString() ?? "", maxErr: x.scoring.maxErrorPercent?.toString() ?? "", caseOnly: !!x.scoring.halfRules?.caseOnly, punctOnly: !!x.scoring.halfRules?.punctuationOnly });
-  const delTpl = async (slug: string) => { if (confirm(`Delete template ${slug}? Passages stay but lose the link.`)) { await api(`/api/admin/templates?slug=${slug}`, { method: "DELETE" }); load(); } };
+  const editTpl = (x: Tpl) => {
+    setMsg("");
+    setAllowBuiltInRuleEdit(PRESETS.some((p) => p.slug === x.slug));
+    setT({ slug: x.slug, name: x.name, language: x.language, minutes: x.duration_sec / 60, isActive: x.is_active, displayMode: x.display_mode, backspace: x.backspace, base: (PROFILES[x.scoring?.id] ? x.scoring.id : "practice"), unit: x.scoring?.unit ?? "words", netMethod: x.scoring?.netMethod ?? "penalty", qualifying: x.scoring?.qualifyingWpm?.toString() ?? "", maxErr: x.scoring?.maxErrorPercent?.toString() ?? "", caseOnly: !!x.scoring?.halfRules?.caseOnly, punctOnly: !!x.scoring?.halfRules?.punctuationOnly, charsPerWord: Number(x.scoring?.charsPerWord ?? 5), fullErrorWeight: Number(x.scoring?.fullErrorWeight ?? 1), halfErrorWeight: Number(x.scoring?.halfErrorWeight ?? 0.5), errorAllowancePercent: x.scoring?.errorAllowancePercent?.toString() ?? "", qualificationBasis: x.scoring?.qualificationBasis ?? "net", minWords: x.scoring?.minWords?.toString() ?? "", targetKeystrokes: x.scoring?.targetKeystrokes?.toString() ?? "", passageLayout: x.passage_layout ?? "continuous", fontSizePt: Number(x.font_size_pt ?? 12), passageFontFamily: x.passage_font_family ?? "system", passageAlignment: x.passage_alignment ?? "left", passageLineSpacing: Number(x.passage_line_spacing ?? 1.5), passageParagraphSpacing: Number(x.passage_paragraph_spacing ?? 8), printPageSize: x.print_page_size ?? "A4", enterKeyPolicy: x.enter_key_policy ?? "newline", tabKeyPolicy: x.tab_key_policy ?? "blocked" });
+    setTab("templates");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const delTpl = async (slug: string) => {
+    if (!confirm(`Delete template ${slug}? This is allowed only when no saved test history depends on it.`)) return;
+    try {
+      const r = await api(`/api/admin/templates?slug=${encodeURIComponent(slug)}`, { method: "DELETE" });
+      if (!r.ok) { setMsg(r.data.error ?? `Delete failed (HTTP ${r.status}).`); return; }
+      setMsg("Template deleted.");
+      await load();
+    } catch (error) { setMsg(error instanceof Error ? error.message : "Could not delete template. Check your connection."); }
+  };
 
   if (denied) return <div className="page"><h1>Admin</h1><p>Admin access is required. Sign in with an admin account (users.role = &apos;admin&apos;).</p></div>;
 
   return (
     <div className="page admin">
+      <nav className="admin-management-nav" aria-label="Admin navigation"><a href="/admin/intelligence">Intelligence Centre →</a></nav>
       <h1>Admin</h1>
-      <p><a href="/admin/subscribers">Manage subscribers</a> · <a href="/admin/institutions">Manage institutes</a></p>
+      <nav className="admin-management-nav" aria-label="Administration"><a href="/admin/users">Users &amp; roles</a> · <a href="/admin/institutions">Institutes</a> · <a href="/admin/subscribers">Subscriptions</a> · <a href="/admin/payments">Payments</a> · <a href="/admin/passage-studio">Passage Studio</a> · <a href="/admin">Simulator settings</a></nav>
       <section className="admin-generation-panel">
         <h2>Daily Passage Automation</h2>
-        <p className="hint">Each batch generates original passages of at least 500 words and stores them as shared library content. Simulator templates control only presentation and exam rules.</p>
+        <p className="hint">Generate original passages for the selected language. Each passage is saved once in the master repository and distributed to every active simulator using that language; each simulator applies its own presentation profile.</p>
         <div className="cta-group">
           <button className="go" disabled={!!generationBusy} onClick={() => runGeneration("morning")}>{generationBusy === "morning" ? "Generating…" : "Generate 7 AM · 5 passages"}</button>
           <button className="go" disabled={!!generationBusy} onClick={() => runGeneration("afternoon")}>{generationBusy === "afternoon" ? "Generating…" : "Generate 1 PM · 5 passages"}</button>
@@ -135,7 +273,7 @@ export default function Admin() {
         <p className="hint">Automatic schedule requires the additive SQL migrations plus the same strong PASSAGE_CRON_SECRET configured in both GitHub Actions secrets and Cloudflare Worker secrets.</p>
       </section>
       <div className="tabs" role="tablist">
-        <button role="tab" aria-selected={tab === "passages"} onClick={() => setTab("passages")}>Passages</button>
+        <a role="tab" aria-selected={false} href="/admin/passage-studio">Passage Studio</a>
         <button role="tab" aria-selected={tab === "templates"} onClick={() => setTab("templates")}>Exam templates</button>
       </div>
       {msg && <p className="flash-msg" role="status">{msg}</p>}
@@ -146,7 +284,7 @@ export default function Admin() {
           <div className="form">
             <label>Title<input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} /></label>
             <label>Language<select value={lang} onChange={(e) => setLang(e.target.value as Lang)}><option value="en">English</option><option value="hi">Hindi</option></select></label>
-            <label>Attach to exam template (optional)<select value={tplSlug} onChange={(e) => setTplSlug(e.target.value)}><option value="">Any exam</option>{tpls.map((x) => <option key={x.slug} value={x.slug}>{x.name}</option>)}</select></label>
+            <label>Destination simulator <select value={selectedExamSlug} onChange={(e) => setSelectedExamSlug(e.target.value)}>{tpls.filter(x => x.language === lang && x.is_active).map(x => <option key={x.slug} value={x.slug}>{x.name} · {x.slug}</option>)}</select><small className="hint">This upload is saved only in the selected simulator folder. Change the destination to publish a separate exam-specific copy.</small></label>
             <label>Passage text<textarea rows={8} lang={lang} value={body} onChange={(e) => setBody(e.target.value)} onBlur={() => setBody(cleanBody(body))} /></label>
             <p className="hint">{countWords(body)} words</p>
             {check.errors.map((e) => <p key={e} className="err">{e}</p>)}
@@ -154,8 +292,20 @@ export default function Admin() {
             <button className="go" disabled={!check.ok} onClick={() => savePassages([check.clean])}>Save passage</button>
           </div>
 
+          <section className="admin-generation-panel">
+            <h2>Upload one RKC-style monthly PDF</h2>
+            <p className="hint">Upload a text-based PDF with one complete passage per page. Each page becomes one passage. Scanned image-only PDFs require OCR and are not supported by this extractor.</p>
+            <label>PDF language <select value={lang} onChange={e => setLang(e.target.value as Lang)}><option value="en">English</option><option value="hi">Hindi</option></select></label>
+            <label>PDF file <input type="file" accept="application/pdf,.pdf" disabled={pdfBusy || savingPassages} onChange={e => void onPdfFile(e.target.files?.[0])} /></label>
+            {pdfName && <p className="hint">Selected: {pdfName}</p>}
+            <label><input type="checkbox" checked={publishToAll} onChange={e => setPublishToAll(e.target.checked)} /> Publish automatically to every active simulator with this language</label>
+            <p className="hint">Each simulator receives its own passage copy. Its own RKC-referenced layout is applied at display time. Exam rules and scoring are not changed.</p>
+            {pdfBusy && <p role="status">Extracting PDF pages…</p>}
+            {bulk.length > 0 && <><p>{bulk.length} passages extracted · {bulkChecks.filter(c => c.ok).length} valid · {bulkChecks.filter(c => !c.ok).length} need review</p><ol>{bulkChecks.slice(0, 12).map((c, i) => <li key={i}>{String(i + 1).padStart(2, "0")} · {c.clean.title} · {countWords(c.clean.body)} words {c.ok ? "✓" : c.errors.join(" ")}</li>)}</ol>{bulk.length > 12 && <p className="hint">Showing first 12 passages.</p>}<button className="go" disabled={pdfBusy || savingPassages || bulkChecks.some(c => !c.ok)} onClick={() => void savePassages(bulkChecks.map(c => ({ ...c.clean, language: lang })), publishToAll)}>{savingPassages ? "Publishing…" : `Publish ${bulk.length} passages ${publishToAll ? "to all matching simulators" : "to selected simulator"}`}</button></>}
+          </section>
+
           <h2>Upload many at once</h2>
-          <p className="hint">Use a .txt file in UTF-8. Separate passages with a line containing only ---. Start a passage with a line like “# Title” to name it. Language and template above apply to all.</p>
+          <p className="hint">Use a UTF-8 .txt file. Separate passages with a line containing only ---. Start a passage with “# Title” to name it. Language and selected exam directories above apply to all.</p>
           <input type="file" accept=".txt,text/plain" disabled={savingPassages} onChange={(e) => { setMsg(""); void onFile(e.target.files?.[0]).catch((error) => setMsg(error instanceof Error ? error.message : "Could not read this TXT file.")); }} aria-label="Upload passages file" />
           {bulk.length > 0 && (<>
             <p>{bulk.length} passages found, {bulkChecks.filter((c) => c.ok).length} valid.</p>
@@ -163,11 +313,36 @@ export default function Admin() {
             <button className="go" disabled={savingPassages || bulkChecks.some((c) => !c.ok)} onClick={() => savePassages(bulkChecks.map((c) => c.clean))}>{savingPassages ? "Saving passages…" : `Save all ${bulk.length} passages`}</button>
           </>)}
 
-          <h2>Saved passages ({rows.length})</h2>
-          <div className="tbl"><table><thead><tr><th>Title</th><th>Language</th><th>Words</th><th>Exam</th><th></th></tr></thead><tbody>
-            {rows.map((r) => <tr key={r.id}><td title={r.preview}>{r.title}</td><td>{r.language === "hi" ? "Hindi" : "English"}</td><td>{r.word_count}</td><td>{r.template ?? "Any"}</td><td><button className="link" onClick={() => delPassage(r.id)}>Delete</button></td></tr>)}
-            {!rows.length && <tr><td colSpan={5}>No passages yet. Add one above. Until then students get the built-in samples.</td></tr>}
-          </tbody></table></div>
+          <section className="admin-passage-library">
+            <div className="admin-library-heading"><div><h2>Passage folders</h2><p className="hint">Each simulator has its own folder. A passage published to multiple simulators appears separately in each selected folder.</p></div><strong>{rows.length} total records</strong></div>
+            <div className="admin-folder-toolbar">
+              <label className="admin-filter-field">Simulator folder
+                <select value={folder} onChange={(e) => { setFolder(e.target.value); setSelectedPassageIds([]); }}>
+                  <option value="all">All simulator folders</option>
+                  {folderOptions.map((item) => <option key={item.slug} value={item.slug}>{item.name} ({item.count})</option>)}
+                </select>
+              </label>
+              <label className="admin-filter-field">Language
+                <select value={languageFilter} onChange={(e) => { setLanguageFilter(e.target.value as "all" | Lang); setSelectedPassageIds([]); }}>
+                  <option value="all">All languages</option><option value="en">English</option><option value="hi">Hindi</option>
+                </select>
+              </label>
+              <label className="admin-search-field">Search title or passage ID
+                <input value={passageQuery} onChange={(e) => setPassageQuery(e.target.value)} placeholder="Search passages…" />
+              </label>
+              <div className="admin-folder-actions">
+                <span>{folderRows.length} shown · {selectedPassageIds.filter((id) => folderRows.some((row) => row.id === id)).length} selected</span>
+                <button type="button" onClick={() => setSelectedPassageIds(folderRows.map((row) => row.id))}>Select visible</button>
+                <button type="button" onClick={() => setSelectedPassageIds([])}>Clear</button>
+                <button type="button" className="danger" disabled={!selectedPassageIds.some((id) => folderRows.some((row) => row.id === id)) || deletingPassages} onClick={() => void bulkDeletePassages()}>{deletingPassages ? "Deleting…" : "Delete selected"}</button>
+              </div>
+            </div>
+            <div className="tbl"><table><thead><tr><th><input aria-label="Select all visible passages" type="checkbox" checked={folderRows.length > 0 && folderRows.every((row) => selectedPassageIds.includes(row.id))} onChange={(e) => setSelectedPassageIds(e.target.checked ? [...new Set([...selectedPassageIds, ...folderRows.map((row) => row.id)])] : selectedPassageIds.filter((id) => !folderRows.some((row) => row.id === id)))} /></th><th>Passage ID</th><th>Title</th><th>Language</th><th>Words</th><th>Exam format</th><th>Action</th></tr></thead><tbody>
+              {folderRows.map((r) => <tr key={r.id}><td><input type="checkbox" aria-label={`Select ${r.title}`} checked={selectedPassageIds.includes(r.id)} onChange={(e) => togglePassage(r.id, e.target.checked)} /></td><td><code>Passage {String(r.passage_number).padStart(2, "0")}</code></td><td title={r.preview}>{r.title}</td><td>{r.language === "hi" ? "Hindi" : "English"}</td><td>{r.word_count}</td><td>{r.passage_layout === "continuous" ? "Continuous" : "Paragraph layout"} · {Number(r.font_size_pt || 12)}pt</td><td><div className="admin-row-actions"><button type="button" disabled={previewBusy} onClick={() => void openPassagePreview(r)}>{previewBusy ? "Loading…" : "View"}</button><button type="button" className="danger" onClick={() => delPassage(r.id)}>Delete</button></div></td></tr>)}
+              {!folderRows.length && <tr><td colSpan={7}>This folder is empty. Upload or generate passages and assign them to this simulator.</td></tr>}
+            </tbody></table></div>
+                      {previewPassage && <div className="admin-preview-overlay" role="dialog" aria-modal="true" aria-label="Passage preview"><section className="admin-preview-dialog"><header><div><span>PASSAGE PREVIEW</span><h3>{previewPassage.title}</h3><small>{previewPassage.language === "hi" ? "Hindi" : "English"} · ID {previewPassage.id}</small></div><button type="button" onClick={() => setPreviewPassage(null)}>Close ×</button></header><pre lang={previewPassage.language}>{previewPassage.body}</pre><footer><button type="button" onClick={async () => { try { await navigator.clipboard.writeText(previewPassage.body); setMsg("Passage text copied."); } catch { setMsg("Clipboard access is unavailable in this browser."); } }}>Copy passage text</button><button type="button" onClick={() => setPreviewPassage(null)}>Done</button></footer></section></div>}
+          </section>
         </>
       ) : (
         <>
@@ -177,21 +352,41 @@ export default function Admin() {
             <label>Slug (short web name; same slug updates that template)<input value={t.slug} onChange={(e) => upd("slug", e.target.value.toLowerCase())} placeholder="ssc-cgl" /></label>
             <label>Language<select value={t.language} onChange={(e) => upd("language", e.target.value)}><option value="en">English</option><option value="hi">Hindi</option></select></label>
             <label>Duration (minutes)<input type="number" min={0.5} max={60} step={0.5} value={t.minutes} onChange={(e) => upd("minutes", Number(e.target.value))} /></label>
+            <label className="chk"><input type="checkbox" checked={t.isActive} onChange={(e) => upd("isActive", e.target.checked)} /> Simulator is active and visible to students</label>
             <label>Passage display<select value={t.displayMode} onChange={(e) => upd("displayMode", e.target.value)}><option value="highlighted">Highlighted</option><option value="unhighlighted">Unhighlighted</option><option value="offscreen">Paper to screen</option></select></label>
             <label>Backspace<select value={t.backspace} onChange={(e) => upd("backspace", e.target.value)}><option value="full">Full</option><option value="word">Current word only</option><option value="disabled">Disabled</option></select></label>
+            <h3>Passage formatting & exam rules</h3>
+            {PRESETS.some((p) => p.slug === t.slug) && <p className="warn">You are editing a built-in simulator. Saving will update its database-backed rules and affect new tests; existing result history is retained. Verify official exam requirements before changing these values.</p>}
+            <p className="hint">Configure the complete simulator profile: timing, display, backspace, scoring, Enter/Tab behavior and passage appearance.</p>
+            <label>Passage layout<select value={t.passageLayout} onChange={(e) => upd("passageLayout", e.target.value)}><option value="continuous">Continuous text</option><option value="paragraph-tab">Paragraphs with source spacing</option><option value="source-preserved">Preserve source line breaks</option></select></label>
+            <label>Font size (pt)<input type="number" min="8" max="24" step="0.5" value={t.fontSizePt} onChange={(e) => upd("fontSizePt", Number(e.target.value))} /></label>
+            <label>Font family<select value={t.passageFontFamily} onChange={(e) => upd("passageFontFamily", e.target.value)}><option value="system">System sans-serif</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></label>
+            <label>Text alignment<select value={t.passageAlignment} onChange={(e) => upd("passageAlignment", e.target.value)}><option value="left">Left</option><option value="justify">Justified</option><option value="center">Center</option></select></label>
+            <label>Line spacing<input type="number" min="1.1" max="2.5" step="0.1" value={t.passageLineSpacing} onChange={(e) => upd("passageLineSpacing", Number(e.target.value))} /></label>
+            <label>Paragraph spacing (px)<input type="number" min="0" max="32" step="1" value={t.passageParagraphSpacing} onChange={(e) => upd("passageParagraphSpacing", Number(e.target.value))} /></label>
+            <label>Print page size<select value={t.printPageSize} onChange={(e) => upd("printPageSize", e.target.value)}><option value="A4">A4</option><option value="Letter">Letter</option><option value="Legal">Legal</option></select></label>
             <label>Start scoring from<select value={t.base} onChange={(e) => { const p = PROFILES[e.target.value]; setT({ ...t, base: e.target.value, unit: p.unit, netMethod: p.netMethod, qualifying: p.qualifyingWpm?.toString() ?? "", maxErr: p.maxErrorPercent?.toString() ?? "", minutes: p.durationSec ? p.durationSec / 60 : t.minutes, language: p.language ?? t.language, displayMode: p.id.startsWith("delhi-police-hcm-") ? "offscreen" : t.displayMode }); }}>{Object.values(PROFILES).map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select></label>
             <label>Count speed by<select value={t.unit} onChange={(e) => upd("unit", e.target.value)}><option value="words">Words (5 characters = 1 word)</option><option value="keystrokes">Key depressions</option></select></label>
             <label>Net speed<select value={t.netMethod} onChange={(e) => upd("netMethod", e.target.value)}><option value="penalty">Gross minus error penalty</option><option value="accuracy">Gross times accuracy</option><option value="per-error">One WPM per error (DP HCM)</option><option value="rrb">RRB CBTST error-adjusted formula</option></select></label>
             <label>Qualifying WPM (profile gross/net rule applies; blank for none)<input inputMode="decimal" value={t.qualifying} onChange={(e) => upd("qualifying", e.target.value)} /></label>
             <label>Maximum error % (blank for none)<input inputMode="decimal" value={t.maxErr} onChange={(e) => upd("maxErr", e.target.value)} /></label>
+            <label>Characters per word<input type="number" min="1" max="10" step="0.5" value={t.charsPerWord} onChange={(e) => upd("charsPerWord", Number(e.target.value))} /></label>
+            <label>Full error weight<input type="number" min="0" max="5" step="0.1" value={t.fullErrorWeight} onChange={(e) => upd("fullErrorWeight", Number(e.target.value))} /></label>
+            <label>Half error weight<input type="number" min="0" max="5" step="0.1" value={t.halfErrorWeight} onChange={(e) => upd("halfErrorWeight", Number(e.target.value))} /></label>
+            <label>Error allowance % (blank for none)<input type="number" min="0" max="100" step="0.5" value={t.errorAllowancePercent} onChange={(e) => upd("errorAllowancePercent", e.target.value)} /></label>
+            <label>Qualification basis<select value={t.qualificationBasis} onChange={(e) => upd("qualificationBasis", e.target.value)}><option value="net">Net WPM</option><option value="gross">Gross WPM</option></select></label>
+            <label>Minimum words (blank for none)<input type="number" min="1" max="10000" value={t.minWords} onChange={(e) => upd("minWords", e.target.value)} /></label>
+            <label>Target keystrokes (blank for none)<input type="number" min="1" max="100000" value={t.targetKeystrokes} onChange={(e) => upd("targetKeystrokes", e.target.value)} /></label>
+            <label>Enter key policy<select value={t.enterKeyPolicy} onChange={(e) => upd("enterKeyPolicy", e.target.value as "newline" | "blocked")}><option value="newline">Allow newline</option><option value="blocked">Block Enter</option></select></label>
+            <label>Tab key policy<select value={t.tabKeyPolicy} onChange={(e) => upd("tabKeyPolicy", e.target.value as "blocked" | "insert")}><option value="blocked">Block Tab</option><option value="insert">Insert tab character</option></select></label>
             <label className="chk"><input type="checkbox" checked={t.caseOnly} onChange={(e) => upd("caseOnly", e.target.checked)} /> Capital-letter slips are half mistakes</label>
             <label className="chk"><input type="checkbox" checked={t.punctOnly} onChange={(e) => upd("punctOnly", e.target.checked)} /> Punctuation slips are half mistakes</label>
             <p className="hint">{selectedProfile.durationSec ? `Profile default: ${selectedProfile.durationSec / 60} minutes. ` : ""}{selectedProfile.targetKeystrokes ? `Practice target: ${selectedProfile.targetKeystrokes.toLocaleString()} key depressions. ` : ""}{selectedProfile.minWords ? `Minimum words: ${selectedProfile.minWords}. ` : ""}{selectedProfile.errorAllowancePercent !== undefined ? `Ignored-error allowance: ${selectedProfile.errorAllowancePercent}%. ` : ""}Check all values against the exam’s current official notification before publishing.</p>
-            <button className="go" disabled={!t.name.trim() || !t.slug.trim()} onClick={saveTpl}>Save template</button>
+            <button type="button" className="go" disabled={savingTemplate || !t.name.trim() || !t.slug.trim()} onClick={() => void saveTpl()}>{savingTemplate ? "Saving template…" : "Save template"}</button>
           </div>
           <h2>Saved templates</h2>
           <div className="tbl"><table><thead><tr><th>Name</th><th>Language</th><th>Time</th><th>Display</th><th>Backspace</th><th></th></tr></thead><tbody>
-            {tpls.map((x) => <tr key={x.slug}><td>{x.name}</td><td>{x.language === "hi" ? "Hindi" : "English"}</td><td>{x.duration_sec / 60} min</td><td>{x.display_mode}</td><td>{x.backspace}</td><td>{PRESETS.some((p) => p.slug === x.slug) ? <span className="hint">Code-managed</span> : <><button className="link" onClick={() => editTpl(x)}>Edit</button> <button className="link" onClick={() => delTpl(x.slug)}>Delete</button></>}</td></tr>)}
+            {tpls.map((x) => <tr key={x.slug}><td>{x.name}</td><td>{x.language === "hi" ? "Hindi" : "English"}</td><td>{x.duration_sec / 60} min</td><td>{x.display_mode}</td><td>{x.backspace}</td><td>{PRESETS.some((p) => p.slug === x.slug) ? <button className="link" onClick={() => editTpl(x)}>Edit rules & formatting</button> : <><button className="link" onClick={() => editTpl(x)}>Edit</button> <button className="link" onClick={() => delTpl(x.slug)}>Delete</button></>}</td></tr>)}
             {!tpls.length && <tr><td colSpan={6}>No templates yet. Students see the built-in presets.</td></tr>}
           </tbody></table></div>
         </>

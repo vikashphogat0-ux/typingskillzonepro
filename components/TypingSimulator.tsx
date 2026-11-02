@@ -2,7 +2,9 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { calculateScore, norm, type KeyEvent, type Lang, type ScoreResult, type ScoringProfile } from "@/lib/wpmCalculator";
 import { checkEdit, type BackspaceMode } from "@/lib/backspacePolicy";
-import type { DisplayMode } from "@/lib/presets";
+import { isExamInputAllowed } from "@/lib/keyboardPolicy";
+import { usesRrbCbtstPhases, type DisplayMode } from "@/lib/presets";
+import { formatRkcPassage } from "@/lib/rkc-passage-format";
 
 export interface SimResult {
   reference: string;
@@ -19,10 +21,16 @@ interface Props {
   lang: Lang;
   durationSec: number;
   mode: DisplayMode;
+  practiceMode?: "highlighted" | "unhighlighted" | "exam";
   backspace: BackspaceMode;
   profile: ScoringProfile;
   fontSizePt?: number;
   passageLayout?: string;
+  passageFontFamily?: string;
+  passageAlignment?: string;
+  passageLineSpacing?: number;
+  passageParagraphSpacing?: number;
+  printPageSize?: string;
   examName?: string;
   enterKeyPolicy?: "newline" | "blocked";
   tabKeyPolicy?: "blocked" | "insert";
@@ -46,8 +54,10 @@ const Word = memo(function Word({ text, typed, active }: { text: string; typed: 
   );
 });
 
-export default function TypingSimulator({ passage, lang, durationSec, mode, backspace, profile, fontSizePt = 12, passageLayout = "continuous", examName = "Typing practice", enterKeyPolicy = "newline", tabKeyPolicy = "blocked", onFinish }: Props) {
-  const reference = useMemo(() => norm(passage), [passage]);
+export default function TypingSimulator({ passage, lang, durationSec, mode, practiceMode = "exam", backspace, profile, fontSizePt = 12, passageLayout = "continuous", passageFontFamily = "system", passageAlignment = "left", passageLineSpacing = 1.5, passageParagraphSpacing = 8, printPageSize = "A4", examName = "Typing practice", enterKeyPolicy = "newline", tabKeyPolicy = "blocked", onFinish }: Props) {
+  // Practice mode is a presentation override only. The exam preset remains authoritative for all rules.
+  const displayMode: DisplayMode = practiceMode === "exam" ? mode : practiceMode;
+  const reference = useMemo(() => norm(formatRkcPassage(passage, passageLayout)), [passage, passageLayout]);
   const refChars = useMemo(() => Array.from(reference), [reference]);
   const tokens = useMemo(() => {
     let pos = 0;
@@ -61,15 +71,18 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
 
   const [value, setValue] = useState("");
   const [left, setLeft] = useState(durationSec);
-  const hasRrbPhases = profile.netMethod === "rrb";
+  const hasRrbPhases = usesRrbCbtstPhases(profile.id);
   const [phase, setPhase] = useState<"warmup" | "break" | "test">(hasRrbPhases ? "warmup" : "test");
   const [phaseLeft, setPhaseLeft] = useState(60);
-  const phaseStartRef = useRef<number | null>(hasRrbPhases ? Date.now() : null);
+  // Start the warm-up clock after the component mounts, not during server render/hydration.
+  // This prevents hydration delay from consuming part of the candidate's official warm-up.
+  const phaseStartRef = useRef<number | null>(null);
   const [done, setDone] = useState(false);
   const valueRef = useRef("");
   const events = useRef<KeyEvent[]>([]);
   const startRef = useRef<number | null>(null);
   const doneRef = useRef(false);
+  const composingRef = useRef(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -127,12 +140,24 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
       box.scrollTop = Math.max(0, cur.offsetTop - 40);
   }, [value]);
 
-  const onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const commitInput = (candidate: string, input: HTMLTextAreaElement) => {
     if (doneRef.current || phase === "break") return;
     const prev = valueRef.current;
-    const res = checkEdit(prev, e.target.value, backspace);
-    if (!res.ok) { e.target.value = prev; return; }
+    // Normalize committed IME output to the same NFC form used by passage
+    // comparison and scoring. This avoids logging decomposed equivalents as
+    // extra keystrokes when an input method emits canonically equivalent text.
+    const normalizedCandidate = candidate.normalize("NFC");
+    const res = checkEdit(prev, normalizedCandidate, backspace);
+    if (!res.ok) { input.value = prev; setValue(prev); return; }
+    // Enforce Enter/Tab rules at the committed-input boundary too. Keydown
+    // handlers alone can be bypassed by IME, mobile keyboards or synthetic input.
+    if (!isExamInputAllowed(prev, res.value, enterKeyPolicy, tabKeyPolicy)) {
+      input.value = prev;
+      setValue(prev);
+      return;
+    }
     const next = res.value;
+    if (next === prev) { setValue(next); return; }
     if (startRef.current === null) startRef.current = Date.now();
     const t = Date.now() - startRef.current;
     const a = Array.from(prev), b = Array.from(next);
@@ -143,6 +168,21 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
     valueRef.current = next;
     setValue(next);
     if (phase === "test" && b.length >= refChars.length) finish();
+  };
+
+  // IME composition can emit several provisional Hindi/Indic strings. Show them
+  // while composing, but record only the committed final text as typing events.
+  const onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (composingRef.current) {
+      setValue(e.target.value);
+      return;
+    }
+    commitInput(e.target.value, e.currentTarget);
+  };
+  const onCompositionStart = () => { composingRef.current = true; };
+  const onCompositionEnd = (e: React.CompositionEvent<HTMLTextAreaElement>) => {
+    composingRef.current = false;
+    commitInput(e.currentTarget.value, e.currentTarget);
   };
 
   // exam rules: caret stays at the end, no arrow keys, no paste, no drag
@@ -176,8 +216,11 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
     }
     const escaped = reference.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const printSize = Math.max(8, Math.min(24, fontSizePt));
+    const fontFamily = passageFontFamily === "serif" ? "Georgia, serif" : passageFontFamily === "mono" ? "monospace" : "Arial, sans-serif";
+    const alignment = passageAlignment === "justify" ? "justify" : passageAlignment === "center" ? "center" : "left";
+    const pageSize = printPageSize === "Letter" ? "Letter" : printPageSize === "Legal" ? "Legal" : "A4";
     target.document.open();
-    target.document.write(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${examName.replace(/</g, "&lt;").replace(/>/g, "&gt;")} passage</title><style>body{font-family:Arial,"Noto Sans Devanagari",sans-serif;max-width:850px;margin:36px auto;padding:0 24px;color:#172033;line-height:1.65}h1{font-size:16pt;margin-bottom:8px}p{white-space:pre-wrap;font-size:${printSize}pt}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${examName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</h1><p>${escaped}</p></body></html>`);
+    target.document.write(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${examName.replace(/</g, "&lt;").replace(/>/g, "&gt;")} passage</title><style>body{font-family:${fontFamily};max-width:850px;margin:36px auto;padding:0 24px;color:#172033;line-height:${passageLineSpacing};text-align:${alignment}}h1{font-size:16pt;margin-bottom:8px}p{white-space:${passageLayout === "continuous" ? "normal" : "pre-wrap"};font-size:${printSize}pt}@page{size:${pageSize};margin:20mm}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${examName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</h1><p>${escaped}</p></body></html>`);
     target.document.close();
     target.focus();
     target.print();
@@ -204,22 +247,22 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
         <div className={(phase === "test" ? left : phaseLeft) < 30 ? "clock low" : "clock"} role="timer" aria-live="off">{fmt(phase === "test" ? left : phaseLeft)}</div>
         <div className="meter" aria-hidden><i style={{ width: `${refChars.length ? Math.min(100, (typedChars.length / refChars.length) * 100) : 0}%` }} /></div>
         <div className="rules">
-          {mode === "highlighted" ? "Highlighted" : mode === "unhighlighted" ? "Unhighlighted" : "Paper to screen"} ·{" "}
+          {displayMode === "highlighted" ? "Highlighted" : displayMode === "unhighlighted" ? "Unhighlighted" : "Paper to screen"} ·{" "}
           {backspace === "full" ? "Backspace on" : backspace === "word" ? "Backspace in current word" : "Backspace off"}
         </div>
       </div>
 
       {hasRrbPhases && phase !== "test" && <div className="mode-note" role="status"><strong>{phase === "warmup" ? "RRB CBTST warm-up" : "Break before scored test"}</strong><p>{phase === "warmup" ? "Practise for one minute. This typing is not scored and will be cleared automatically." : "Your one-minute break is in progress. The scored 10-minute test starts automatically when it ends."}</p></div>}
-      {mode === "offscreen" && <div className="offscreen-print-tools"><p>The passage is hidden during this exam mode. Print it or choose “Save as PDF” before typing, then return here to start.</p><button type="button" className="go alt" onClick={printReference}>Print passage / Save as PDF</button></div>}
-      <div className={`sheet ${lang === "hi" ? "hi" : ""} ${mode} layout-${passageLayout}`} ref={boxRef} lang={lang} tabIndex={-1} onClick={() => taRef.current?.focus()} style={{ fontSize: `${Math.max(8, Math.min(24, fontSizePt))}pt`, whiteSpace: passageLayout === "continuous" ? "normal" : "pre-wrap" }}>
-        {mode === "highlighted"
+      {displayMode === "offscreen" && <div className="offscreen-print-tools"><p>The passage is hidden during this exam mode. Print it or choose “Save as PDF” before typing, then return here to start.</p><button type="button" className="go alt" onClick={printReference}>Print passage / Save as PDF</button></div>}
+      <div className={`sheet ${lang === "hi" ? "hi" : ""} ${displayMode} layout-${passageLayout}`} ref={boxRef} lang={lang} tabIndex={-1} onClick={() => taRef.current?.focus()} style={{ fontSize: `${Math.max(8, Math.min(24, fontSizePt))}pt`, whiteSpace: passageLayout === "continuous" ? "normal" : "pre-wrap", fontFamily: passageFontFamily === "serif" ? "Georgia, serif" : passageFontFamily === "mono" ? "monospace" : undefined, textAlign: passageAlignment === "justify" ? "justify" : passageAlignment === "center" ? "center" : "left", lineHeight: Math.max(1.1, Math.min(2.5, passageLineSpacing)), ["--passage-paragraph-spacing" as any]: `${Math.max(0, Math.min(32, passageParagraphSpacing))}px` }}>
+        {displayMode === "highlighted"
           ? tokens.map((tk, i) => {
               const slice = typedChars.slice(tk.start, tk.start + tk.len).join("");
               const active = !tk.space && activeIdx >= tk.start && activeIdx <= tk.start + tk.len && !done;
-              return tk.space ? <span key={i}>{tk.text}</span> : <Word key={i} text={tk.text} typed={slice} active={active} />;
+              return tk.space ? <span key={i} style={tk.text.includes("\n\n") ? { display: "block", marginBottom: `${Math.max(0, Math.min(32, passageParagraphSpacing))}px` } : undefined}>{tk.text}</span> : <Word key={i} text={tk.text} typed={slice} active={active} />;
             })
-          : mode === "unhighlighted"
-            ? <span className="plain">{reference}</span>
+          : displayMode === "unhighlighted"
+            ? <span className="plain">{reference.split(/\n{2,}/u).map((paragraph, index) => <span key={index} style={{ display: "block", marginBottom: `${Math.max(0, Math.min(32, passageParagraphSpacing))}px` }}>{paragraph}</span>)}</span>
             : <div className="offscreen-placeholder">Paper-to-screen mode · passage hidden</div>}
       </div>
 
@@ -230,6 +273,8 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
         lang={lang}
         readOnly={done || phase === "break"}
         onChange={onChange}
+        onCompositionStart={onCompositionStart}
+        onCompositionEnd={onCompositionEnd}
         onKeyDown={onKeyDown}
         onSelect={lockCaret}
         onClick={lockCaret}
@@ -241,9 +286,9 @@ export default function TypingSimulator({ passage, lang, durationSec, mode, back
         autoCorrect="off"
         autoCapitalize="off"
         autoComplete="off"
-        placeholder={phase === "warmup" ? "Warm-up only — this text will be cleared before the scored test." : phase === "break" ? "Break in progress — please wait for the scored test." : mode === "offscreen" ? "Type the printed passage here. The timer starts with your first key." : "Start typing. The timer starts with your first key."}
+        placeholder={phase === "warmup" ? "Warm-up only — this text will be cleared before the scored test." : phase === "break" ? "Break in progress — please wait for the scored test." : displayMode === "offscreen" ? "Type the printed passage here. The timer starts with your first key." : "Start typing. The timer starts with your first key."}
         aria-label="Type here"
-        rows={mode === "offscreen" ? 8 : 4}
+        rows={displayMode === "offscreen" ? 8 : 4}
       />
       {done && <p className="note">Time is up or the passage is complete. Calculating your result.</p>}
     </section>

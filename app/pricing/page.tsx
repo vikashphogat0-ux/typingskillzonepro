@@ -312,14 +312,19 @@ export default function Pricing() {
   );
 
   return (
-    <main className="page plans">
-      <header className="plans-header">
+    <main className="page plans pricing-v2">
+      <header className="plans-header pricing-v2-header">
         <p className="plans-eyebrow">TYPING SKILL ZONE</p>
         <h1>Choose Your Student Plan</h1>
         <p>
           Build typing speed, improve accuracy, and prepare for competitive
           typing examinations with a plan that suits your practice needs.
         </p>
+        <div className="pricing-value-points" aria-label="Plan information">
+          <span><strong>01</strong> Choose an access period</span>
+          <span><strong>02</strong> Review included features</span>
+          <span><strong>03</strong> Secure checkout via Cashfree</span>
+        </div>
       </header>
 
       {loading && (
@@ -342,7 +347,7 @@ export default function Pricing() {
       )}
 
       {!loading && info?.signedIn && (
-        <section className="current-subscription" aria-label="Current subscription">
+        <section className="current-subscription pricing-v2-status" aria-label="Current subscription">
           <h2>Your current access</h2>
 
           <p>
@@ -389,7 +394,7 @@ export default function Pricing() {
         </div>
       )}
 
-      <section className="pricing-phone" aria-label="Payment contact details">
+      <section className="pricing-phone pricing-v2-phone" aria-label="Payment contact details">
         <label htmlFor="cashfree-customer-phone">Mobile number for payment</label>
         <input
           id="cashfree-customer-phone"
@@ -407,7 +412,8 @@ export default function Pricing() {
         <p id="cashfree-phone-help">Cashfree requires a valid 10-digit mobile number. Your number is sent to Cashfree only to create the payment order.</p>
       </section>
 
-      <section className="plans-grid" aria-label="Available student plans">
+      <section className="pricing-plan-intro"><div><span className="plans-eyebrow">STUDENT MEMBERSHIPS</span><h2>Find the right access for your preparation</h2></div><p>All paid plans use the same Pro feature entitlements. The main difference is the length of access.</p></section>
+      <section className="plans-grid pricing-v2-grid" aria-label="Available student plans">
         {plans.map((plan) => {
           const isFree = plan.id === "free";
           const isCurrentPlan = info?.plan === plan.id;
@@ -423,7 +429,7 @@ export default function Pricing() {
 
           return (
             <article
-              className={`plan-card${plan.id === "student_pro_annual" ? " plan-card-featured" : ""}`}
+              className={`plan-card pricing-v2-card${plan.id === "student_pro_annual" ? " plan-card-featured" : ""}`}
               key={plan.id}
             >
               {plan.id === "student_pro_annual" && (
@@ -432,7 +438,7 @@ export default function Pricing() {
 
               <h2>{plan.displayName}</h2>
 
-              <p className="plan-price">
+              <p className="plan-price pricing-v2-price">
                 <strong>{formatPrice(plan.amountPaise)}</strong>
               </p>
 
@@ -446,7 +452,7 @@ export default function Pricing() {
                 </p>
               )}
 
-              <ul className="plan-features">
+              <ul className="plan-features pricing-v2-features">
                 {includedFeatures.length > 0 ? (
                   includedFeatures.map((key) => (
                     <li key={key}>{FEATURE_LABELS[key]}</li>
@@ -464,7 +470,7 @@ export default function Pricing() {
 
               <button
                 type="button"
-                className="plan-action"
+                className="plan-action pricing-v2-action"
                 onClick={() => void buy(plan.id)}
                 disabled={
                   loading ||
@@ -491,7 +497,7 @@ export default function Pricing() {
         })}
       </section>
 
-      <section className="pricing-notes">
+      <section className="pricing-notes pricing-v2-notes">
         <h2>Before you purchase</h2>
         <ul>
           <li>

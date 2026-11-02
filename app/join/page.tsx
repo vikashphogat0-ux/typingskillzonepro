@@ -3,13 +3,13 @@ import { useEffect, useState } from "react";
 import { api, fmtDate, post } from "@/lib/clientApi";
 
 export default function Join() {
-  const [me, setMe] = useState<any>(null); const [items, setItems] = useState<any[]>([]); const [code, setCode] = useState(""); const [err, setErr] = useState("");
+  const [me, setMe] = useState<any>(null); const [items, setItems] = useState<any[]>([]); const [code, setCode] = useState(""); const [err, setErr] = useState(""); const [inviteToken, setInviteToken] = useState("");
   const load = () => { api("/api/institution").then((r) => { setMe(r.data); if (r.data?.institute) api("/api/my/assignments").then((a) => a.ok && setItems(a.data)); }); };
-  useEffect(load, []);
-  const join = async (e: React.FormEvent) => { e.preventDefault(); setErr(""); const r = await post("/api/join", { code }); if (r.ok) load(); else setErr(r.data.error ?? "Could not join."); };
+  useEffect(() => { setInviteToken(new URLSearchParams(window.location.search).get("invite") ?? ""); load(); }, []);
+  const join = async (e: React.FormEvent) => { e.preventDefault(); setErr(""); const r = await post("/api/join", inviteToken ? { inviteToken } : { code }); if (r.ok) { setInviteToken(""); window.history.replaceState({}, "", "/join"); load(); } else setErr(r.data.error ?? "Could not join."); };
 
   if (!me) return <div className="page"><p>Loading…</p></div>;
-  if (!me.signedIn) return <div className="page"><h1>Join your institute</h1><p><a href="/login?next=/join">Sign in</a> or create an account first, then enter your institute’s code.</p></div>;
+  if (!me.signedIn) return <div className="page"><h1>Join your institute</h1><p><a href={inviteToken ? `/login?next=${encodeURIComponent(`/join?invite=${inviteToken}`)}` : "/login?next=/join"}>Sign in</a> or create an account first, then {inviteToken ? "accept your invitation" : "enter your institute’s code"}.</p></div>;
   if (!me.institute) return (
     <div className="page setup"><h1>Join your institute</h1>
       <form onSubmit={join} className="form"><label>Code from your teacher<input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={12} autoComplete="off" /></label>

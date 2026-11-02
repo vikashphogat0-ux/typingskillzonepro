@@ -5,8 +5,8 @@ import { PRESETS, getBuiltInPreset } from "@/lib/presets";
 export async function GET() {
   try {
     const rows = await sql()`
-      SELECT t.slug, t.name, t.language, t.duration_sec, t.display_mode, t.backspace, t.scoring
-      FROM exam_templates t
+      SELECT t.slug, t.name, t.language, t.duration_sec, t.display_mode, t.backspace, t.scoring, t.category, COALESCE(m.rule_status, 'needs_verification') AS rule_status, m.keyboard_variant
+      FROM exam_templates t LEFT JOIN exam_catalog_metadata m ON m.template_id = t.id
       WHERE t.is_active = true
       ORDER BY t.name
     `;

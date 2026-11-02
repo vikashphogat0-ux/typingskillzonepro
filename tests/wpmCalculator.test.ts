@@ -2,9 +2,35 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { calculateScore, PROFILES, analyzeKeyLog, type KeyEvent } from "../lib/wpmCalculator.ts";
 import { checkEdit } from "../lib/backspacePolicy.ts";
-import { PRESETS, getVerifiedPreset } from "../lib/presets.ts";
+import { formatRkcPassage, getRkcPassageLayout } from "../lib/rkc-passage-format.ts";
+import { isExamInputAllowed } from "../lib/keyboardPolicy.ts";
+import { PRESETS, getVerifiedPreset, validatePresetCatalog, usesRrbCbtstPhases } from "../lib/presets.ts";
 
 const P = { ...PROFILES.practice };
+
+test("simulator passage layout profiles remain exam-specific", () => {
+  assert.equal(getRkcPassageLayout("bsf-hcm-en"), "continuous");
+  assert.equal(getRkcPassageLayout("crpf-hcm-hi"), "continuous");
+  assert.equal(getRkcPassageLayout("dp-hcm-en"), "paragraph-tab");
+  assert.equal(getRkcPassageLayout("dp-hcm-hi"), "paragraph-tab");
+  assert.equal(getRkcPassageLayout("ssc-chsl-en"), "source-preserved");
+});
+
+test("continuous passage formatting collapses all source whitespace without changing words", () => {
+  const source = "  First   line\n\nSecond\tline  ";
+  assert.equal(formatRkcPassage(source, "continuous"), "First line Second line");
+});
+
+test("source-preserved formatting normalizes line endings and trims trailing line spaces", () => {
+  const source = "  First line  \r\nSecond line\t\r\n\r\nThird line  ";
+  assert.equal(formatRkcPassage(source, "source-preserved"), "First line\nSecond line\n\nThird line");
+});
+
+test("paragraph-tab formatting retains paragraph boundaries for simulator rendering", () => {
+  const source = "First paragraph\r\n\r\nSecond paragraph";
+  assert.equal(formatRkcPassage(source, "paragraph-tab"), "First paragraph\n\nSecond paragraph");
+});
+
 const ref = "the quick brown fox jumps over the lazy dog";
 const run = (typed: string, sec = 60) => calculateScore({ reference: ref, typed, elapsedSec: sec, durationSec: 600, profile: P });
 
@@ -50,6 +76,16 @@ test("Hindi text is compared exactly, matra differences count", () => {
   assert.equal(r.fullErrors, 1);
 });
 
+test("NFC-normalized committed text produces a single canonical Unicode character", () => {
+  const decomposed = "e" + String.fromCharCode(0x0301);
+  const canonical = decomposed.normalize("NFC");
+  assert.equal(canonical, "é");
+  const log: KeyEvent[] = [{ t: 1, type: "ins", ch: canonical }];
+  assert.equal(analyzeKeyLog(log, canonical).ignored, 0);
+  const hindi = "कि";
+  assert.equal(hindi.normalize("NFC"), hindi);
+});
+
 test("fixed vs ignored errors come from the key log", () => {
   const ev: KeyEvent[] = [
     { t: 1, type: "ins", ch: "t" }, { t: 2, type: "ins", ch: "x" },
@@ -76,7 +112,14 @@ test("verified simulator presets use canonical scoring profiles and exam-specifi
   assert.equal(getVerifiedPreset("rrb-ntpc-en")?.profile?.netMethod, "rrb");
   assert.equal(getVerifiedPreset("delhi-high-court-jja-en")?.durationSec, 600);
   assert.equal(getVerifiedPreset("bsf-hcm-en"), undefined);
-  assert.equal(PROFILES["bsf-typing-en"].qualifyingWpm, undefined);
+  assert.equal(PROFILES["bsf-typing-en"].qualifyingWpm, 35);
+  assert.equal(PROFILES["bsf-typing-hi"].qualifyingWpm, 30);
+  assert.equal(PROFILES["bsf-typing-en"].qualificationBasis, "net");
+  assert.equal(PROFILES["bsf-typing-hi"].qualificationBasis, "net");
+  assert.equal(PROFILES["bsf-typing-en"].errorAllowancePercent, 5);
+  assert.equal(PROFILES["bsf-typing-hi"].errorAllowancePercent, 5);
+  assert.equal(PROFILES["bsf-typing-en"].netMethod, "rrb");
+  assert.equal(PROFILES["bsf-typing-hi"].netMethod, "rrb");
   assert.equal(PROFILES["hc-clerk-en"].qualifyingWpm, undefined);
 });
 
@@ -143,6 +186,28 @@ test("backspace policies", () => {
 });
 
 import { analyzeEvents } from "../lib/analytics.ts";
+test("analytics removes corrected mistakes from their original time bucket and key", () => {
+  const ev: KeyEvent[] = [
+    { t: 100, type: "ins", ch: "t" },
+    { t: 200, type: "ins", ch: "x" },
+    { t: 31_000, type: "del" },
+    { t: 31_100, type: "ins", ch: "h" },
+  ];
+  const result = analyzeEvents(ev, "the", 30);
+  assert.equal(result.timeline[0].typed, 2);
+  assert.equal(result.timeline[0].wrong, 0);
+  assert.equal(result.timeline[0].accuracy, 100);
+  assert.equal(result.timeline[1].typed, 1);
+  assert.equal(result.timeline[1].wrong, 0);
+  assert.equal(result.keys.h.attempts, 2);
+  assert.equal(result.keys.h.errors, 0);
+  assert.equal(result.weakCombos.length, 0);
+});
+
+test("analytics validates its timeline bucket size", () => {
+  assert.throws(() => analyzeEvents([], "hello", 0), /bucketSec/);
+});
+
 test("analytics finds weak keys from the key log", () => {
   const ev: KeyEvent[] = [
     { t: 100, type: "ins", ch: "t" }, { t: 200, type: "ins", ch: "x" }, { t: 300, type: "ins", ch: "e" },
@@ -169,7 +234,7 @@ test("every lesson drill uses only its own keys and every key has a finger", () 
   }
 });
 
-import { validatePassage, parseBulk, validateTemplate, validateScoring, defaultScoring, countWords } from "../lib/adminValidation.ts";
+import { validatePassage, parseBulk, validateTemplate, validateScoring, defaultScoring, countWords, validatePresentationSettings } from "../lib/adminValidation.ts";
 const en30 = Array.from({ length: 35 }, (_, i) => "word" + i).join(" ");
 test("passage validation: length, script and warnings", () => {
   assert.equal(validatePassage({ title: "A", language: "en", body: en30 }).ok, true);
@@ -200,6 +265,22 @@ test("admin scoring validation preserves RRB-specific settings", () => {
   assert.equal(checked.scoring?.durationSec, 600);
   assert.equal(checked.scoring?.errorAllowancePercent, 5);
   assert.equal(checked.scoring?.minWords, 300);
+});
+
+test("simulator presentation settings enforce supported values and numeric bounds", () => {
+  assert.deepEqual(validatePresentationSettings({
+    passageLayout: "continuous", fontSizePt: 12, passageFontFamily: "system",
+    passageAlignment: "left", passageLineSpacing: 1.5,
+    passageParagraphSpacing: 8, printPageSize: "A4",
+  }), []);
+  assert.ok(validatePresentationSettings({ fontSizePt: 7 }).length > 0);
+  assert.ok(validatePresentationSettings({ fontSizePt: Number.NaN }).length > 0);
+  assert.ok(validatePresentationSettings({ passageLineSpacing: 3 }).length > 0);
+  assert.ok(validatePresentationSettings({ passageParagraphSpacing: -1 }).length > 0);
+  assert.ok(validatePresentationSettings({ passageLayout: "unknown" as never }).length > 0);
+  assert.ok(validatePresentationSettings({ passageFontFamily: "comic" as never }).length > 0);
+  assert.ok(validatePresentationSettings({ passageAlignment: "diagonal" as never }).length > 0);
+  assert.ok(validatePresentationSettings({ printPageSize: "A3" as never }).length > 0);
 });
 
 test("template validation", () => {
@@ -288,6 +369,30 @@ test("mistake patterns find letter confusions and omissions", () => {
   assert.equal(p.extra, 1);
   assert.equal(annotate(ops)[0].segs?.some((s) => s.t === "extra"), true);
 });
+test("anti-cheat enforces server-owned simulator backspace policies", () => {
+  const make = (mode: "full" | "word" | "disabled", events: KeyEvent[], typed: string) =>
+    validateAttempt({ typed, events, elapsedSec: 1, durationSec: 60, backspaceMode: mode });
+
+  const withinWord: KeyEvent[] = [
+    { t: 1, type: "ins", ch: "a" }, { t: 2, type: "ins", ch: "b" },
+    { t: 3, type: "del" }, { t: 4, type: "ins", ch: "c" },
+  ];
+  assert.equal(make("disabled", withinWord, "ac").tampered, true);
+  assert.equal(make("word", withinWord, "ac").tampered, false);
+  assert.equal(make("full", withinWord, "ac").tampered, false);
+
+  const crossingSpace: KeyEvent[] = [
+    { t: 1, type: "ins", ch: "a" }, { t: 2, type: "ins", ch: " " },
+    { t: 3, type: "del", n: 2 },
+  ];
+  assert.equal(make("word", crossingSpace, "").tampered, true);
+  assert.equal(make("full", crossingSpace, "").tampered, false);
+
+  const oversizedDelete: KeyEvent[] = [{ t: 1, type: "ins", ch: "a" }, { t: 2, type: "del", n: 2 }];
+  assert.equal(make("full", oversizedDelete, "").tampered, true);
+  assert.equal(make("disabled", [{ t: 1, type: "ins", ch: "a" }], "a").tampered, false);
+});
+
 test("anti-cheat: tampered text rejected, impossible speed flagged", () => {
   const ins = (s: string, t0 = 0) => Array.from(s).map((ch, i) => ({ t: t0 + i * 100, type: "ins" as const, ch }));
   const ev = ins("hello");
@@ -336,6 +441,20 @@ test("Unicode code points are counted consistently for Hindi", () => {
   assert.equal(r.accuracy, 100);
 });
 
+test("batched deletion events count actual backspace presses", () => {
+  const events: KeyEvent[] = [
+    { t: 1, type: "ins", ch: "a" },
+    { t: 2, type: "ins", ch: "b" },
+    { t: 3, type: "ins", ch: "c" },
+    { t: 4, type: "del", n: 3 },
+  ];
+  const result = analyzeKeyLog(events, "abc");
+  assert.equal(result.backspaces, 3);
+  assert.equal(result.keystrokes, 6);
+  assert.equal(result.fixed, 0);
+  assert.equal(result.ignored, 0);
+});
+
 test("key log rejects invalid event order and malformed deletion lengths", () => {
   assert.throws(() => analyzeKeyLog([{ t: 5, type: "ins", ch: "a" }, { t: 4, type: "ins", ch: "b" }], "ab"), /non-decreasing/);
   assert.throws(() => analyzeKeyLog([{ t: 1, type: "del", n: 0 }], "a"), /positive integer/);
@@ -376,4 +495,137 @@ test("Delhi Police HCM Hindi qualification and marks use Hindi thresholds", () =
   assert.equal(r.netWpm, 20.08);
   assert.equal(r.passed, false);
   assert.equal(r.marks, 0);
+});
+
+
+test("every built-in exam preset has internally consistent language, duration and scoring profile", () => {
+  assert.deepEqual(validatePresetCatalog(), []);
+});
+
+test("preset catalog validation catches duplicate slugs and rule mismatches", () => {
+  const preset = PRESETS.find((item) => item.slug === "ssc-chsl-en")!;
+  const invalid = [
+    preset,
+    { ...preset, profileId: "wrong-profile" },
+    { ...preset, durationSec: 300 },
+    { ...preset, lang: "hi" as const },
+  ];
+  const issues = validatePresetCatalog(invalid);
+  assert.ok(issues.some((issue) => issue.includes("Duplicate preset slug")));
+  assert.ok(issues.some((issue) => issue.includes("profileId")));
+  assert.ok(issues.some((issue) => issue.includes("duration")));
+  assert.ok(issues.some((issue) => issue.includes("language")));
+});
+
+
+test("only RRB NTPC CBTST profiles receive the warm-up and break protocol", () => {
+  assert.equal(usesRrbCbtstPhases(PROFILES["rrb-ntpc-en"].id), true);
+  assert.equal(usesRrbCbtstPhases(PROFILES["rrb-ntpc-hi"].id), true);
+  assert.equal(usesRrbCbtstPhases(PROFILES["crpf-hcm-en"].id), false);
+  assert.equal(usesRrbCbtstPhases(PROFILES["cisf-hcm-en"].id), false);
+  assert.equal(usesRrbCbtstPhases(PROFILES["bsf-typing-en"].id), false);
+});
+
+
+test("exam keyboard policy rejects blocked Enter and Tab at input-commit level", () => {
+  const newline = String.fromCharCode(10);
+  const tab = String.fromCharCode(9);
+  assert.equal(isExamInputAllowed("abc", "abc" + newline, "blocked", "insert"), false);
+  assert.equal(isExamInputAllowed("abc", "abc" + tab, "newline", "blocked"), false);
+  assert.equal(isExamInputAllowed("abc", "abc" + newline, "newline", "blocked"), true);
+  assert.equal(isExamInputAllowed("abc", "abc" + tab, "blocked", "insert"), true);
+  assert.equal(isExamInputAllowed("abc" + newline, "abc", "blocked", "blocked"), true);
+});
+
+
+test("custom exam templates validate Enter and Tab policies independently", () => {
+  const base = {
+    slug: "custom-key-policy", name: "Custom keyboard exam", language: "en" as const,
+    durationSec: 600, displayMode: "highlighted" as const, backspace: "full" as const,
+    scoring: { ...PROFILES.practice },
+  };
+  assert.deepEqual(validateTemplate({ ...base, enterKeyPolicy: "blocked", tabKeyPolicy: "insert" }).errors, []);
+  assert.ok(validateTemplate({ ...base, enterKeyPolicy: "sometimes" as any }).errors.some((e) => e.includes("Enter-key")));
+  assert.ok(validateTemplate({ ...base, tabKeyPolicy: "sometimes" as any }).errors.some((e) => e.includes("Tab-key")));
+});
+
+
+test("server anti-cheat enforces exam-specific Enter and Tab policies", () => {
+  const make = (typed: string, events: KeyEvent[], enterKeyPolicy: "newline" | "blocked", tabKeyPolicy: "blocked" | "insert") =>
+    validateAttempt({ typed, events, elapsedSec: 1, durationSec: 60, enterKeyPolicy, tabKeyPolicy });
+  const newline = String.fromCharCode(10);
+  const tab = String.fromCharCode(9);
+  const newlineEvents: KeyEvent[] = [{ t: 1, type: "ins", ch: "a" }, { t: 2, type: "ins", ch: newline }];
+  const tabEvents: KeyEvent[] = [{ t: 1, type: "ins", ch: "a" }, { t: 2, type: "ins", ch: tab }];
+  assert.equal(make("a" + newline, newlineEvents, "blocked", "insert").tampered, true);
+  assert.equal(make("a" + tab, tabEvents, "newline", "blocked").tampered, true);
+  assert.equal(make("a" + newline, newlineEvents, "newline", "blocked").tampered, false);
+  assert.equal(make("a" + tab, tabEvents, "blocked", "insert").tampered, false);
+});
+
+
+test("anti-cheat rejects invalid attempt timing metadata", () => {
+  const events: KeyEvent[] = [{ t: 1, type: "ins", ch: "a" }];
+  const base = { typed: "a", events, elapsedSec: 1, durationSec: 60 };
+  assert.equal(validateAttempt({ ...base, durationSec: 0 }).tampered, true);
+  assert.equal(validateAttempt({ ...base, durationSec: Number.NaN }).tampered, true);
+  assert.equal(validateAttempt({ ...base, durationSec: Number.POSITIVE_INFINITY }).tampered, true);
+  assert.equal(validateAttempt({ ...base, elapsedSec: -1 }).tampered, true);
+  assert.equal(validateAttempt({ ...base, elapsedSec: Number.NaN }).tampered, true);
+  assert.equal(validateAttempt({ ...base, elapsedSec: Number.POSITIVE_INFINITY }).tampered, true);
+  assert.equal(validateAttempt(base).tampered, false);
+});
+
+
+test("Hindi committed IME text replays exactly as Unicode code-point events", () => {
+  const committed = "किताब भारत क्षत्रिय".normalize("NFC");
+  const events: KeyEvent[] = Array.from(committed, (ch, index) => ({
+    t: index + 1,
+    type: "ins" as const,
+    ch,
+  }));
+  assert.equal(replayEvents(events), committed);
+  assert.equal(validateAttempt({
+    typed: committed,
+    events,
+    elapsedSec: 10,
+    durationSec: 60,
+  }).tampered, false);
+});
+
+test("canonically equivalent committed text is logged after NFC normalization", () => {
+  const decomposed = "Cafe" + String.fromCharCode(0x0301);
+  const committed = decomposed.normalize("NFC");
+  const events: KeyEvent[] = Array.from(committed, (ch, index) => ({
+    t: index + 1,
+    type: "ins" as const,
+    ch,
+  }));
+  assert.equal(committed, "Café");
+  assert.equal(Array.from(committed).length, 4);
+  assert.equal(replayEvents(events), committed);
+  assert.equal(validateAttempt({
+    typed: committed,
+    events,
+    elapsedSec: 5,
+    durationSec: 60,
+  }).tampered, false);
+});
+
+test("Hindi backspace replay removes code points without corrupting remaining text", () => {
+  const events: KeyEvent[] = [
+    { t: 1, type: "ins", ch: "क" },
+    { t: 2, type: "ins", ch: "ि" },
+    { t: 3, type: "ins", ch: "त" },
+    { t: 4, type: "del" },
+    { t: 5, type: "ins", ch: "त" },
+  ];
+  assert.equal(replayEvents(events), "कित");
+  assert.equal(validateAttempt({
+    typed: "कित",
+    events,
+    elapsedSec: 5,
+    durationSec: 60,
+    backspaceMode: "full",
+  }).tampered, false);
 });

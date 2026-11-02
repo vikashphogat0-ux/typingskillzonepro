@@ -31,14 +31,14 @@ export default function ResetPassword() {
   };
 
   if (done) return (
-    <div className="page setup">
+    <div className="page setup auth-page">
       <h1>Password reset</h1>
       <p>Your password has been changed. <a href="/login">Sign in</a></p>
     </div>
   );
 
   return (
-    <div className="page setup">
+    <div className="page setup auth-page">
       <h1>Set new password</h1>
       {!token && <p className="err">No reset token found. Use the link from your email.</p>}
       <form onSubmit={submit} className="form">
@@ -50,7 +50,7 @@ export default function ResetPassword() {
           <input type="password" required minLength={8} value={confirm}
             onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
         </label>
-        {err && <p className="err" role="alert">{err}</p>}
+        {err && <p className="err auth-feedback" role="alert" aria-live="assertive">{err}</p>}
         <button className="go" disabled={busy || !token}>{busy ? "Saving…" : "Set new password"}</button>
       </form>
     </div>

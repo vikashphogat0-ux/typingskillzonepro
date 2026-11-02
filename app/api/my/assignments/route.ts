@@ -10,7 +10,11 @@ export async function GET(req: Request) {
       (SELECT count(*) FROM results r WHERE r.assignment_id = a.id AND r.user_id = ${uid})::int AS attempts
     FROM assignments a JOIN institution_members im ON im.institution_id = a.institution_id AND im.user_id = ${uid}
     JOIN institutions i ON i.id = a.institution_id AND i.status = 'approved'
+    JOIN institute_subscriptions ins ON ins.institute_id = i.id AND ins.status = 'active'
+      AND (ins.ends_at IS NULL OR ins.ends_at > now())
+    JOIN institute_plans ip ON ip.id = ins.plan_id AND ip.is_active = true
     JOIN exam_templates et ON et.id = a.template_id LEFT JOIN batches b ON b.id = a.batch_id
-    WHERE a.batch_id IS NULL OR a.batch_id IN (SELECT batch_id FROM batch_members WHERE user_id = ${uid})
+    WHERE (a.batch_id IS NULL OR a.batch_id IN (SELECT batch_id FROM batch_members WHERE user_id = ${uid}))
+      AND (a.due_at IS NULL OR a.due_at >= now())
     ORDER BY a.due_at NULLS LAST, a.created_at DESC LIMIT 50`);
 }

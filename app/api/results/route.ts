@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 /** Simulator attempt: the server's stored text is the reference, and the key log must reproduce the typed text. */
 async function submitSimulator(uid: string, b: any) {
   const db = sql();
-  const [t] = await db`SELECT t.id, t.template_id, t.assignment_id, t.duration_sec, t.reference_text, t.submitted, t.display_mode, t.backspace, et.slug AS template_slug, et.scoring
+  const [t] = await db`SELECT t.id, t.template_id, t.assignment_id, t.duration_sec, t.reference_text, t.submitted, t.display_mode, t.backspace, et.slug AS template_slug, et.scoring, et.enter_key_policy, et.tab_key_policy
     FROM tests t LEFT JOIN exam_templates et ON et.id = t.template_id WHERE t.id = ${String(b.testId)} AND t.user_id = ${uid}`;
   if (!t || !t.reference_text) return Response.json({ error: "Test not found." }, { status: 404 });
   if (t.submitted) return Response.json({ error: "This test was already submitted." }, { status: 409 });
@@ -36,7 +36,8 @@ async function submitSimulator(uid: string, b: any) {
   }
   const typed = b.typed;
   const events: KeyEvent[] = b.events;
-  const check = validateAttempt({ typed, events, elapsedSec: Number(b.elapsedSec) || 0, durationSec: t.duration_sec });
+  const backspaceMode = t.backspace === "disabled" || t.backspace === "word" ? t.backspace : "full";
+  const check = validateAttempt({ typed, events, elapsedSec: Number(b.elapsedSec), durationSec: t.duration_sec, backspaceMode, enterKeyPolicy: t.enter_key_policy === "blocked" ? "blocked" : "newline", tabKeyPolicy: t.tab_key_policy === "insert" ? "insert" : "blocked" });
   if (check.tampered) return Response.json({ error: "This result could not be verified." }, { status: 400 });
   const profile = getBuiltInPreset(String(t.template_slug ?? ""))?.profile ?? t.scoring ?? PROFILES.practice;
   const s = calculateScore({ reference: t.reference_text, typed, elapsedSec: check.elapsedSec, durationSec: t.duration_sec, profile, keyEvents: events });
@@ -78,7 +79,7 @@ async function submitPractice(uid: string, b: any) {
   const configuredDuration = preset?.durationSec ?? (savedTemplate?.duration_sec ? Number(savedTemplate.duration_sec) : Number(b.durationSec));
   const duration = Math.min(Math.max(Number(configuredDuration) || 0, 30), 3600);
   const reference = b.reference, typed = b.typed;
-  const check = validateAttempt({ typed, events, elapsedSec: Number(b.elapsedSec) || 0, durationSec: duration });
+  const check = validateAttempt({ typed, events, elapsedSec: Number(b.elapsedSec), durationSec: duration });
   if (check.tampered) return Response.json({ error: "This result could not be verified." }, { status: 400 });
   const s = calculateScore({ reference, typed, elapsedSec: check.elapsedSec, durationSec: duration, profile, keyEvents: events });
   const enforceDailyLimit = access.testsLeft !== null;

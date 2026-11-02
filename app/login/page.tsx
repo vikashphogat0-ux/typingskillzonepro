@@ -127,25 +127,25 @@ export default function Login() {
   };
 
   if (mode === "forgot-sent") {
-    return <div className="page setup">
+    return <div className="page setup auth-page">
       <h1>Check your email</h1>
       <p>If this address is registered, Neon Auth will send password-reset instructions to <b>{email}</b>.</p>
       <p><button type="button" className="link" onClick={() => { setMode("in"); clear(); }}>Back to sign in</button></p>
     </div>;
   }
 
-  return <div className="page setup">
+  return <div className="page setup auth-page">
     <h1>{mode === "in" ? "Sign in" : mode === "up" ? "Create a new account" : mode === "verify" ? "Verify your email" : "Reset password"}</h1>
     <p className="hint">Secure sign-in powered by Neon Auth.</p>
     <form onSubmit={submit} className="form">
       {mode === "up" && <label>Name<input value={name} onChange={e => setName(e.target.value)} autoComplete="name" maxLength={100} /></label>}
-      <label>Email<input type="email" required value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" readOnly={mode === "verify"} /></label>
+      <label>Email<input type="email" required value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" readOnly={mode === "verify"} inputMode="email" spellCheck={false} /></label>
       {mode === "in" || mode === "up" ? (
         <label>Password<input type="password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} autoComplete={mode === "in" ? "current-password" : "new-password"} /></label>
       ) : null}
       {mode === "verify" && <label>Verification code<input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{4,8}" minLength={4} maxLength={8} required value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 8))} placeholder="Enter email code" /></label>}
-      {notice && <p className="hint" role="status">{notice}</p>}
-      {err && <p className="err" role="alert">{err}</p>}
+      {notice && <p className="hint auth-feedback" role="status" aria-live="polite">{notice}</p>}
+      {err && <p className="err auth-feedback" role="alert" aria-live="assertive">{err}</p>}
       <button className="go" disabled={busy}>{busy ? "Please wait…" : mode === "in" ? "Sign in" : mode === "up" ? "Create account" : mode === "verify" ? "Verify email" : "Send reset instructions"}</button>
     </form>
     {mode === "verify" && <p style={{ marginTop: 12 }}><button type="button" className="link" disabled={busy} onClick={() => void resendCode()}>Resend verification code</button></p>}

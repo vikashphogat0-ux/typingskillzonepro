@@ -47,7 +47,12 @@ export interface TemplateInput {
   slug: string; name: string; language: Lang; durationSec: number;
   displayMode: "highlighted" | "unhighlighted" | "offscreen";
   backspace: "full" | "word" | "disabled";
-  scoring: unknown; isActive?: boolean;
+  scoring: unknown; isActive?: boolean; presentationOnly?: boolean; allowBuiltInRuleEdit?: boolean;
+  enterKeyPolicy?: "newline" | "blocked"; tabKeyPolicy?: "blocked" | "insert";
+  passageLayout?: "continuous" | "paragraph-tab" | "source-preserved";
+  fontSizePt?: number; passageFontFamily?: "system" | "serif" | "mono";
+  passageAlignment?: "left" | "center" | "justify"; passageLineSpacing?: number;
+  passageParagraphSpacing?: number; printPageSize?: "A4" | "Letter" | "Legal";
 }
 
 const num = (v: unknown, min: number, max: number) => typeof v === "number" && Number.isFinite(v) && v >= min && v <= max;
@@ -82,6 +87,23 @@ export function validateScoring(raw: unknown): { scoring?: ScoringProfile; error
   };
 }
 
+export type PresentationSettings = Pick<TemplateInput,
+  "passageLayout" | "fontSizePt" | "passageFontFamily" | "passageAlignment" |
+  "passageLineSpacing" | "passageParagraphSpacing" | "printPageSize">;
+
+/** Validate only presentation controls; exam scoring and keyboard rules are separate. */
+export function validatePresentationSettings(settings: PresentationSettings): string[] {
+  const errors: string[] = [];
+  if (settings.passageLayout !== undefined && !["continuous", "paragraph-tab", "source-preserved"].includes(settings.passageLayout)) errors.push("Choose a valid passage layout.");
+  if (settings.fontSizePt !== undefined && !num(settings.fontSizePt, 8, 24)) errors.push("Font size must be between 8 and 24 pt.");
+  if (settings.passageFontFamily !== undefined && !["system", "serif", "mono"].includes(settings.passageFontFamily)) errors.push("Choose a valid font family.");
+  if (settings.passageAlignment !== undefined && !["left", "center", "justify"].includes(settings.passageAlignment)) errors.push("Choose a valid text alignment.");
+  if (settings.passageLineSpacing !== undefined && !num(settings.passageLineSpacing, 1.1, 2.5)) errors.push("Line spacing must be between 1.1 and 2.5.");
+  if (settings.passageParagraphSpacing !== undefined && !num(settings.passageParagraphSpacing, 0, 32)) errors.push("Paragraph spacing must be between 0 and 32 pt.");
+  if (settings.printPageSize !== undefined && !["A4", "Letter", "Legal"].includes(settings.printPageSize)) errors.push("Choose A4, Letter or Legal page size.");
+  return errors;
+}
+
 export function validateTemplate(t: TemplateInput): { errors: string[]; scoring?: ScoringProfile } {
   const errors: string[] = [];
   if (!/^[a-z0-9-]{2,40}$/.test(t.slug)) errors.push("Slug: 2 to 40 characters, lowercase letters, numbers and hyphens.");
@@ -90,6 +112,9 @@ export function validateTemplate(t: TemplateInput): { errors: string[]; scoring?
   if (!num(t.durationSec, 30, 3600)) errors.push("Duration must be between 30 seconds and 60 minutes.");
   if (!["highlighted", "unhighlighted", "offscreen"].includes(t.displayMode)) errors.push("Unknown display mode.");
   if (!["full", "word", "disabled"].includes(t.backspace)) errors.push("Unknown backspace rule.");
+  if (t.enterKeyPolicy !== undefined && !["newline", "blocked"].includes(t.enterKeyPolicy)) errors.push("Unknown Enter-key policy.");
+  if (t.tabKeyPolicy !== undefined && !["blocked", "insert"].includes(t.tabKeyPolicy)) errors.push("Unknown Tab-key policy.");
+  errors.push(...validatePresentationSettings(t));
   const sc = validateScoring(t.scoring);
   if (sc.error) errors.push(sc.error);
   return { errors, scoring: sc.scoring };

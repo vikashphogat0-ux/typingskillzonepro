@@ -25,6 +25,39 @@ function examIdentity(slug: string) {
   if (value.includes("dsssb")) return { mark: "DSSSB", short: "LDC", family: "Delhi Subordinate Services Selection Board", tone: "violet" };
   if (value.includes("court") || value.includes("jja") || value.includes("clerk")) return { mark: "HC", short: "COURT", family: "Court Recruitment", tone: "teal" };
   if (value.includes("ibps")) return { mark: "IBPS", short: "DEST", family: "Institute of Banking Personnel Selection", tone: "blue" };
+  if (value.includes("supreme-court")) return { mark: "SCI", short: "JCA", family: "Supreme Court of India", tone: "gold" };
+  if (value.includes("patna")) return { mark: "P&H", short: "HC", family: "Patna High Court", tone: "teal" };
+  if (value.includes("allahabad")) return { mark: "AHC", short: "RO / ARO", family: "Allahabad High Court", tone: "teal" };
+  if (value.includes("delhi-high-court")) return { mark: "DHC", short: "PA / JJA", family: "Delhi High Court", tone: "teal" };
+  if (value.includes("bombay")) return { mark: "BHC", short: "HC", family: "Bombay High Court", tone: "teal" };
+  if (value.includes("jharkhand")) return { mark: "JHC", short: "HC", family: "Jharkhand High Court", tone: "teal" };
+  if (value.includes("punjab-haryana")) return { mark: "PHHC", short: "HC", family: "Punjab & Haryana High Court", tone: "teal" };
+  if (value.includes("calcutta")) return { mark: "CHC", short: "HC", family: "Calcutta High Court", tone: "teal" };
+  if (value.includes("mp-high-court")) return { mark: "MPHC", short: "JABALPUR", family: "Madhya Pradesh High Court", tone: "teal" };
+  if (value.includes("rajasthan")) return { mark: "RHC", short: "JJA / LDC", family: "Rajasthan High Court", tone: "teal" };
+  if (value.includes("chhattisgarh")) return { mark: "CGHC", short: "HC", family: "Chhattisgarh High Court", tone: "teal" };
+  if (value.includes("telangana")) return { mark: "TGH", short: "HC", family: "Telangana High Court", tone: "teal" };
+  if (value.includes("andhra-pradesh-high-court")) return { mark: "APHC", short: "HC", family: "Andhra Pradesh High Court", tone: "teal" };
+  if (value.includes("gujarat")) return { mark: "GHC", short: "ASSISTANT", family: "Gujarat High Court", tone: "teal" };
+  if (value.includes("bihar") || value.includes("bssc") || value.includes("beltron") || value.includes("bpsc") || value.includes("jeevika") || value.includes("bceceb")) return { mark: "BR", short: "BIHAR", family: "Bihar State Recruitment", tone: "orange" };
+  if (value.includes("upsssc") || value.includes("uppsc") || value.includes("up-police") || value.includes("uppcl") || value.includes("bhu")) return { mark: "UP", short: "UTTAR PRADESH", family: "Uttar Pradesh Recruitment", tone: "orange" };
+  if (value.includes("dsssb")) return { mark: "DSSSB", short: "DELHI", family: "Delhi Subordinate Services Selection Board", tone: "violet" };
+  if (value.includes("dda")) return { mark: "DDA", short: "ASO / JSA", family: "Delhi Development Authority", tone: "violet" };
+  if (value.includes("du-nta")) return { mark: "DU", short: "NTA", family: "University of Delhi", tone: "blue" };
+  if (value.includes("jnu")) return { mark: "JNU", short: "NTA", family: "Jawaharlal Nehru University", tone: "blue" };
+  if (value.includes("cbse")) return { mark: "CBSE", short: "BOARD", family: "Central Board of Secondary Education", tone: "blue" };
+  if (value.includes("aiims")) return { mark: "AIIMS", short: "CRE", family: "All India Institute of Medical Sciences", tone: "blue" };
+  if (value.includes("epfo")) return { mark: "EPFO", short: "SSA", family: "Employees' Provident Fund Organisation", tone: "blue" };
+  if (value.includes("kvs")) return { mark: "KVS", short: "JSA", family: "Kendriya Vidyalaya Sangathan", tone: "blue" };
+  if (value.includes("nvs")) return { mark: "NVS", short: "JSA", family: "Navodaya Vidyalaya Samiti", tone: "blue" };
+  if (value.includes("emrs")) return { mark: "EMRS", short: "STAFF", family: "Eklavya Model Residential Schools", tone: "blue" };
+  if (value.includes("wbpsc")) return { mark: "WBPSC", short: "CLERK", family: "West Bengal Public Service Commission", tone: "blue" };
+  if (value.includes("ccras")) return { mark: "CCRAS", short: "SKILL", family: "Central Council for Research in Ayurvedic Sciences", tone: "blue" };
+  if (value.includes("luvas")) return { mark: "LUVAS", short: "HISAR", family: "Lala Lajpat Rai University of Veterinary and Animal Sciences", tone: "blue" };
+  if (value.includes("skau")) return { mark: "SKAU", short: "KURUKSHETRA", family: "Shri Krishna AYUSH University", tone: "blue" };
+  if (value.includes("army-agniveer")) return { mark: "IA", short: "AGNIVEER", family: "Indian Army", tone: "green" };
+  if (value.includes("ssb")) return { mark: "SSB", short: "HCM", family: "Sashastra Seema Bal", tone: "green" };
+  if (value.includes("itbp")) return { mark: "ITBP", short: "HCM", family: "Indo-Tibetan Border Police", tone: "green" };
   return { mark: "TSZ", short: "PRACTICE", family: "TypingSkillZone", tone: "blue" };
 }
 
@@ -80,6 +113,13 @@ export default function ExamsPage() {
               <option value="hi">Hindi</option>
             </select>
           </label>
+        </div>
+
+        <div className="exam-catalogue-stats" aria-label="Exam catalogue summary">
+          <div><strong>{items.length}</strong><span>Total modules</span></div>
+          <div><strong>{items.filter(exam => exam.language === "en").length}</strong><span>English modules</span></div>
+          <div><strong>{items.filter(exam => exam.language === "hi").length}</strong><span>Hindi modules</span></div>
+          <div><strong>{filtered.length}</strong><span>Matching results</span></div>
         </div>
 
         <div className="exam-popular">

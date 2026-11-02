@@ -24,7 +24,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   if (!r.typed_text || !r.reference_text) return Response.json({ error: "Detailed comparison was not stored for this older result." }, { status: 404 });
   const profile = r.breakdown?.profile ?? r.tpl_scoring ?? PROFILES.practice;
   const duration = r.duration_sec ?? 600;
-  const score = calculateScore({ reference: r.reference_text, typed: r.typed_text, elapsedSec: Number(r.elapsed_sec) || duration, durationSec: duration, profile, keyEvents: r.keystrokes ?? undefined });
+  // Preserve a legitimate zero-second result; only legacy NULL elapsed values use the duration fallback.
+  const storedElapsed = r.elapsed_sec == null ? Number.NaN : Number(r.elapsed_sec);
+  const elapsedSec = Number.isFinite(storedElapsed) && storedElapsed >= 0 ? storedElapsed : duration;
+  const score = calculateScore({ reference: r.reference_text, typed: r.typed_text, elapsedSec, durationSec: duration, profile, keyEvents: r.keystrokes ?? undefined });
   let rank: number | null = null, participants: number | null = null;
   if (r.template_id && !r.flagged) {
     const [k] = await db`WITH best AS (
@@ -35,5 +38,22 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     rank = k.rank; participants = k.participants;
   }
   return Response.json({ reference: r.reference_text, typed: r.typed_text, events: r.keystrokes ?? [], score, durationSec: duration, createdAt: r.created_at,
+    evaluation: {
+      profileId: profile.id,
+      profileLabel: profile.label,
+      unit: profile.unit,
+      charsPerWord: profile.charsPerWord,
+      fullErrorWeight: profile.fullErrorWeight,
+      halfErrorWeight: profile.halfErrorWeight,
+      halfRules: profile.halfRules,
+      errorPercentBasis: profile.errorPercentBasis ?? "typedWords",
+      netMethod: profile.netMethod,
+      qualificationBasis: profile.qualificationBasis ?? "net",
+      qualifyingWpm: profile.qualifyingWpm ?? null,
+      errorAllowancePercent: profile.errorAllowancePercent ?? null,
+      maxErrorPercent: profile.maxErrorPercent ?? null,
+      minWords: profile.minWords ?? null,
+      targetKeystrokes: profile.targetKeystrokes ?? null,
+    },
     simulator: r.sim_slug ? { slug: r.sim_slug, name: r.sim_name } : null, flagged: r.flagged, rank, participants, studentName: viewingStudent ? r.student_name : null });
 }

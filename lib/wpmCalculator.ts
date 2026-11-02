@@ -173,7 +173,7 @@ export function analyzeKeyLog(events: KeyEvent[], reference: string) {
     } else if (e.type === "del") {
       const count = e.n ?? 1;
       if (!Number.isInteger(count) || count < 1) throw new RangeError("Deletion event length must be a positive integer.");
-      backspaces++;
+      backspaces += count;
       for (let k = 0; k < count && stack.length; k++) {
         if (stack.pop()) fixed++;
         deleted++;
@@ -303,8 +303,14 @@ export const PROFILES: Record<string, ScoringProfile> = {
 
   // Provisional practice profiles: official criteria vary by notification/post.
   "ssc-cgl-ldc-en": { ...base, id: "ssc-cgl-ldc-en", label: "SSC CGL LDC / Tax Assistant (verify post-specific criteria)", language: "en", durationSec: 600 },
-  "crpf-hcm-en": { ...base, id: "crpf-hcm-en", label: "CRPF HCM English (verify current notification)", language: "en", durationSec: 600 },
-  "cisf-hcm-en": { ...base, id: "cisf-hcm-en", label: "CISF HCM English (verify current notification)", language: "en", durationSec: 600 },
+  // CAPF ministerial typing: official notices specify 35 WPM English / 30 WPM Hindi,
+  // 10 minutes, 5% error allowance, then 10 words deducted per excess mistake.
+  // RRB-style calculation below implements that allowance and 10-word penalty;
+  // all CAPF typing errors are treated as full mistakes under the cited notices.
+  "crpf-hcm-en": { ...base, id: "crpf-hcm-en", label: "CRPF HCM English — 35 WPM, 5% allowance, 10-word excess-error deduction", language: "en", durationSec: 600, qualifyingWpm: 35, qualificationBasis: "net", netMethod: "rrb", errorAllowancePercent: 5, halfErrorWeight: 1, halfRules: { caseOnly: false, punctuationOnly: false } },
+  "crpf-hcm-hi": { ...base, id: "crpf-hcm-hi", label: "CRPF HCM Hindi — 30 WPM, Remington Gail + Mangal, 5% allowance", language: "hi", durationSec: 600, qualifyingWpm: 30, qualificationBasis: "net", netMethod: "rrb", errorAllowancePercent: 5, halfErrorWeight: 1, halfRules: { caseOnly: false, punctuationOnly: false } },
+  "cisf-hcm-en": { ...base, id: "cisf-hcm-en", label: "CISF HCM English — 35 WPM, 5% allowance, 10-word excess-error deduction", language: "en", durationSec: 600, qualifyingWpm: 35, qualificationBasis: "net", netMethod: "rrb", errorAllowancePercent: 5, halfErrorWeight: 1, halfRules: { caseOnly: false, punctuationOnly: false } },
+  "cisf-hcm-hi": { ...base, id: "cisf-hcm-hi", label: "CISF HCM Hindi — 30 WPM, 5% allowance, 10-word excess-error deduction", language: "hi", durationSec: 600, qualifyingWpm: 30, qualificationBasis: "net", netMethod: "rrb", errorAllowancePercent: 5, halfErrorWeight: 1, halfRules: { caseOnly: false, punctuationOnly: false } },
   "dsssb-ldc-en": { ...base, id: "dsssb-ldc-en", label: "DSSSB LDC English (post-specific rules)", language: "en", durationSec: 600 },
   "dsssb-ldc-hi": { ...base, id: "dsssb-ldc-hi", label: "DSSSB LDC Hindi (post-specific rules)", language: "hi", durationSec: 600 },
   "hc-clerk-en": { ...base, id: "hc-clerk-en", label: "High Court Clerk English (court-specific rules)", language: "en", durationSec: 600 },
@@ -318,13 +324,14 @@ export const PROFILES: Record<string, ScoringProfile> = {
   "ibps-dest": { ...base, id: "ibps-dest", label: "IBPS DEST (verify recruitment-specific criteria)", language: "en", unit: "keystrokes", durationSec: 300 },
   "court-typing-en": { ...base, id: "court-typing-en", label: "Court Typing (English; court-specific rules required)", language: "en" },
   "delhi-high-court-jja-en": {
-    ...base, id: "delhi-high-court-jja-en", label: "Delhi High Court JJA/Restorer 2026 (English)",
+    ...base, id: "delhi-high-court-jja-en", label: "Delhi High Court JJA/Restorer 2026 — 35 WPM, 10 minutes, maximum 3% mistakes",
     language: "en", durationSec: 600, qualifyingWpm: 35, qualificationBasis: "gross", maxErrorPercent: 3,
+    errorPercentBasis: "typedWords",
     halfRules: { caseOnly: false, punctuationOnly: false },
   },
   "court-typing-hi": { ...base, id: "court-typing-hi", label: "Court Typing (Hindi; court-specific rules required)", language: "hi" },
-  "bsf-typing-en": { ...base, id: "bsf-typing-en", label: "BSF HCM (English; official skill-test rules need verification)", language: "en" },
-  "bsf-typing-hi": { ...base, id: "bsf-typing-hi", label: "BSF HCM (Hindi; official skill-test rules need verification)", language: "hi" },
+  "bsf-typing-en": { ...base, id: "bsf-typing-en", label: "BSF HCM English — 35 WPM, 5% allowance, 10-word excess-error deduction", language: "en", durationSec: 600, qualifyingWpm: 35, qualificationBasis: "net", netMethod: "rrb", errorAllowancePercent: 5, halfErrorWeight: 1, halfRules: { caseOnly: false, punctuationOnly: false } },
+  "bsf-typing-hi": { ...base, id: "bsf-typing-hi", label: "BSF HCM Hindi — 30 WPM, Mangal font, 5% allowance, 10-word excess-error deduction", language: "hi", durationSec: 600, qualifyingWpm: 30, qualificationBasis: "net", netMethod: "rrb", errorAllowancePercent: 5, halfErrorWeight: 1, halfRules: { caseOnly: false, punctuationOnly: false } },
   "high-court": { ...base, id: "high-court", label: "High Court clerical (editable)" },
   practice: { ...base, id: "practice", label: "Free practice" },
 };

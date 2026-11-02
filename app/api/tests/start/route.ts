@@ -3,7 +3,7 @@ import { getUserId } from "@/lib/auth";
 import { getStudentAccess } from "@/lib/subscription";
 import { LIMITS } from "@/lib/pricing";
 import { buildReference, minCharsFor } from "@/lib/library";
-import { getBuiltInPreset } from "@/lib/presets";
+import { getRkcPassageLayout } from "@/lib/rkc-passage-format";
 
 /** Starts a simulator attempt. The server picks the text and keeps it, so the browser cannot choose its own reference. */
 export async function POST(req: Request) {
@@ -14,13 +14,25 @@ export async function POST(req: Request) {
   const access = await getStudentAccess(uid);
   if (access.testsLeft !== null && access.testsLeft <= 0) return Response.json({ error: "You have used your free tests for today.", upgrade: true }, { status: 402 });
   const db = sql();
-  const [t] = await db`SELECT id, slug, name, language, duration_sec, display_mode, backspace, scoring, font_size_pt, passage_layout, enter_key_policy, tab_key_policy FROM exam_templates WHERE slug = ${String(b.slug)} AND is_active`;
+  let t: Record<string, any> | undefined;
+  try {
+    [t] = await db`SELECT id, slug, name, language, duration_sec, display_mode, backspace, scoring, font_size_pt, passage_layout, enter_key_policy, tab_key_policy, passage_font_family, passage_alignment, passage_line_spacing, passage_paragraph_spacing, print_page_size FROM exam_templates WHERE slug = ${String(b.slug)} AND is_active`;
+  } catch (error) {
+    console.error("POST /api/tests/start could not load simulator configuration:", error);
+    return Response.json({
+      error: "Simulator setup is temporarily unavailable. Check the database connection and confirm the simulator passage-formatting migration has been applied using the existing migration workflow.",
+      code: "SIMULATOR_SCHEMA_NOT_READY",
+    }, { status: 503 });
+  }
   if (!t) return Response.json({ error: "Simulator not found." }, { status: 404 });
 
-  const verified = getBuiltInPreset(String(t.slug));
-  const durationSec = verified?.durationSec ?? Number(t.duration_sec);
-  const displayMode = verified?.mode ?? String(t.display_mode);
-  const scoring = verified?.profile ?? t.scoring;
+  const durationSec = Number(t.duration_sec);
+  const examDisplayMode = String(t.display_mode);
+  const requestedMode = b.practiceMode === "highlighted" || b.practiceMode === "unhighlighted" ? b.practiceMode : "exam";
+  // Keep the simulator’s exam-defined display rule separate from the learner’s presentation choice.
+  // Practice mode may change only the passage presentation, never the exam configuration stored with the attempt.
+  const displayMode = examDisplayMode;
+  const scoring = t.scoring;
   const requestedCustom = typeof b.customPassage === "string" ? b.customPassage.trim() : "";
   const customWords = requestedCustom ? requestedCustom.split(/\s+/u).filter(Boolean).length : 0;
   const requiredCustomWords = t.slug === "dp-hcm-en" ? 400 : t.slug === "dp-hcm-hi" ? 350 : t.slug === "rrb-ntpc-en" ? 300 : t.slug === "rrb-ntpc-hi" ? 250 : 10;
@@ -30,27 +42,58 @@ export async function POST(req: Request) {
 
   let assignmentId: string | null = null;
   if (b.assignmentId) {
-    const [a] = await db`SELECT a.id FROM assignments a JOIN institution_members im ON im.institution_id = a.institution_id AND im.user_id = ${uid}
-      WHERE a.id = ${String(b.assignmentId)} AND a.template_id = ${t.id}
-        AND (a.batch_id IS NULL OR a.batch_id IN (SELECT batch_id FROM batch_members WHERE user_id = ${uid}))`;
-    assignmentId = a?.id ?? null;
+    const requestedAssignmentId = String(b.assignmentId);
+    if (!/^[0-9a-f-]{36}$/i.test(requestedAssignmentId)) {
+      return Response.json({ error: "Invalid assignment." }, { status: 400 });
+    }
+    const [a] = await db`
+      SELECT a.id, a.due_at
+      FROM assignments a
+      JOIN institution_members im ON im.institution_id = a.institution_id AND im.user_id = ${uid} AND im.role = 'student'
+      JOIN institutions i ON i.id = a.institution_id AND i.status = 'approved'
+      JOIN institute_subscriptions ins ON ins.institute_id = i.id AND ins.status = 'active'
+        AND (ins.ends_at IS NULL OR ins.ends_at > now())
+      JOIN institute_plans ip ON ip.id = ins.plan_id AND ip.is_active = true
+      WHERE a.id = ${requestedAssignmentId} AND a.template_id = ${t.id}
+        AND (a.batch_id IS NULL OR a.batch_id IN (SELECT batch_id FROM batch_members WHERE user_id = ${uid}))
+      LIMIT 1
+    `;
+    if (!a) return Response.json({ error: "This assignment is not available to your account or simulator." }, { status: 404 });
+    if (a.due_at && new Date(a.due_at).getTime() < Date.now()) {
+      return Response.json({ error: "The deadline for this assignment has passed." }, { status: 410 });
+    }
+    assignmentId = a.id;
   }
 
   let bodies: string[];
   if (b.passageId) {
-    const [selected] = await db`SELECT body FROM passages WHERE id = ${String(b.passageId)} AND language = ${t.language}`;
+    const [selected] = await db`SELECT body FROM passages WHERE id = ${String(b.passageId)} AND language = ${t.language} AND template_id = ${t.id} AND NOT EXISTS (SELECT 1 FROM passage_distributions d WHERE d.passage_id = passages.id AND d.status = 'archived')
+      AND NOT EXISTS (
+        SELECT 1 FROM passage_sources source
+        WHERE source.id = CASE
+          WHEN passages.format_metadata->>'sourceId' ~* '^[0-9a-f-]{36}$'
+          THEN (passages.format_metadata->>'sourceId')::uuid ELSE NULL END
+          AND COALESCE((passages.format_metadata->>'sourceVersion')::integer, source.version) < source.version
+      )`;
     if (!selected) return Response.json({ error: "That passage is unavailable for this simulator language." }, { status: 404 });
     bodies = [selected.body as string];
   } else {
     // Passage content is shared across compatible simulators. Only the selected template controls presentation and typing rules.
-    const rows = await db`SELECT body FROM passages WHERE language = ${t.language} ORDER BY random() LIMIT 30`;
+    const rows = await db`SELECT body FROM passages WHERE language = ${t.language} AND template_id = ${t.id} AND NOT EXISTS (SELECT 1 FROM passage_distributions d WHERE d.passage_id = passages.id AND d.status = 'archived')
+      AND NOT EXISTS (
+        SELECT 1 FROM passage_sources source
+        WHERE source.id = CASE
+          WHEN passages.format_metadata->>'sourceId' ~* '^[0-9a-f-]{36}$'
+          THEN (passages.format_metadata->>'sourceId')::uuid ELSE NULL END
+          AND COALESCE((passages.format_metadata->>'sourceVersion')::integer, source.version) < source.version
+      ) ORDER BY random() LIMIT 30`;
     bodies = rows.map((r: any) => r.body as string);
     if (!bodies.length && !requestedCustom) {
       return Response.json({ error: "No passages are available for this exam yet. Please try again later." }, { status: 503 });
     }
   }
   const reference = requestedCustom ? requestedCustom : buildReference(bodies, minCharsFor(durationSec));
-  const backspace = verified?.backspace ?? (t.slug.startsWith("bsf-") ? "disabled" : t.slug.startsWith("dp-hcm-") ? "full" : t.backspace);
+  const backspace = t.backspace;
 
   // Serialize starts per user, then re-count and insert inside the same transaction.
   // This prevents concurrent requests from bypassing the free daily allowance.
@@ -64,7 +107,7 @@ export async function POST(req: Request) {
           AND started_at >= (date_trunc('day', now() AT TIME ZONE 'Asia/Kolkata') AT TIME ZONE 'Asia/Kolkata')
       )
       INSERT INTO tests (user_id, template_id, language, display_mode, backspace, duration_sec, reference_text, assignment_id)
-      SELECT ${uid}, ${t.id}, ${t.language}, ${displayMode}, ${backspace}, ${durationSec}, ${reference}, ${assignmentId}
+      SELECT ${uid}, ${t.id}, ${t.language}, ${examDisplayMode}, ${backspace}, ${durationSec}, ${reference}, ${assignmentId}
       FROM usage
       WHERE ${access.testsLeft === null}::boolean OR usage.tests_today < ${LIMITS.free.testsPerDay}
       RETURNING id
@@ -72,5 +115,5 @@ export async function POST(req: Request) {
   ]);
   const [row] = tx[1] as Array<{ id: string }>;
   if (!row) return Response.json({ error: "You have used your free tests for today.", upgrade: true }, { status: 402 });
-  return Response.json({ testId: row.id, reference, lang: t.language, durationSec, mode: displayMode, backspace, profile: scoring, name: t.name, slug: t.slug, fontSizePt: t.font_size_pt ?? 12, passageLayout: t.passage_layout ?? "continuous", enterKeyPolicy: t.enter_key_policy ?? "newline", tabKeyPolicy: t.tab_key_policy ?? "blocked" });
+  return Response.json({ testId: row.id, reference, lang: t.language, durationSec, mode: displayMode, practiceMode: requestedMode, backspace, profile: scoring, name: t.name, slug: t.slug, fontSizePt: t.font_size_pt ?? 12, passageLayout: t.passage_layout || getRkcPassageLayout(String(t.slug)), passageFontFamily: t.passage_font_family ?? "system", passageAlignment: t.passage_alignment ?? "left", passageLineSpacing: Number(t.passage_line_spacing ?? 1.5), passageParagraphSpacing: Number(t.passage_paragraph_spacing ?? 8), printPageSize: t.print_page_size ?? "A4", enterKeyPolicy: t.enter_key_policy ?? "newline", tabKeyPolicy: t.tab_key_policy ?? "blocked" });
 }

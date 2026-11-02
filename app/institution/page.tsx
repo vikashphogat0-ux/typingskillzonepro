@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 import Leaderboard from "@/components/Leaderboard";
 import { api, del, fmtDate, post } from "@/lib/clientApi";
 
-type Tab = "overview" | "students" | "batches" | "assignments" | "board" | "team";
-const TABS: [Tab, string][] = [["overview", "Overview"], ["students", "Students"], ["batches", "Batches"], ["assignments", "Assignments"], ["board", "Leaderboards"], ["team", "Team"]];
+type Tab = "overview" | "students" | "batches" | "assignments" | "board" | "team" | "billing";
+const TABS: [Tab, string][] = [["overview", "Overview"], ["students", "Students"], ["batches", "Batches"], ["assignments", "Assignments"], ["board", "Leaderboards"], ["team", "Team"], ["billing", "Billing"]];
 
 export default function InstitutePanel() {
   const [me, setMe] = useState<any>(null);
@@ -31,7 +31,7 @@ export default function InstitutePanel() {
       {tab === "batches" && <Batches say={say} />}
       {tab === "assignments" && <Assignments say={say} />}
       {tab === "board" && <Boards />}
-      {tab === "team" && <Team me={me} say={say} reload={reload} />}
+      {tab === "team" && <Team me={me} say={say} reload={reload} />}\n      {tab === "billing" && <Billing me={me} say={say} />}
     </div>
   );
 }
@@ -50,18 +50,94 @@ function Overview({ me }: { me: any }) {
   </>);
 }
 
+
+function Billing({ me, say }: { me: any; say: any }) {
+  const [data, setData] = useState<any>(null);
+  const [phone, setPhone] = useState("");
+  const [interval, setInterval] = useState<"monthly" | "annual">("monthly");
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const owner = me.institute.role === "owner";
+  const load = useCallback(async () => {
+    const orderId = new URLSearchParams(window.location.search).get("order_id");
+    const suffix = orderId ? `?order_id=${encodeURIComponent(orderId)}` : "";
+    const r = await api(`/api/institution/billing${suffix}`);
+    if (r.ok) setData(r.data);
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const orderId = new URLSearchParams(window.location.search).get("order_id");
+    if (!orderId) return;
+    let stopped = false; let count = 0; let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async () => {
+      const r = await api(`/api/institution/billing?order_id=${encodeURIComponent(orderId)}`);
+      if (r.ok) {
+        setData(r.data);
+        if (r.data.payment?.status === "paid") { setError("Payment confirmed. Institute subscription is active."); return; }
+        if (r.data.payment?.status === "failed") { setError("Payment failed. You can retry checkout."); return; }
+      }
+      count += 1;
+      if (!stopped && count < 20) timer = setTimeout(poll, 2500);
+      else if (!stopped) setError("Payment confirmation is still pending. Refresh this tab shortly; do not pay again until status is checked.");
+    };
+    void poll();
+    return () => { stopped = true; if (timer) clearTimeout(timer); };
+  }, []);
+  const checkout = async (planId: string) => {
+    if (!owner) return;
+    if (!/^\d{10}$/.test(phone.replace(/\D/g, ""))) { setError("Enter your 10-digit mobile number."); return; }
+    setBusy(planId); setError("");
+    try {
+      const r = await post("/api/institution/checkout", { planId, interval, customerPhone: phone.replace(/\D/g, "") });
+      if (!r.ok) throw new Error(r.data.error ?? "Could not start checkout.");
+      const loaded = await new Promise<boolean>((resolve) => {
+        if ((window as any).Cashfree) return resolve(true);
+        let script = document.querySelector<HTMLScriptElement>('script[data-cashfree-sdk="true"]');
+        if (!script) { script = document.createElement("script"); script.src = "https://sdk.cashfree.com/js/v3/cashfree.js"; script.async = true; script.dataset.cashfreeSdk = "true"; document.head.appendChild(script); }
+        const timeout = window.setTimeout(() => resolve(Boolean((window as any).Cashfree)), 12000);
+        script.addEventListener("load", () => { window.clearTimeout(timeout); resolve(Boolean((window as any).Cashfree)); }, { once: true });
+        script.addEventListener("error", () => { window.clearTimeout(timeout); resolve(false); }, { once: true });
+      });
+      if (!loaded || !(window as any).Cashfree) throw new Error("Could not load Cashfree checkout.");
+      const cf = (window as any).Cashfree({ mode: r.data.mode === "production" ? "production" : "sandbox" });
+      await cf.checkout({ paymentSessionId: r.data.paymentSessionId, redirectTarget: "_self" });
+    } catch (e) { setError(e instanceof Error ? e.message : "Checkout failed."); }
+    finally { setBusy(""); }
+  };
+  const money = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+  const current = data?.subscription;
+  return (<section className="form">
+    <h2>Institute subscription</h2>
+    {current ? <p><strong>{current.plan_id.replace("institute_", "Institute ").replace("_", " ")}</strong> · {current.is_active ? "Active" : "Expired"} · {current.students}/{current.max_student_seats} student seats · {current.ends_at ? `valid until ${fmtDate(current.ends_at)}` : "No expiry recorded"}</p> : <p className="hint">No active institute subscription is recorded. Choose a plan below to enable student enrollment and institute access.</p>}
+    {error && <p className="flash-msg" role="status">{error}</p>}
+    {owner ? <>
+      <label>Mobile number for Cashfree<input inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="10-digit mobile number" /></label>
+      <label>Billing period<select value={interval} onChange={(e) => setInterval(e.target.value as "monthly" | "annual")}><option value="monthly">Monthly</option><option value="annual">Annual (12 months)</option></select></label>
+    </> : <p className="hint">Only the institute owner can purchase or renew a plan.</p>}
+    <div className="tiles">{(data?.plans ?? []).filter((p: any) => p.id !== "institute_enterprise").map((p: any) => <div key={p.id} className="card-p">
+      <h3>{p.displayName}</h3><p><strong>{money(interval === "annual" ? p.annualAmountPaise : p.monthlyAmountPaise)}</strong> / {interval === "annual" ? "year" : "month"}</p>
+      <p>{p.maxStudentSeats} student seats</p><p className="hint">{p.featureEntitlements.multipleTeachers ? "Multiple teachers and advanced batch tools" : "Single owner account and core institute tools"}</p>
+      {owner && <button className="go" disabled={Boolean(busy)} onClick={() => void checkout(p.id)}>{busy === p.id ? "Starting checkout…" : current?.plan_id === p.id && current?.is_active ? "Renew / extend" : "Choose plan"}</button>}
+    </div>)}</div>
+    <p className="hint">Payments are activated only after the signed Cashfree webhook independently verifies the transaction. Never share your payment session or secret keys.</p>
+    <button type="button" className="link" onClick={() => void load()}>Refresh billing status</button>
+  </section>);
+}
+
 function Students({ inst, say, reload }: { inst: any; say: any; reload: () => void }) {
   const [rows, setRows] = useState<any[] | null>(null); const [q, setQ] = useState(""); const [email, setEmail] = useState("");
-  const [open, setOpen] = useState<any>(null); const [att, setAtt] = useState<any[]>([]);
+  const [open, setOpen] = useState<any>(null); const [att, setAtt] = useState<any[]>([]); const [bulkText, setBulkText] = useState("");
   const load = useCallback(() => { api("/api/institution/students").then((r) => setRows(r.ok ? r.data : [])); }, []);
   useEffect(load, [load]);
   const show = async (s: any) => { if (open?.id === s.id) return setOpen(null); setOpen(s); const r = await api(`/api/institution/students?userId=${s.id}`); setAtt(r.ok ? r.data : []); };
-  const add = async () => { const r = await post("/api/institution/members", { email, role: "student" }); say(r, "Student added."); if (r.ok) { setEmail(""); load(); reload(); } };
+  const add = async () => { const r = await post("/api/institution/invitations", { emails: [email] }); const status = r.data.results?.[0]?.status; say(r, status === "invited" ? "Invitation email sent." : status === "enrolled" ? "Student enrolled." : "Enrollment/invitation processed."); if (r.ok || r.data.results) { setEmail(""); load(); reload(); } };
+  const importCsv = async () => { const emails = [...new Set(bulkText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? [])]; if (!emails.length) return say({ ok: false, data: { error: "Choose a CSV file or paste email addresses first." } }, ""); const r = await post("/api/institution/invitations", { emails }); say(r, `Import finished: ${r.data.counts?.enrolled ?? 0} enrolled, ${r.data.counts?.invited ?? 0} invitations sent.`); if (r.ok || r.data.results) { setBulkText(""); load(); reload(); } };
   const remove = async (s: any) => { if (confirm(`Remove ${s.name ?? s.email} from your institute?`)) { const r = await del(`/api/institution/members?userId=${s.id}`); say(r, "Student removed."); load(); reload(); } };
   const shown = (rows ?? []).filter((s) => `${s.name} ${s.email}`.toLowerCase().includes(q.toLowerCase()));
   return (<>
-    <div className="form row"><label>Add student by email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="They must have signed up" /></label><button className="go" disabled={!email} onClick={add}>Add</button>
+    <div className="form row"><label>Add student by email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Registered or new student email" /></label><button className="go" disabled={!email} onClick={add}>Add</button>
       <label>Search<input value={q} onChange={(e) => setQ(e.target.value)} /></label></div>
+    <section className="form"><h3>Bulk enrollment by CSV</h3><p className="hint">Upload a CSV containing an Email column, or paste email addresses. Registered users are enrolled immediately; new users receive a 7-day invitation. Maximum 500 unique addresses per import.</p><label>Choose CSV file<input type="file" accept=".csv,text/csv" onChange={(e) => { const file = e.target.files?.[0]; if (file) void file.text().then(setBulkText); }} /></label><label>CSV contents / email list<textarea rows={5} value={bulkText} onChange={(e) => setBulkText(e.target.value)} placeholder="email,name; student@example.com,Student Name" /></label><button className="go" disabled={!bulkText.trim()} onClick={importCsv}>Import students and send invitations</button></section>
     <div className="tbl"><table><thead><tr><th>Student</th><th>Batches</th><th>Tests</th><th>Best WPM</th><th>Accuracy (last 10)</th><th>Days active (30)</th><th>Last practice</th><th></th></tr></thead><tbody>
       {shown.map((s) => (<>
         <tr key={s.id}><td><button className="link" onClick={() => show(s)}>{s.name ?? s.email}</button></td><td>{s.batches}</td><td>{s.tests}</td><td>{s.best_wpm ?? "–"}</td><td>{s.recent_accuracy ? `${s.recent_accuracy}%` : "–"}</td><td>{s.active_days_30}</td><td>{fmtDate(s.last_active) || "Never"}</td><td><button className="link" onClick={() => remove(s)}>Remove</button></td></tr>

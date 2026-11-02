@@ -56,8 +56,19 @@ jobs:
             echo "Repository secret PASSAGE_CRON_SECRET is not configured." >&2
             exit 1
           fi
-          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 5 \
-            -X POST "https://typingskillzone.in/api/admin/passages/generate" \
-            -H "Content-Type: application/json" \
-            -H "x-passage-cron-secret: $PASSAGE_CRON_SECRET" \
-            --data "{\"slot\":\"$SLOT\"}"
+          base_url="https://typingskillzone.in/api/admin/passages/generate"
+          config="$(curl --fail-with-body --silent --show-error --retry 2 --retry-delay 5 \
+            "$base_url/config" -H "x-passage-cron-secret: $PASSAGE_CRON_SECRET")"
+          for language in en hi; do
+            slug="$(jq -r ".templates.$language[0].slug // empty" <<< "$config")"
+            if [[ -z "$slug" ]]; then
+              echo "No active $language simulator is available for scheduled passage generation." >&2
+              exit 1
+            fi
+            echo "Generating $SLOT passages for $language using $slug"
+            curl --fail-with-body --silent --show-error --retry 2 --retry-delay 5 \
+              -X POST "$base_url" \
+              -H "Content-Type: application/json" \
+              -H "x-passage-cron-secret: $PASSAGE_CRON_SECRET" \
+              --data "{\"slot\":\"$SLOT\",\"templateSlug\":\"$slug\"}"
+          done

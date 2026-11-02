@@ -1,0 +1,31 @@
+name: Institute subscription notifications
+
+on:
+  schedule:
+    - cron: "30 3 * * *" # 09:00 IST daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: institute-subscription-notifications
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Send renewal and expiry notifications
+        env:
+          INSTITUTE_CRON_SECRET: ${{ secrets.INSTITUTE_CRON_SECRET }}
+        shell: bash
+        run: |
+          if [[ -z "$INSTITUTE_CRON_SECRET" ]]; then
+            echo "Repository secret INSTITUTE_CRON_SECRET is not configured." >&2
+            exit 1
+          fi
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 5 \
+            -X POST "https://typingskillzone.in/api/cron/institute-notifications" \
+            -H "x-institute-cron-secret: $INSTITUTE_CRON_SECRET"

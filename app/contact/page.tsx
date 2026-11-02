@@ -12,22 +12,30 @@ export default function ContactPage() {
     setBusy(true);
     setStatus("");
 
-    const r = await post("/api/feedback", { ...form, type: "contact" });
-    setStatus(r.ok ? "Thank you! We'll respond within 24-48 hours." : r.data.error ?? "Failed to send. Please try again.");
-    setBusy(false);
-
-    if (r.ok) setForm({ name: "", email: "", subject: "", message: "" });
+    try {
+      const r = await post("/api/feedback", { ...form, type: "contact" });
+      setStatus(r.ok ? "Thank you! We'll respond within 24-48 hours." : r.data.error ?? "Failed to send. Please try again.");
+      if (r.ok) setForm({ name: "", email: "", subject: "", message: "" });
+    } catch {
+      setStatus("We could not send your message. Check your connection and try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
-    <div className="page">
-      <h1>Contact Us</h1>
+    <main className="page contact-page">
+      <header className="contact-hero">
+        <span className="public-kicker">TYPINGSKILLZONE SUPPORT</span>
+        <h1>Contact Us</h1>
+        <p>Get help with your account, exam practice, technical issues or subscription.</p>
+      </header>
 
-      <section>
-        <h2>Get in Touch</h2>
+      <section className="contact-panel">
+        <h2>Send us a message</h2>
         <p>Have questions about our platform, exam rules, or your subscription? We're here to help.</p>
 
-        <form onSubmit={submit} className="form">
+        <form onSubmit={submit} className="form contact-form">
           <label>
             Your Name
             <input
@@ -65,15 +73,15 @@ export default function ContactPage() {
               onChange={(e) => setForm({ ...form, message: e.target.value })}
             />
           </label>
-          {status && <p className="flash-msg" role="status">{status}</p>}
-          <button type="submit" className="go" disabled={busy}>
+          {status && <p className="flash-msg contact-feedback" role="status" aria-live="polite">{status}</p>}
+          <button type="submit" className="go contact-submit" disabled={busy}>
             {busy ? "Sending..." : "Send Message"}
           </button>
         </form>
       </section>
 
-      <section style={{ marginTop: "40px" }}>
-        <h2>Common Questions</h2>
+      <section className="contact-faq">
+        <div className="contact-section-heading"><span className="public-kicker">HELP CENTRE</span><h2>Common Questions</h2></div>
         <div className="faq">
           <div>
             <h3>How accurate are the exam simulators?</h3>
@@ -89,6 +97,6 @@ export default function ContactPage() {
           </div>
         </div>
       </section>
-    </div>
+    </main>
   );
 }

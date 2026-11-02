@@ -175,51 +175,31 @@ export async function POST(req: Request) {
       const joinCode = genJoinCode();
 
       try {
-        const [institution] = await db`
-          INSERT INTO institutions (
-            name, city, state, phone, address,
-            contact_email, join_code, owner_id
-          )
-          VALUES (
-            ${input.name.trim()},
-            ${input.city.trim()},
-            ${input.state.trim()},
-            ${input.phone.trim()},
-            ${input.address.trim() || null},
-            ${input.contactEmail.trim() || null},
-            ${joinCode},
-            ${uid}
-          )
-          RETURNING id
-        `;
-
-        try {
-          await db`
-            INSERT INTO institution_members (
-              institution_id, user_id, role
+        const [created] = await db`
+          WITH created AS (
+            INSERT INTO institutions (
+              name, city, state, phone, address,
+              contact_email, join_code, owner_id
             )
-            VALUES (${institution.id}, ${uid}, 'owner')
-          `;
-        } catch (membershipError) {
-          try {
-            await db`
-              DELETE FROM institutions
-              WHERE id = ${institution.id}
-            `;
-          } catch (cleanupError) {
-            console.error("Institute cleanup failed:", cleanupError);
-          }
-
-          console.error(
-            "Owner membership creation failed:",
-            membershipError
-          );
-
-          return Response.json(
-            { error: "Could not finish institute registration." },
-            { status: 500 }
-          );
-        }
+            VALUES (
+              ${input.name.trim()},
+              ${input.city.trim()},
+              ${input.state.trim()},
+              ${input.phone.trim()},
+              ${input.address.trim() || null},
+              ${input.contactEmail.trim() || null},
+              ${joinCode},
+              ${uid}
+            )
+            RETURNING id
+          ),
+          owner_membership AS (
+            INSERT INTO institution_members (institution_id, user_id, role)
+            SELECT id, ${uid}, 'owner' FROM created
+            RETURNING institution_id
+          )
+          SELECT institution_id FROM owner_membership
+        `;
 
         return Response.json({ ok: true }, { status: 201 });
       } catch (error: any) {

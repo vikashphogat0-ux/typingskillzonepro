@@ -28,8 +28,10 @@ export const PRESETS: ExamPreset[] = [
   { slug: "delhi-high-court-jja-en", name: "Delhi High Court JJA Restorer English Typing", lang: "en", durationSec: 600, profileId: "delhi-high-court-jja-en", mode: "offscreen", backspace: "full", profile: PROFILES["delhi-high-court-jja-en"] },
   { slug: "bsf-hcm-en", name: "BSF Head Constable Min. — English Typing (provisional rules)", lang: "en", durationSec: 600, profileId: "bsf-typing-en", mode: "offscreen", backspace: "disabled", profile: PROFILES["bsf-typing-en"] },
   { slug: "bsf-hcm-hi", name: "BSF Head Constable Min. — Hindi Typing (provisional rules)", lang: "hi", durationSec: 600, profileId: "bsf-typing-hi", mode: "offscreen", backspace: "disabled", profile: PROFILES["bsf-typing-hi"] },
-  { slug: "crpf-hcm-en", name: "CRPF Head Constable Min. — English Typing (provisional rules)", lang: "en", durationSec: 600, profileId: "crpf-hcm-en", mode: "offscreen", backspace: "word", profile: PROFILES["crpf-hcm-en"] },
-  { slug: "cisf-hcm-en", name: "CISF Head Constable Min. — English Typing (provisional rules)", lang: "en", durationSec: 600, profileId: "cisf-hcm-en", mode: "offscreen", backspace: "word", profile: PROFILES["cisf-hcm-en"] },
+  { slug: "crpf-hcm-en", name: "CRPF Head Constable Ministerial — English Typing", lang: "en", durationSec: 600, profileId: "crpf-hcm-en", mode: "offscreen", backspace: "word", profile: PROFILES["crpf-hcm-en"] },
+  { slug: "crpf-hcm-hi", name: "CRPF Head Constable Ministerial — Hindi Typing", lang: "hi", durationSec: 600, profileId: "crpf-hcm-hi", mode: "offscreen", backspace: "word", profile: PROFILES["crpf-hcm-hi"] },
+  { slug: "cisf-hcm-en", name: "CISF Head Constable Ministerial — English Typing", lang: "en", durationSec: 600, profileId: "cisf-hcm-en", mode: "offscreen", backspace: "word", profile: PROFILES["cisf-hcm-en"] },
+  { slug: "cisf-hcm-hi", name: "CISF Head Constable Ministerial — Hindi Typing", lang: "hi", durationSec: 600, profileId: "cisf-hcm-hi", mode: "offscreen", backspace: "word", profile: PROFILES["cisf-hcm-hi"] },
   { slug: "dsssb-ldc-en", name: "DSSSB — LDC English Typing (verify notification)", lang: "en", durationSec: 600, profileId: "dsssb-ldc-en", mode: "highlighted", backspace: "full", profile: PROFILES["dsssb-ldc-en"] },
   { slug: "dsssb-ldc-hi", name: "DSSSB — LDC Hindi Typing (verify notification)", lang: "hi", durationSec: 600, profileId: "dsssb-ldc-hi", mode: "highlighted", backspace: "full", profile: PROFILES["dsssb-ldc-hi"] },
   { slug: "hc-clerk-en", name: "High Court Clerk — English Typing (court-specific rules)", lang: "en", durationSec: 600, profileId: "hc-clerk-en", mode: "offscreen", backspace: "word", profile: PROFILES["hc-clerk-en"] },
@@ -47,10 +49,47 @@ export const PRESETS: ExamPreset[] = [
 
 /** Profiles whose core rules have been checked against the linked official notifications. */
 const VERIFIED_EXAM_SLUGS = new Set([
-  "ssc-chsl-en", "ssc-chsl-hi", "ssc-cgl-deo",
+  "ssc-chsl-en", "ssc-chsl-hi",
   "rrb-ntpc-en", "rrb-ntpc-hi", "dp-hcm-en", "dp-hcm-hi",
   "delhi-high-court-jja-en",
 ]);
+
+/**
+ * Detect configuration drift before an exam preset can silently run with
+ * a different language, duration, or scoring profile than its own catalog entry.
+ * Database-created templates are validated separately by adminValidation.
+ */
+export function validatePresetCatalog(presets: ExamPreset[] = PRESETS): string[] {
+  const issues: string[] = [];
+  const seen = new Set<string>();
+  for (const preset of presets) {
+    if (!preset.slug.trim()) issues.push("Preset slug must not be empty.");
+    if (seen.has(preset.slug)) issues.push(`Duplicate preset slug: ${preset.slug}`);
+    seen.add(preset.slug);
+    if (!Number.isFinite(preset.durationSec) || preset.durationSec <= 0) {
+      issues.push(`${preset.slug}: durationSec must be a positive finite number.`);
+    }
+    if (!preset.profile) {
+      issues.push(`${preset.slug}: scoring profile is missing.`);
+      continue;
+    }
+    if (preset.profile.id !== preset.profileId) {
+      issues.push(`${preset.slug}: profileId does not match the attached scoring profile.`);
+    }
+    if (preset.profile.language && preset.profile.language !== preset.lang) {
+      issues.push(`${preset.slug}: preset language does not match scoring profile language.`);
+    }
+    if (preset.profile.durationSec !== undefined && preset.profile.durationSec !== preset.durationSec) {
+      issues.push(`${preset.slug}: preset duration does not match scoring profile duration.`);
+    }
+  }
+  return issues;
+}
+
+/** RRB CBTST alone uses the one-minute warm-up and one-minute break sequence. */
+export function usesRrbCbtstPhases(profileId: string): boolean {
+  return profileId === "rrb-ntpc-en" || profileId === "rrb-ntpc-hi";
+}
 
 export function getBuiltInPreset(slug: string): ExamPreset | undefined {
   return PRESETS.find((p) => p.slug === slug);
