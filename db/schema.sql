@@ -152,6 +152,33 @@ CREATE TABLE IF NOT EXISTS institute_subscriptions (
 CREATE INDEX IF NOT EXISTS institute_subs_institute_idx ON institute_subscriptions(institute_id);
 CREATE INDEX IF NOT EXISTS institute_subs_plan_idx ON institute_subscriptions(plan_id);
 
+-- Invitation records reserve seats until accepted or expired.
+CREATE TABLE IF NOT EXISTS institute_invitations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  institution_id uuid NOT NULL REFERENCES institutions(id) ON DELETE CASCADE,
+  email text NOT NULL,
+  token_hash text NOT NULL UNIQUE,
+  invited_by uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at timestamptz NOT NULL DEFAULT (now() + interval '7 days'),
+  accepted_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS institute_invitations_email_idx
+  ON institute_invitations(lower(email), expires_at) WHERE accepted_at IS NULL;
+CREATE INDEX IF NOT EXISTS institute_invitations_institute_idx
+  ON institute_invitations(institution_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS institute_notification_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  institute_subscription_id uuid NOT NULL REFERENCES institute_subscriptions(id) ON DELETE CASCADE,
+  notification_key text NOT NULL,
+  recipient_email text NOT NULL,
+  sent_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (institute_subscription_id, notification_key)
+);
+CREATE INDEX IF NOT EXISTS institute_notification_log_sent_idx
+  ON institute_notification_log(sent_at DESC);
+
 
 /* Payment records -- stores verified payment details */
 CREATE TABLE IF NOT EXISTS payments (
@@ -209,6 +236,7 @@ CREATE TABLE IF NOT EXISTS audit_events (
 
 CREATE INDEX IF NOT EXISTS payments_user_idx ON payments(user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS payments_idempotency_key_uidx ON payments(idempotency_key) WHERE idempotency_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS payments_institute_idx ON payments(institute_id);
 
 -- a person belongs to at most one institution
 CREATE TABLE IF NOT EXISTS institution_members (
