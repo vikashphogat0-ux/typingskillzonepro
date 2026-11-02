@@ -32,9 +32,11 @@ export async function POST(req: Request) {
   if (!Array.isArray(b?.items) || !b.items.length) return Response.json({ error: "Send between 1 and 50 passages." }, { status: 400 });
   if (b.items.length > 50) return Response.json({ error: "Upload at most 50 passages per batch." }, { status: 413 });
 
+  const requestedSlugs = Array.isArray(b.templateSlugs) ? [...new Set(b.templateSlugs.filter((value: unknown): value is string => typeof value === "string").map((value: string) => value.trim()).filter(Boolean))] : [];
   const publishToAll = b.publishToAll === true;
   const slug = typeof b.templateSlug === "string" ? b.templateSlug.trim() : "";
-  if (!publishToAll && !slug) return Response.json({ error: "Choose a simulator or enable publish to all matching simulators." }, { status: 400 });
+  if (!publishToAll && !requestedSlugs.length && !slug) return Response.json({ error: "Choose an exam-format group or simulator destination." }, { status: 400 });
+  if (requestedSlugs.length > 30) return Response.json({ error: "An exam-format group cannot contain more than 30 simulators." }, { status: 422 });
 
   const checked = b.items.map((it: any, i: number) => {
     const item = it && typeof it === "object" && !Array.isArray(it) ? it : {};
@@ -50,9 +52,12 @@ export async function POST(req: Request) {
     const language = checked[0].clean.language;
     const destinations = publishToAll
       ? await db`SELECT id, slug, name, language FROM exam_templates WHERE is_active = true AND language = ${language} ORDER BY name`
-      : await db`SELECT id, slug, name, language FROM exam_templates WHERE slug = ${slug} AND is_active = true LIMIT 1`;
-    if (!destinations.length) return Response.json({ error: publishToAll ? "No active simulators exist for this language." : `The selected exam directory "${slug}" does not exist or is inactive.` }, { status: 422 });
-    if (!publishToAll && destinations[0].language !== language) return Response.json({ error: `Passage language does not match ${destinations[0].name}. Select ${destinations[0].language === "hi" ? "Hindi" : "English"}.` }, { status: 422 });
+      : requestedSlugs.length
+        ? await db`SELECT id, slug, name, language FROM exam_templates WHERE slug = ANY(${requestedSlugs}::text[]) AND is_active = true AND language = ${language} ORDER BY name`
+        : await db`SELECT id, slug, name, language FROM exam_templates WHERE slug = ${slug} AND is_active = true LIMIT 1`;
+    if (!destinations.length) return Response.json({ error: publishToAll ? "No active simulators exist for this language." : "The selected exam-format group has no active compatible simulators." }, { status: 422 });
+    if (requestedSlugs.length && destinations.length !== requestedSlugs.length) return Response.json({ error: "One or more selected simulators are inactive, missing, or use another language. Refresh the group list and retry." }, { status: 422 });
+    if (!publishToAll && destinations.some((destination: any) => destination.language !== language)) return Response.json({ error: "Every destination must use the selected passage language." }, { status: 422 });
 
     const basePayload = checked.map((item: any, index: number) => ({
       ingest_key: crypto.randomUUID(),
