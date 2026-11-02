@@ -1,6 +1,6 @@
 import { sql } from "@/lib/db";
 import { getUserId } from "@/lib/auth";
-import { getMembership } from "@/lib/inst-server";
+import { addInstituteStudent, getMembership } from "@/lib/inst-server";
 import { normalizeJoinCode } from "@/lib/institution";
 
 /** A student joins an approved institute with its join code. */
@@ -13,7 +13,11 @@ export async function POST(req: Request) {
   if (await getMembership(uid)) return Response.json({ error: "Your account already belongs to an institute." }, { status: 409 });
   const [i] = await sql()`SELECT id, name FROM institutions WHERE join_code = ${code} AND status = 'approved'`;
   if (!i) return Response.json({ error: "That code did not match an active institute." }, { status: 404 });
-  try { await sql()`INSERT INTO institution_members (institution_id, user_id, role) VALUES (${i.id}, ${uid}, 'student')`; }
-  catch { return Response.json({ error: "Your account already belongs to an institute." }, { status: 409 }); }
+  const enrollment = await addInstituteStudent(i.id, uid);
+  if (!enrollment.added) {
+    if (!enrollment.hasActivePlan) return Response.json({ error: "This institute does not currently have an active subscription. Contact the institute administrator." }, { status: 402 });
+    if (enrollment.seatsUsed >= enrollment.seatLimit) return Response.json({ error: "This institute has reached its student seat limit. Contact the institute administrator." }, { status: 409 });
+    return Response.json({ error: "Your account already belongs to an institute." }, { status: 409 });
+  }
   return Response.json({ ok: true, name: i.name });
 }
