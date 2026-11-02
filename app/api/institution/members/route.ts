@@ -12,6 +12,18 @@ export async function POST(req: Request) {
   const email = String(b?.email ?? "").trim().toLowerCase();
   const [u] = await sql()`SELECT id FROM users WHERE lower(email) = ${email}`;
   if (!u) return Response.json({ error: "No account with that email. Ask them to sign up first, or share your join code." }, { status: 404 });
+  if (role === "teacher") {
+    const [plan] = await sql()`
+      SELECT ip.plan_id
+      FROM institute_subscriptions ins
+      JOIN institute_plans ip ON ip.id = ins.plan_id AND ip.is_active = true
+      WHERE ins.institute_id = ${c.m.institution_id}
+        AND ins.status = 'active' AND (ins.ends_at IS NULL OR ins.ends_at > now())
+      ORDER BY ins.ends_at DESC NULLS LAST LIMIT 1
+    `;
+    if (!plan) return Response.json({ error: "An active institute subscription is required before adding teachers." }, { status: 402 });
+    if (plan.plan_id !== "institute_growth") return Response.json({ error: "Multiple teachers are available on the Institute Growth plan." }, { status: 403 });
+  }
   if (role === "student") {
     const enrollment = await addInstituteStudent(c.m.institution_id, u.id);
     if (!enrollment.added) {
