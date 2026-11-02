@@ -3,7 +3,6 @@ import { getUserId } from "@/lib/auth";
 import { getStudentAccess } from "@/lib/subscription";
 import { LIMITS } from "@/lib/pricing";
 import { buildReference, minCharsFor } from "@/lib/library";
-import { getBuiltInPreset } from "@/lib/presets";
 import { getRkcPassageLayout } from "@/lib/rkc-passage-format";
 
 /** Starts a simulator attempt. The server picks the text and keeps it, so the browser cannot choose its own reference. */
@@ -27,14 +26,13 @@ export async function POST(req: Request) {
   }
   if (!t) return Response.json({ error: "Simulator not found." }, { status: 404 });
 
-  const verified = getBuiltInPreset(String(t.slug));
-  const durationSec = verified?.durationSec ?? Number(t.duration_sec);
-  const examDisplayMode = verified?.mode ?? String(t.display_mode);
+  const durationSec = Number(t.duration_sec);
+  const examDisplayMode = String(t.display_mode);
   const requestedMode = b.practiceMode === "highlighted" || b.practiceMode === "unhighlighted" ? b.practiceMode : "exam";
   // Keep the simulator’s exam-defined display rule separate from the learner’s presentation choice.
   // Practice mode may change only the passage presentation, never the exam configuration stored with the attempt.
   const displayMode = examDisplayMode;
-  const scoring = verified?.profile ?? t.scoring;
+  const scoring = t.scoring;
   const requestedCustom = typeof b.customPassage === "string" ? b.customPassage.trim() : "";
   const customWords = requestedCustom ? requestedCustom.split(/\s+/u).filter(Boolean).length : 0;
   const requiredCustomWords = t.slug === "dp-hcm-en" ? 400 : t.slug === "dp-hcm-hi" ? 350 : t.slug === "rrb-ntpc-en" ? 300 : t.slug === "rrb-ntpc-hi" ? 250 : 10;
@@ -78,7 +76,7 @@ export async function POST(req: Request) {
     }
   }
   const reference = requestedCustom ? requestedCustom : buildReference(bodies, minCharsFor(durationSec));
-  const backspace = verified?.backspace ?? (t.slug.startsWith("bsf-") ? "disabled" : t.slug.startsWith("dp-hcm-") ? "full" : t.backspace);
+  const backspace = t.backspace;
 
   // Serialize starts per user, then re-count and insert inside the same transaction.
   // This prevents concurrent requests from bypassing the free daily allowance.
