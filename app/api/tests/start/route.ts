@@ -42,10 +42,27 @@ export async function POST(req: Request) {
 
   let assignmentId: string | null = null;
   if (b.assignmentId) {
-    const [a] = await db`SELECT a.id FROM assignments a JOIN institution_members im ON im.institution_id = a.institution_id AND im.user_id = ${uid}
-      WHERE a.id = ${String(b.assignmentId)} AND a.template_id = ${t.id}
-        AND (a.batch_id IS NULL OR a.batch_id IN (SELECT batch_id FROM batch_members WHERE user_id = ${uid}))`;
-    assignmentId = a?.id ?? null;
+    const requestedAssignmentId = String(b.assignmentId);
+    if (!/^[0-9a-f-]{36}$/i.test(requestedAssignmentId)) {
+      return Response.json({ error: "Invalid assignment." }, { status: 400 });
+    }
+    const [a] = await db`
+      SELECT a.id, a.due_at
+      FROM assignments a
+      JOIN institution_members im ON im.institution_id = a.institution_id AND im.user_id = ${uid} AND im.role = 'student'
+      JOIN institutions i ON i.id = a.institution_id AND i.status = 'approved'
+      JOIN institute_subscriptions ins ON ins.institute_id = i.id AND ins.status = 'active'
+        AND (ins.ends_at IS NULL OR ins.ends_at > now())
+      JOIN institute_plans ip ON ip.id = ins.plan_id AND ip.is_active = true
+      WHERE a.id = ${requestedAssignmentId} AND a.template_id = ${t.id}
+        AND (a.batch_id IS NULL OR a.batch_id IN (SELECT batch_id FROM batch_members WHERE user_id = ${uid}))
+      LIMIT 1
+    `;
+    if (!a) return Response.json({ error: "This assignment is not available to your account or simulator." }, { status: 404 });
+    if (a.due_at && new Date(a.due_at).getTime() < Date.now()) {
+      return Response.json({ error: "The deadline for this assignment has passed." }, { status: 410 });
+    }
+    assignmentId = a.id;
   }
 
   let bodies: string[];
