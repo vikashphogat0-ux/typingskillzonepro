@@ -7,6 +7,33 @@ export default function InstitutionsPage() {
   const [institutes, setInstitutes] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const submitApproval = async (id: string, status: "approved" | "suspended") => {
+    if (busyId) return;
+    setBusyId(id);
+    setMsg("");
+    try {
+      const response = await fetch("/api/admin/institutions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ id, status }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error ?? `Could not ${status} this institute.`);
+      const refreshed = await api("/api/admin/institutions");
+      if (!refreshed.ok || !Array.isArray(refreshed.data)) {
+        throw new Error(refreshed.data?.error ?? "Status updated, but the institute list could not be refreshed.");
+      }
+      setInstitutes(refreshed.data);
+      setMsg(`Institute ${status} successfully.`);
+    } catch (error) {
+      setMsg(error instanceof Error ? error.message : "Unable to update institute status.");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   useEffect(() => {
     api("/api/admin/institutions")
@@ -26,6 +53,7 @@ export default function InstitutionsPage() {
     <div className="page admin">
       <h1>Institutes</h1>
       <nav className="crumbs"><a href="/admin">Admin Home</a> / Institutes</nav>
+      {msg && <p className="hint" role="status" aria-live="polite">{msg}</p>}
       <div className="tbl"><table>
         <thead>
           <tr>
@@ -52,8 +80,8 @@ export default function InstitutionsPage() {
                 </span>
               </td>
               <td>
-                {inst.status !== "approved" && <button className="link" onClick={() => submitApproval(inst.id, "approved")}>Approve</button>}
-                {inst.status === "approved" && <button className="link" onClick={() => confirm(`Suspend ${inst.name}?`) && submitApproval(inst.id, "suspended")}>Suspend</button>}
+                {inst.status !== "approved" && <button className="link" type="button" disabled={busyId !== null} onClick={() => void submitApproval(inst.id, "approved")}>{busyId === inst.id ? "Updating…" : "Approve"}</button>}
+                {inst.status === "approved" && <button className="link" type="button" disabled={busyId !== null} onClick={() => { if (confirm(`Suspend ${inst.name}?`)) void submitApproval(inst.id, "suspended"); }}>{busyId === inst.id ? "Updating…" : "Suspend"}</button>}
               </td>
             </tr>
           ))}
