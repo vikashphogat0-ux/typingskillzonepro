@@ -31,7 +31,7 @@ export default function PassageStudioPage() {
   const [language, setLanguage] = useState<Lang>("en");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [destination, setDestination] = useState("all");
+  const [destinationGroup, setDestinationGroup] = useState("");
   const [fileName, setFileName] = useState("");
   const [extracted, setExtracted] = useState<{ title: string; body: string }[]>([]);
   const [query, setQuery] = useState("");
@@ -60,6 +60,21 @@ export default function PassageStudioPage() {
   useEffect(() => { void load(); }, [load]);
 
   const availableTemplates = templates.filter(t => t.is_active && t.language === language);
+  const formatGroups = useMemo(() => {
+    const groups = new Map<string, { id: string; label: string; layout: string; display: string; templates: Template[] }>();
+    for (const template of availableTemplates) {
+      const layout = template.passage_layout ?? "continuous";
+      const display = template.display_mode;
+      const id = layout + "|" + display;
+      const layoutLabel = layout === "continuous" ? "Continuous text" : layout === "paragraph-tab" ? "Paragraph / Tab layout" : "Source-preserved layout";
+      const displayLabel = display === "offscreen" ? "Paper-to-screen" : display === "unhighlighted" ? "Unhighlighted" : "Highlighted";
+      const current = groups.get(id) ?? { id, label: layoutLabel + " · " + displayLabel, layout, display, templates: [] };
+      current.templates.push(template); groups.set(id, current);
+    }
+    return [...groups.values()].sort((a,b) => a.label.localeCompare(b.label));
+  }, [availableTemplates]);
+  const selectedGroup = formatGroups.find(group => group.id === destinationGroup) ?? null;
+  useEffect(() => { if (!selectedGroup && formatGroups.length) setDestinationGroup(formatGroups[0].id); }, [selectedGroup, formatGroups]);
   const formatTemplate=templates.find(template=>template.slug===formatSlug)??null;
   useEffect(()=>{if(!formatTemplate)return;setFormatSettings({passageLayout:formatTemplate.passage_layout??"source-preserved",fontSizePt:formatTemplate.font_size_pt??12,passageFontFamily:formatTemplate.passage_font_family??"system",passageAlignment:formatTemplate.passage_alignment??"left",passageLineSpacing:formatTemplate.passage_line_spacing??1.5,passageParagraphSpacing:formatTemplate.passage_paragraph_spacing??8,printPageSize:formatTemplate.print_page_size??"A4"});},[formatSlug,formatTemplate?.slug]);
   const saveFormatting=async()=>{if(!formatTemplate||busy)return;setBusy(true);setMessage("");try{const result=await send("/api/admin/templates",{slug:formatTemplate.slug,name:formatTemplate.name,language:formatTemplate.language,durationSec:formatTemplate.duration_sec,displayMode:formatTemplate.display_mode,backspace:formatTemplate.backspace,scoring:formatTemplate.scoring,isActive:formatTemplate.is_active,presentationOnly:true,...formatSettings});if(!result.ok)throw new Error(result.data.error??"Could not save simulator formatting.");setMessage("Presentation settings saved for "+formatTemplate.name+". Exam scoring and key rules were not changed.");await load();}catch(error){setMessage(error instanceof Error?error.message:"Could not save formatting.");}finally{setBusy(false);}};
@@ -145,15 +160,14 @@ export default function PassageStudioPage() {
     const checked = items.map(item => validatePassage({ ...item, language }));
     const invalid = checked.findIndex(item => !item.ok);
     if (invalid >= 0) { setMessage("Passage " + (invalid + 1) + ": " + checked[invalid].errors.join(" ")); return; }
-    if (destination !== "all" && !availableTemplates.some(t => t.slug === destination)) {
-      setMessage("Choose an active simulator that matches this passage language."); return;
+    if (!selectedGroup || !selectedGroup.templates.length) {
+      setMessage("Choose a valid exam-format group for this passage language."); return;
     }
     setBusy(true); setMessage("");
     try {
       const result = await send("/api/admin/passages", {
         items: checked.map(x => x.clean),
-        templateSlug: destination === "all" ? undefined : destination,
-        publishToAll: destination === "all",
+        templateSlugs: selectedGroup.templates.map(template => template.slug),
         sourceType,
         sourceFilename: sourceType === "pdf-import" ? fileName : undefined,
       });
@@ -220,7 +234,8 @@ export default function PassageStudioPage() {
         <div className="form">
           <label>Passage title<input value={title} maxLength={120} onChange={e => setTitle(e.target.value)} /></label>
           <label>Language<select value={language} onChange={e => setLanguage(e.target.value as Lang)}><option value="en">English</option><option value="hi">Hindi</option></select></label>
-          <label>Publication destination<select value={destination} onChange={e => setDestination(e.target.value)}><option value="all">All active compatible simulators</option>{availableTemplates.map(t => <option key={t.slug} value={t.slug}>{t.name}</option>)}</select></label>
+          <label>Exam-format group<select value={destinationGroup} onChange={e => setDestinationGroup(e.target.value)} disabled={!formatGroups.length}>{formatGroups.map(group => <option key={group.id} value={group.id}>{group.label} · {group.templates.length} exams</option>)}</select></label>
+          {selectedGroup && <div className="passage-format-group-preview"><strong>Will publish to {selectedGroup.templates.length} compatible exam(s)</strong><p>{selectedGroup.templates.map(template => template.name).join(" · ")}</p><small>{language === "hi" ? "Hindi" : "English"} · {selectedGroup.layout} · {selectedGroup.display}</small></div>}
           <label>Original passage<textarea rows={9} lang={language} value={body} onChange={e => setBody(e.target.value)} onBlur={() => setBody(cleanBody(body))} /></label>
           <p className="hint">{countWords(body)} words · {body.length} characters</p>
           {validation.errors.map(error => <p className="err" key={error}>{error}</p>)}
