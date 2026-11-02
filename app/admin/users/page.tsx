@@ -2,8 +2,8 @@
 import { useCallback, useEffect, useState } from "react";
 type UserRow = { id:string; name:string|null; email:string; role:string; created_at:string; plan:string|null; tests:number; last_test:string|null };
 export default function AdminUsersPage() {
- const [rows,setRows]=useState<UserRow[]>([]),[q,setQ]=useState(""),[msg,setMsg]=useState(""),[denied,setDenied]=useState(false);
- const load=useCallback(async()=>{const r=await fetch("/api/admin/users?q="+encodeURIComponent(q),{cache:"no-store"});if(r.status===403){setDenied(true);return;}const d=await r.json().catch(()=>[]);if(r.ok)setRows(d);else setMsg(d.error||"Could not load users.");},[q]);
+ const [rows,setRows]=useState<UserRow[]>([]),[q,setQ]=useState(""),[msg,setMsg]=useState(""),[denied,setDenied]=useState(false),[canManageRoles,setCanManageRoles]=useState(false),[loading,setLoading]=useState(false);
+ const load=useCallback(async()=>{setLoading(true);try{const r=await fetch("/api/admin/users?includeCapabilities=1&q="+encodeURIComponent(q),{cache:"no-store"});if(r.status===403){setDenied(true);return;}const d=await r.json().catch(()=>({}));if(r.ok){setRows(Array.isArray(d.rows)?d.rows:[]);setCanManageRoles(Boolean(d.capabilities?.canManageRoles));}else setMsg(d.error||"Could not load users.");}catch{setMsg("Network error while loading users.");}finally{setLoading(false);}},[q]);
  useEffect(()=>{void load();},[load]);
  const setRole=async(id:string,role:"student"|"admin")=>{if(!confirm("Change this account role to "+role+"?"))return;const r=await fetch("/api/admin/users",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,role})});const d=await r.json().catch(()=>({}));setMsg(r.ok?"User role updated.":d.error||"Update failed.");if(r.ok)void load();};
  if(denied)return <main className="page"><h1>User management</h1><p>Admin access is required.</p></main>;
