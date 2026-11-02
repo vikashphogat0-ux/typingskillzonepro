@@ -177,6 +177,7 @@ export async function processPaidOrder(
           verified_at = now(), paid_at = now(), updated_at = now(), failure_reason = NULL
         WHERE order_id = ${orderId} AND provider = 'cashfree' AND status = 'pending'
           AND institute_id = ${payment.institute_id} AND plan_id = ${String(payment.plan_id)}
+          AND EXISTS (SELECT 1 FROM institute_plans WHERE plan_id = ${partsPlan} AND is_active = true)
           AND amount_paise = ${amountPaise} AND currency = ${currency}
           AND EXISTS (SELECT 1 FROM lock_institute)
         RETURNING institute_id, plan_id
