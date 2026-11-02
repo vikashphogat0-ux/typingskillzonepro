@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { PRESETS, getBuiltInPreset } from "@/lib/presets";
+import { PRESETS } from "@/lib/presets";
 import { getRkcPassageLayout } from "@/lib/rkc-passage-format";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
@@ -10,15 +10,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       FROM exam_templates WHERE slug = ${slug} AND is_active = true`;
     if (!t) return Response.json({ error: "Simulator not found." }, { status: 404 });
 
-    const verified = getBuiltInPreset(t.slug);
     return Response.json({
       slug: t.slug,
       name: t.name,
       language: t.language,
-      duration_sec: verified?.durationSec ?? t.duration_sec,
-      display_mode: verified?.mode ?? t.display_mode,
-      backspace: verified?.backspace ?? (String(t.slug).startsWith("bsf-") ? "disabled" : String(t.slug).startsWith("dp-hcm-") ? "full" : t.backspace),
-      scoring: verified?.profile ?? t.scoring,
+      duration_sec: t.duration_sec,
+      display_mode: t.display_mode,
+      backspace: t.backspace,
+      scoring: t.scoring,
       description: t.description,
       passage_layout: t.passage_layout || getRkcPassageLayout(String(t.slug)),
       passage_font_family: t.passage_font_family ?? "system",
