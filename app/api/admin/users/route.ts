@@ -6,6 +6,7 @@ const deny = () => Response.json({ error: "Admin access required." }, { status: 
 export async function GET(req: Request) {
   if (!(await requireAdmin(req))) return deny();
   const u = new URL(req.url);
+  const includeCapabilities = u.searchParams.get("includeCapabilities") === "1";
   const q = (u.searchParams.get("q") ?? "").trim();
   const like = `%${q.replace(/[%_]/g, "")}%`;
   const rows = await sql()`
@@ -16,6 +17,10 @@ export async function GET(req: Request) {
     FROM users u
     WHERE ${q} = '' OR u.name ILIKE ${like} OR u.email ILIKE ${like}
     ORDER BY u.created_at DESC LIMIT 200`;
+  if (includeCapabilities) {
+    const canManageRoles = Boolean(await requireSuperAdmin(req));
+    return Response.json({ rows, capabilities: { canManageRoles } });
+  }
   return Response.json(rows);
 }
 
