@@ -498,3 +498,11 @@ body:has(.exam-catalogue) .exam-results-heading{
 .ps2-message{margin:14px 0}
 @media(max-width:900px){.ps2-config-grid,.ps2-publish-grid{grid-template-columns:1fr}.ps2-header{align-items:flex-start;flex-direction:column}}
 @media(max-width:680px){.ps2-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.ps2-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.ps2-form-grid{grid-template-columns:1fr}.ps2-full{grid-column:auto}.ps2-publish-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.ps2-panel{padding:16px}.ps2-header{padding:20px}}
+
+
+/* Explicit exam picker inside each passage-format group */
+.ps2-exam-select-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:13px 0}
+.ps2-exam-select-list label{display:flex;align-items:flex-start;gap:9px;min-width:0;padding:10px 12px;border:1px solid rgba(128,166,208,.24);border-radius:9px;background:rgba(7,22,40,.55);color:#e6f1ff;font-size:12px;line-height:1.45;cursor:pointer}
+.ps2-exam-select-list input{flex:0 0 auto;width:16px;height:16px;margin:1px 0 0;accent-color:#087cf0}
+.ps2-exam-select-list span{min-width:0}
+@media(max-width:620px){.ps2-exam-select-list{grid-template-columns:1fr}}
