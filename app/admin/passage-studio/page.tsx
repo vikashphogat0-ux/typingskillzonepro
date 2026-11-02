@@ -169,7 +169,7 @@ export default function PassageStudioPage() {
     setBusy(true); setMessage("");
     try {
       const result = await send("/api/admin/passages", {
-        items: checked.map((x, index) => ({ ...x.clean, title: x.clean.title.trim() || ((selectedGroup?.templates[0]?.slug ?? "PASSAGE").toUpperCase().replace(/[^A-Z0-9]+/g, "_") + "_" + (language === "hi" ? "HI" : "EN") + "_" + new Date().toISOString().slice(0, 10).replace(/-/g, "") + "_" + String(index + 1).padStart(3, "0")) })),
+        items: checked.map((x, index) => ({ ...x.clean, title: (!x.clean.title.trim() || /^passage\s+\d+$/i.test(x.clean.title.trim())) ? ((selectedGroup?.templates[0]?.slug ?? "PASSAGE").toUpperCase().replace(/[^A-Z0-9]+/g, "_") + "_" + (language === "hi" ? "HI" : "EN") + "_" + new Date().toISOString().slice(0, 10).replace(/-/g, "") + "_" + String(index + 1).padStart(3, "0")) : x.clean.title })),
         templateSlugs: selectedGroup.templates.map(template => template.slug),
         sourceType,
         sourceFilename: sourceType === "pdf-import" ? fileName : undefined,
@@ -311,5 +311,4 @@ export default function PassageStudioPage() {
       {editing&&<div className="admin-preview-overlay" role="dialog" aria-modal="true" aria-label="Edit master passage"><section className="admin-preview-dialog"><header><div><span>MASTER PASSAGE · NEW VERSION</span><h3>Edit source passage</h3><small>Version {editing.version} → {editing.version+1}</small></div><button type="button" onClick={()=>setEditing(null)}>Close ×</button></header><label>Title<input value={editing.title} onChange={e=>setEditing({...editing,title:e.target.value})}/></label><label>Language<select value={editing.language} onChange={e=>setEditing({...editing,language:e.target.value as Lang})}><option value="en">English</option><option value="hi">Hindi</option></select></label><label>Passage text<textarea rows={14} lang={editing.language} value={editing.body} onChange={e=>setEditing({...editing,body:e.target.value})}/></label><p className="hint">{countWords(editing.body)} words · {editing.distribution_count} destinations</p>{editingValidation?.errors.map(error=><p className="err" key={error}>{error}</p>)}<footer><button type="button" onClick={()=>setEditing(null)}>Cancel</button><button type="button" className="go" disabled={busy||!editingValidation?.ok} onClick={()=>void saveEdit()}>{busy?"Publishing…":"Save and publish new version"}</button></footer></section></div>}
     </main>
   );
-}
 }
