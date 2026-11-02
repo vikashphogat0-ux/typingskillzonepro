@@ -72,7 +72,14 @@ export async function getStudentAccess(
     SELECT 1 AS ok
     FROM institution_members im
     JOIN institutions i ON i.id = im.institution_id
+    JOIN institute_subscriptions ins
+      ON ins.institute_id = i.id
+      AND ins.status = 'active'
+      AND (ins.ends_at IS NULL OR ins.ends_at > now())
+    JOIN institute_plans ip
+      ON ip.id = ins.plan_id AND ip.is_active = true
     WHERE im.user_id = ${uid}
+      AND im.role = 'student'
       AND i.status = 'approved'
     LIMIT 1
   `;
