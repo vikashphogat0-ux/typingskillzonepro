@@ -26,6 +26,8 @@ export default function PassageStudioPage() {
   const [sources, setSources] = useState<Source[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
+  const [templateLoadError, setTemplateLoadError] = useState("");
+  const [repositoryLoadError, setRepositoryLoadError] = useState("");
   const [busy, setBusy] = useState(false);
   const [workflowStep, setWorkflowStep] = useState<1 | 2 | 3 | 4>(1);
   const [uploadMode, setUploadMode] = useState<"file" | "paste" | "manual">("file");
@@ -46,17 +48,38 @@ export default function PassageStudioPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setMessage("");
+    setTemplateLoadError("");
+    setRepositoryLoadError("");
     try {
-      const [a, b] = await Promise.all([
-        request("/api/admin/passage-studio" + (showArchived ? "?status=all" : "")),
+      // Load exam templates independently: a missing passage repository migration
+      // must not hide the exam-format groups needed to configure a new import.
+      const [templateResult, repositoryResult] = await Promise.allSettled([
         request("/api/admin/templates"),
+        request("/api/admin/passage-studio" + (showArchived ? "?status=all" : "")),
       ]);
-      if (a.status === 403 || b.status === 403) { setMessage("Admin access required. Sign in with an administrator account."); return; }
-      if (!a.ok || !b.ok) throw new Error(a.data.error ?? b.data.error ?? "Unable to load Passage Studio.");
-      setSources(Array.isArray(a.data) ? a.data : []);
-      setTemplates(Array.isArray(b.data) ? b.data : []);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to load Passage Studio."); }
-    finally { setLoading(false); }
+
+      if (templateResult.status === "fulfilled" && templateResult.value.ok) {
+        const rows = Array.isArray(templateResult.value.data) ? templateResult.value.data as Template[] : [];
+        setTemplates(rows);
+        if (!rows.length) setTemplateLoadError("No exam templates are present in the database. Apply the approved exam catalogue and simulator-formatting migrations, then reload.");
+      } else {
+        const detail = templateResult.status === "fulfilled" ? templateResult.value.data?.error : "";
+        setTemplateLoadError(detail || "Exam templates could not be loaded. Check admin access and the exam_templates schema.");
+      }
+
+      if (repositoryResult.status === "fulfilled" && repositoryResult.value.ok) {
+        setSources(Array.isArray(repositoryResult.value.data) ? repositoryResult.value.data : []);
+      } else {
+        setSources([]);
+        const detail = repositoryResult.status === "fulfilled" ? repositoryResult.value.data?.error : "";
+        setRepositoryLoadError(detail || "The master passage repository could not be loaded. Check the additive passage intelligence migration.");
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to load Passage Studio.");
+    } finally {
+      setLoading(false);
+    }
   }, [showArchived]);
 
   useEffect(() => { void load(); }, [load]);
@@ -65,7 +88,8 @@ export default function PassageStudioPage() {
   const formatGroups = useMemo(() => {
     const groups = new Map<string, { id: string; label: string; layout: string; display: string; templates: Template[] }>();
     for (const template of availableTemplates) {
-      const layout = template.passage_layout ?? "continuous";
+      const rawLayout = template.passage_layout ?? "continuous";
+      const layout = rawLayout === "paragraphs" ? "paragraph-tab" : rawLayout === "paper-to-screen" ? "source-preserved" : rawLayout;
       const display = template.display_mode;
       const id = layout + "|" + display;
       const layoutLabel = layout === "continuous" ? "Continuous text" : layout === "paragraph-tab" ? "Paragraph / Tab layout" : "Source-preserved layout";
@@ -226,13 +250,15 @@ export default function PassageStudioPage() {
       </header>
 
       <div className="ps2-metrics">
-        <div><span>MASTER PASSAGES</span><strong>{sources.filter(s => !s.archived_at).length}</strong></div>
-        <div><span>SIMULATOR PUBLICATIONS</span><strong>{sources.reduce((n, s) => n + Number(s.published_count || 0), 0)}</strong></div>
-        <div><span>ACTIVE EXAM SIMULATORS</span><strong>{templates.filter(t => t.is_active).length}</strong></div>
-        <div><span>ARCHIVED</span><strong>{repositoryStats.archived}</strong></div>
+        <div><span>MASTER PASSAGES</span><strong>{repositoryLoadError ? "—" : sources.filter(s => !s.archived_at).length}</strong></div>
+        <div><span>SIMULATOR PUBLICATIONS</span><strong>{repositoryLoadError ? "—" : sources.reduce((n, s) => n + Number(s.published_count || 0), 0)}</strong></div>
+        <div><span>ACTIVE EXAM SIMULATORS</span><strong>{templateLoadError ? "—" : templates.filter(t => t.is_active).length}</strong></div>
+        <div><span>ARCHIVED</span><strong>{repositoryLoadError ? "—" : repositoryStats.archived}</strong></div>
       </div>
 
       {message && <p className="flash-msg ps2-message" role="status">{message}</p>}
+      {templateLoadError && <p className="err ps2-message" role="alert">{templateLoadError}</p>}
+      {repositoryLoadError && <p className="warn ps2-message" role="status">{repositoryLoadError}</p>}
       {loading && <p className="hint">Loading passage repository and exam formats…</p>}
 
       <section className="ps2-workflow" aria-label="Passage publishing workflow">
