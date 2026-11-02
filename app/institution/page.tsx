@@ -68,7 +68,7 @@ function Billing({ me, say }: { me: any; say: any }) {
   useEffect(() => {
     const orderId = new URLSearchParams(window.location.search).get("order_id");
     if (!orderId) return;
-    let stopped = false; let count = 0; let timer: ReturnType<typeof setTimeout>;
+    let stopped = false; let count = 0; let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = async () => {
       const r = await api(`/api/institution/billing?order_id=${encodeURIComponent(orderId)}`);
       if (r.ok) {
@@ -81,7 +81,7 @@ function Billing({ me, say }: { me: any; say: any }) {
       else if (!stopped) setError("Payment confirmation is still pending. Refresh this tab shortly; do not pay again until status is checked.");
     };
     void poll();
-    return () => { stopped = true; clearTimeout(timer); };
+    return () => { stopped = true; if (timer) clearTimeout(timer); };
   }, []);
   const checkout = async (planId: string) => {
     if (!owner) return;
@@ -130,7 +130,7 @@ function Students({ inst, say, reload }: { inst: any; say: any; reload: () => vo
   const load = useCallback(() => { api("/api/institution/students").then((r) => setRows(r.ok ? r.data : [])); }, []);
   useEffect(load, [load]);
   const show = async (s: any) => { if (open?.id === s.id) return setOpen(null); setOpen(s); const r = await api(`/api/institution/students?userId=${s.id}`); setAtt(r.ok ? r.data : []); };
-  const add = async () => { const r = await post("/api/institution/members", { email, role: "student" }); say(r, "Student added."); if (r.ok) { setEmail(""); load(); reload(); } };\n  const importCsv = async () => { const emails = [...new Set(bulkText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi) ?? [])]; if (!emails.length) return say({ ok: false, data: { error: "Choose a CSV file or paste email addresses first." } }, ""); const r = await post("/api/institution/invitations", { emails }); say(r, `Import finished: ${r.data.counts?.enrolled ?? 0} enrolled, ${r.data.counts?.invited ?? 0} invitations sent.`); if (r.ok || r.data.results) { setBulkText(""); load(); reload(); } };
+  const add = async () => { const r = await post("/api/institution/invitations", { emails: [email] }); const status = r.data.results?.[0]?.status; say(r, status === "invited" ? "Invitation email sent." : status === "enrolled" ? "Student enrolled." : "Enrollment/invitation processed."); if (r.ok || r.data.results) { setEmail(""); load(); reload(); } };\n  const importCsv = async () => { const emails = [...new Set(bulkText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi) ?? [])]; if (!emails.length) return say({ ok: false, data: { error: "Choose a CSV file or paste email addresses first." } }, ""); const r = await post("/api/institution/invitations", { emails }); say(r, `Import finished: ${r.data.counts?.enrolled ?? 0} enrolled, ${r.data.counts?.invited ?? 0} invitations sent.`); if (r.ok || r.data.results) { setBulkText(""); load(); reload(); } };
   const remove = async (s: any) => { if (confirm(`Remove ${s.name ?? s.email} from your institute?`)) { const r = await del(`/api/institution/members?userId=${s.id}`); say(r, "Student removed."); load(); reload(); } };
   const shown = (rows ?? []).filter((s) => `${s.name} ${s.email}`.toLowerCase().includes(q.toLowerCase()));
   return (<>
