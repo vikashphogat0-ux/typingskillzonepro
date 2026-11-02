@@ -1,4 +1,4 @@
-const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+const escapeHtml = (value: string) => value.replace(/[&<>"]/g, (c) => c === "&" ? "&amp;" : c === "<" ? "&lt;" : c === ">" ? "&gt;" : "&quot;");
 
 export async function sendTransactionalEmail(input: { to: string; subject: string; text: string; html?: string }) {
   const key = process.env.RESEND_API_KEY?.trim();
