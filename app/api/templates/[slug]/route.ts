@@ -5,7 +5,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   const { slug } = await params;
   try {
     const db = sql();
-    const [t] = await db`SELECT id, slug, name, language, duration_sec, display_mode, backspace, scoring, description FROM exam_templates WHERE slug = ${slug} AND is_active`;
+    const [t] = await db`SELECT id, slug, name, language, duration_sec, display_mode, backspace, scoring, description, passage_layout, enter_key_policy, tab_key_policy, font_size_pt, passage_font_family, passage_alignment, passage_line_spacing, passage_paragraph_spacing, print_page_size FROM exam_templates WHERE slug = ${slug} AND is_active`;
     if (!t) return Response.json({ error: "Exam not found." }, { status: 404 });
     const [p] = await db`SELECT count(DISTINCT user_id)::int AS participants FROM results WHERE template_id = ${t.id} AND NOT flagged`;
     const uid = await getUserId(req).catch(() => null);
