@@ -833,19 +833,3 @@ body:has(.exam-catalogue) .tsz-content{max-width:none}.exam-catalogue{max-width:
 .exam-popular-list{min-width:0;flex:1}
 @media(max-width:760px){.exam-catalogue-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.exam-catalogue-stats>div{min-height:70px;padding:11px 12px}}
 @media(max-width:420px){.exam-catalogue-stats{gap:8px}.exam-catalogue-stats span{font-size:9px}.exam-popular{gap:9px}.exam-popular-label{width:100%;padding-top:0}}
-
-
-/* Public exam directory must not inherit the legacy fixed-sidebar main offset. */
-body:has(.exam-catalogue) main.exam-catalogue{
-  width:100%;
-  max-width:1320px;
-  margin:0 auto!important;
-  padding:42px clamp(16px,4vw,42px) 70px!important;
-  box-sizing:border-box;
-}
-@media(max-width:760px){
-  body:has(.exam-catalogue) main.exam-catalogue{padding:25px 16px 50px!important}
-}
-@media(max-width:520px){
-  body:has(.exam-catalogue) main.exam-catalogue{padding:18px 12px 45px!important}
-}
