@@ -1,7 +1,7 @@
 import { sql } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { grantPro, revokePro } from "@/lib/subscription";
-import { STUDENT_PLANS, type StudentPlanId } from "@/lib/pricing";
+import { STUDENT_PLANS, getInstitutePlan, type InstitutePlanId, type StudentPlanId } from "@/lib/pricing";
 
 const deny = () => Response.json({ error: "Admin access required." }, { status: 403 });
 const paidPlanIds = Object.keys(STUDENT_PLANS).filter((id) => id !== "free") as StudentPlanId[];
@@ -60,10 +60,11 @@ export async function POST(req: Request) {
     }
     const days = Number(b.days);
     if (!Number.isInteger(days) || days < 1 || days > 3650) return Response.json({ error: "Days must be between 1 and 3650." }, { status: 400 });
-    const plan = planId === "institute_basic" ? { monthly: 149900, annual: 1798800, seats: 30 } : { monthly: 299900, annual: 3598800, seats: 100 };
+    const plan = getInstitutePlan(planId as InstitutePlanId);
+    if (!plan) return Response.json({ error: "Institute plan is not configured." }, { status: 400 });
     const [catalog] = await db`
       INSERT INTO institute_plans (plan_id, monthly_amount_paise, annual_amount_paise, max_student_seats, is_active)
-      VALUES (${planId}, ${plan.monthly}, ${plan.annual}, ${plan.seats}, true)
+      VALUES (${planId}, ${plan.monthlyAmountPaise}, ${plan.annualAmountPaise}, ${plan.maxStudentSeats}, true)
       ON CONFLICT (plan_id) DO UPDATE SET monthly_amount_paise = EXCLUDED.monthly_amount_paise,
         annual_amount_paise = EXCLUDED.annual_amount_paise, max_student_seats = EXCLUDED.max_student_seats, is_active = true
       RETURNING id
