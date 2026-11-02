@@ -18,7 +18,8 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const raw = Array.isArray(body?.emails) ? body.emails : [body?.email];
   if (!raw.length || raw.length > 500) return Response.json({ error: "Send between 1 and 500 email addresses per import." }, { status: 400 });
-  const normalized: string[] = raw.map((v: unknown) => String(v ?? "").trim().toLowerCase()).filter((email: string) => email.length > 0);\n  const emails: string[] = [...new Set<string>(normalized)];
+  const normalized: string[] = raw.map((v: unknown) => String(v ?? "").trim().toLowerCase()).filter((email: string) => email.length > 0);
+  const emails: string[] = [...new Set<string>(normalized)];
   if (!emails.length || emails.some((email) => email.length > 254 || !emailPattern.test(email))) return Response.json({ error: "One or more email addresses are invalid." }, { status: 422 });
 
   const results: { email: string; status: string; error?: string }[] = [];
