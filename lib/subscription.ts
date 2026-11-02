@@ -163,11 +163,10 @@ export async function processPaidOrder(
   // Institute orders are tagged with the catalog plan and billing interval.
   // Only the independently verified webhook can activate this entitlement.
   if (payment.institute_id) {
-    const [partsPlan, interval] = String(payment.plan_id ?? "").split("_").length > 2
-      ? [String(payment.plan_id).replace(/_(monthly|annual)$/, ""), String(payment.plan_id).match(/_(monthly|annual)$/)?.[1] ?? ""]
-      : ["", ""];
-    if (!["institute_basic", "institute_growth"].includes(partsPlan) || !["monthly", "annual"].includes(interval)) return false;
-    const durationDays = interval === "annual" ? 365 : 30;
+    const instituteBilling = parseInstituteBillingPlan(payment.plan_id);
+    if (!instituteBilling) return false;
+    const partsPlan = instituteBilling.planId;
+    const durationDays = instituteBilling.durationDays;
     const [result] = await db`
       WITH lock_institute AS MATERIALIZED (
         SELECT pg_advisory_xact_lock(hashtextextended(${String(payment.institute_id)}::text, 0))
