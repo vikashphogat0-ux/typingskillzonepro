@@ -36,6 +36,7 @@ export default function PassageStudioPage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [destinationGroup, setDestinationGroup] = useState("");
+  const [selectedTemplateSlugs, setSelectedTemplateSlugs] = useState<string[]>([]);
   const [fileName, setFileName] = useState("");
   const [extracted, setExtracted] = useState<{ title: string; body: string }[]>([]);
   const [query, setQuery] = useState("");
@@ -88,7 +89,7 @@ export default function PassageStudioPage() {
   const formatGroups = useMemo(() => {
     const groups = new Map<string, { id: string; label: string; layout: string; display: string; templates: Template[] }>();
     for (const template of availableTemplates) {
-      const rawLayout = template.passage_layout ?? "continuous";
+      const rawLayout = String(template.passage_layout ?? "continuous");
       const layout = rawLayout === "paragraphs" ? "paragraph-tab" : rawLayout === "paper-to-screen" ? "source-preserved" : rawLayout;
       const display = template.display_mode;
       const id = layout + "|" + display;
@@ -100,8 +101,10 @@ export default function PassageStudioPage() {
     return [...groups.values()].sort((a,b) => a.label.localeCompare(b.label));
   }, [availableTemplates]);
   const selectedGroup = formatGroups.find(group => group.id === destinationGroup) ?? null;
+  const selectedExams = selectedGroup ? selectedGroup.templates.filter(template => selectedTemplateSlugs.includes(template.slug)) : [];
   const autoTitle = (selectedGroup?.templates[0]?.slug ?? "PASSAGE").toUpperCase().replace(/[^A-Z0-9]+/g, "_") + "_" + (language === "hi" ? "HI" : "EN") + "_" + new Date().toISOString().slice(0, 10).replace(/-/g, "") + "_001";
   useEffect(() => { if (!selectedGroup && formatGroups.length) setDestinationGroup(formatGroups[0].id); }, [selectedGroup, formatGroups]);
+  useEffect(() => { if (selectedGroup) setSelectedTemplateSlugs(selectedGroup.templates.map(template => template.slug)); }, [destinationGroup, templates.length, language]);
   const formatTemplate=templates.find(template=>template.slug===formatSlug)??null;
   useEffect(()=>{if(!formatTemplate)return;setFormatSettings({passageLayout:formatTemplate.passage_layout??"source-preserved",fontSizePt:formatTemplate.font_size_pt??12,passageFontFamily:formatTemplate.passage_font_family??"system",passageAlignment:formatTemplate.passage_alignment??"left",passageLineSpacing:formatTemplate.passage_line_spacing??1.5,passageParagraphSpacing:formatTemplate.passage_paragraph_spacing??8,printPageSize:formatTemplate.print_page_size??"A4"});},[formatSlug,formatTemplate?.slug]);
   const saveFormatting=async()=>{if(!formatTemplate||busy)return;setBusy(true);setMessage("");try{const result=await send("/api/admin/templates",{slug:formatTemplate.slug,name:formatTemplate.name,language:formatTemplate.language,durationSec:formatTemplate.duration_sec,displayMode:formatTemplate.display_mode,backspace:formatTemplate.backspace,scoring:formatTemplate.scoring,isActive:formatTemplate.is_active,presentationOnly:true,...formatSettings});if(!result.ok)throw new Error(result.data.error??"Could not save simulator formatting.");setMessage("Presentation settings saved for "+formatTemplate.name+". Exam scoring and key rules were not changed.");await load();}catch(error){setMessage(error instanceof Error?error.message:"Could not save formatting.");}finally{setBusy(false);}};
@@ -187,14 +190,14 @@ export default function PassageStudioPage() {
     const checked = items.map(item => validatePassage({ ...item, language }));
     const invalid = checked.findIndex(item => !item.ok);
     if (invalid >= 0) { setMessage("Passage " + (invalid + 1) + ": " + checked[invalid].errors.join(" ")); return; }
-    if (!selectedGroup || !selectedGroup.templates.length) {
+    if (!selectedGroup || !selectedExams.length) {
       setMessage("Choose a valid exam-format group for this passage language."); return;
     }
     setBusy(true); setMessage("");
     try {
       const result = await send("/api/admin/passages", {
         items: checked.map((x, index) => ({ ...x.clean, title: (!x.clean.title.trim() || /^passage\s+\d+$/i.test(x.clean.title.trim())) ? ((selectedGroup?.templates[0]?.slug ?? "PASSAGE").toUpperCase().replace(/[^A-Z0-9]+/g, "_") + "_" + (language === "hi" ? "HI" : "EN") + "_" + new Date().toISOString().slice(0, 10).replace(/-/g, "") + "_" + String(index + 1).padStart(3, "0")) : x.clean.title })),
-        templateSlugs: selectedGroup.templates.map(template => template.slug),
+        templateSlugs: selectedExams.map(template => template.slug),
         sourceType,
         sourceFilename: sourceType === "pdf-import" ? fileName : undefined,
       });
@@ -278,8 +281,8 @@ export default function PassageStudioPage() {
               <label>Language <select value={language} onChange={e=>{setLanguage(e.target.value as Lang);setDestinationGroup("");}}><option value="en">English</option><option value="hi">Hindi</option></select></label>
               <label className="ps2-full">Exam-format group <select value={destinationGroup} onChange={e=>setDestinationGroup(e.target.value)} disabled={!formatGroups.length}><option value="">Choose a compatible format group…</option>{formatGroups.map(group=><option key={group.id} value={group.id}>{group.label} · {group.templates.length} exams</option>)}</select></label>
             </div>
-            {selectedGroup ? <div className="ps2-selected-group"><div><strong>{selectedGroup.label}</strong><span>{selectedGroup.templates.length} compatible exam(s) selected automatically</span></div><div className="ps2-exam-chips">{selectedGroup.templates.map(template=><span key={template.slug}>{template.name}</span>)}</div><small>Language: {language==="hi"?"Hindi":"English"} · Display: {selectedGroup.display} · Passage layout: {selectedGroup.layout}</small></div> : <p className="ps2-empty-state">Select a language and format group to see compatible exams. Groups are derived from each simulator's saved formatting settings.</p>}
-            <div className="ps2-actions"><button type="button" className="go" disabled={!selectedGroup} onClick={()=>setWorkflowStep(2)}>Continue to upload →</button></div>
+            {selectedGroup ? <div className="ps2-selected-group"><div><strong>{selectedGroup.label}</strong><span>{selectedExams.length} of {selectedGroup.templates.length} compatible exam(s) selected</span></div><div className="ps2-exam-select-list">{selectedGroup.templates.map(template=><label key={template.slug}><input type="checkbox" checked={selectedTemplateSlugs.includes(template.slug)} onChange={event=>setSelectedTemplateSlugs(current=>event.target.checked?[...current,template.slug]:current.filter(slug=>slug!==template.slug))}/><span>{template.name}</span></label>)}</div><small>Language: {language==="hi"?"Hindi":"English"} · Display: {selectedGroup.display} · Passage layout: {selectedGroup.layout}</small></div> : <p className="ps2-empty-state">Select a language and format group to see compatible exams. Groups are derived from each simulator's saved formatting settings.</p>}
+            <div className="ps2-actions"><button type="button" className="go" disabled={!selectedGroup||!selectedExams.length} onClick={()=>setWorkflowStep(2)}>Continue to upload →</button></div>
           </section>
           <aside className="ps2-panel ps2-guidelines"><h3>Format group rules</h3><ul><li>Only active simulators in the selected language are listed.</li><li>Passages are published to all exams in the selected group.</li><li>Exam-specific scoring, timing and keyboard rules remain unchanged.</li><li>Each exam receives its own simulator passage copy.</li></ul></aside>
         </div>}
@@ -305,7 +308,7 @@ export default function PassageStudioPage() {
         </section>}
 
         {workflowStep===4 && <section className="ps2-publish-grid">
-          <div className="ps2-panel"><h2>4. Publish passages</h2><p>Review the final destination before creating master records and simulator copies.</p><div className="ps2-publish-summary"><div><span>Passages</span><strong>{extracted.length}</strong></div><div><span>Language</span><strong>{language==="hi"?"Hindi":"English"}</strong></div><div><span>Compatible exams</span><strong>{selectedGroup?.templates.length??0}</strong></div><div><span>Total publications</span><strong>{extracted.length*(selectedGroup?.templates.length??0)}</strong></div></div><h3>{selectedGroup?.label}</h3><div className="ps2-exam-chips">{selectedGroup?.templates.map(template=><span key={template.slug}>{template.name}</span>)}</div><p className="hint">Each passage is saved once in the master repository and distributed to the selected compatible simulators. Existing test history is not overwritten.</p><div className="ps2-actions"><button type="button" onClick={()=>setWorkflowStep(3)}>← Review passages</button><button type="button" className="go" disabled={busy||!extracted.length||!selectedGroup||extracted.some(item=>!validatePassage({...item,language}).ok)} onClick={()=>void publish(extracted,"manual")}>{busy?"Publishing…":"Create &amp; Publish Passages"}</button></div></div>
+          <div className="ps2-panel"><h2>4. Publish passages</h2><p>Review the final destination before creating master records and simulator copies.</p><div className="ps2-publish-summary"><div><span>Passages</span><strong>{extracted.length}</strong></div><div><span>Language</span><strong>{language==="hi"?"Hindi":"English"}</strong></div><div><span>Compatible exams</span><strong>{selectedExams.length}</strong></div><div><span>Total publications</span><strong>{extracted.length*(selectedGroup?.templates.length??0)}</strong></div></div><h3>{selectedGroup?.label}</h3><div className="ps2-exam-chips">{selectedExams.map(template=><span key={template.slug}>{template.name}</span>)}</div><p className="hint">Each passage is saved once in the master repository and distributed to the selected compatible simulators. Existing test history is not overwritten.</p><div className="ps2-actions"><button type="button" onClick={()=>setWorkflowStep(3)}>← Review passages</button><button type="button" className="go" disabled={busy||!extracted.length||!selectedGroup||!selectedExams.length||extracted.some(item=>!validatePassage({...item,language}).ok)} onClick={()=>void publish(extracted,"manual")}>{busy?"Publishing…":"Create &amp; Publish Passages"}</button></div></div>
           <aside className="ps2-panel ps2-guidelines"><h3>Before publishing</h3><ul><li>All passages pass the minimum 30-word validation.</li><li>Language matches the selected exam group.</li><li>Destination list is restricted to active compatible simulators.</li><li>Publishing creates a master source and separate exam copies.</li></ul></aside>
         </section>}
       </section>
