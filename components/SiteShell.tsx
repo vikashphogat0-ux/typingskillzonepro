@@ -23,7 +23,7 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
           </div>
           <nav className="footer-section" aria-label="Practice links">
             <h4>Practice</h4>
-            <ul><li><a href="/exams">Exam catalogue</a></li><li><a href="/simulators">Exam simulators</a></li><li><a href="/test">Free practice</a></li><li><a href="/library">Passage library</a></li></ul>
+            <ul><li><a href="/exams">Exam catalogue</a></li><li><a href="/simulators">Exam simulators</a></li><li><a href="/test">Free practice</a></li><li><a href="/learn">Learn touch typing</a></li><li><a href="/coach">Intelligent Typing Coach</a></li><li><a href="/coach/drills">Targeted drills</a></li><li><a href="/library">Passage library</a></li></ul>
           </nav>
           <nav className="footer-section" aria-label="Workspace links">
             <h4>Your workspace</h4>
