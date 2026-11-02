@@ -30,7 +30,7 @@ export async function GET(req: Request) {
     SELECT u.id AS user_id, u.email, s.plan, s.status, s.starts_at, s.ends_at,
       (s.status = 'active' AND s.ends_at > now()) AS is_pro
     FROM subscriptions s JOIN users u ON u.id = s.user_id
-    WHERE s.plan = ANY(${paidPlanIds}::text[]) AND s.is_institute = false
+    WHERE s.plan <> 'free' AND s.is_institute = false
     ORDER BY s.ends_at DESC NULLS LAST LIMIT 200
   `);
 }
