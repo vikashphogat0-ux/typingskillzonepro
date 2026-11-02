@@ -27,6 +27,8 @@ export default function PassageStudioPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [workflowStep, setWorkflowStep] = useState<1 | 2 | 3 | 4>(1);
+  const [uploadMode, setUploadMode] = useState<"file" | "paste" | "manual">("file");
   const [message, setMessage] = useState("");
   const [language, setLanguage] = useState<Lang>("en");
   const [title, setTitle] = useState("");
@@ -74,6 +76,7 @@ export default function PassageStudioPage() {
     return [...groups.values()].sort((a,b) => a.label.localeCompare(b.label));
   }, [availableTemplates]);
   const selectedGroup = formatGroups.find(group => group.id === destinationGroup) ?? null;
+  const autoTitle = (selectedGroup?.templates[0]?.slug ?? "PASSAGE").toUpperCase().replace(/[^A-Z0-9]+/g, "_") + "_" + (language === "hi" ? "HI" : "EN") + "_" + new Date().toISOString().slice(0, 10).replace(/-/g, "") + "_001";
   useEffect(() => { if (!selectedGroup && formatGroups.length) setDestinationGroup(formatGroups[0].id); }, [selectedGroup, formatGroups]);
   const formatTemplate=templates.find(template=>template.slug===formatSlug)??null;
   useEffect(()=>{if(!formatTemplate)return;setFormatSettings({passageLayout:formatTemplate.passage_layout??"source-preserved",fontSizePt:formatTemplate.font_size_pt??12,passageFontFamily:formatTemplate.passage_font_family??"system",passageAlignment:formatTemplate.passage_alignment??"left",passageLineSpacing:formatTemplate.passage_line_spacing??1.5,passageParagraphSpacing:formatTemplate.passage_paragraph_spacing??8,printPageSize:formatTemplate.print_page_size??"A4"});},[formatSlug,formatTemplate?.slug]);
@@ -166,7 +169,7 @@ export default function PassageStudioPage() {
     setBusy(true); setMessage("");
     try {
       const result = await send("/api/admin/passages", {
-        items: checked.map(x => x.clean),
+        items: checked.map((x, index) => ({ ...x.clean, title: x.clean.title.trim() || ((selectedGroup?.templates[0]?.slug ?? "PASSAGE").toUpperCase().replace(/[^A-Z0-9]+/g, "_") + "_" + (language === "hi" ? "HI" : "EN") + "_" + new Date().toISOString().slice(0, 10).replace(/-/g, "") + "_" + String(index + 1).padStart(3, "0")) })),
         templateSlugs: selectedGroup.templates.map(template => template.slug),
         sourceType,
         sourceFilename: sourceType === "pdf-import" ? fileName : undefined,
@@ -212,150 +215,101 @@ export default function PassageStudioPage() {
   const editingValidation = editing ? validatePassage(editing) : null;
 
   return (
-    <main className="page admin">
+    <main className="page admin passage-studio-v2">
       <nav className="admin-management-nav" aria-label="Admin navigation">
         <a href="/admin">Administration</a> · <a href="/admin/users">Users &amp; roles</a> · <a href="/admin/institutions">Institutes</a> · <a href="/admin/payments">Payments</a>
       </nav>
-      <header className="admin-generation-panel">
-        <span className="hint">TYPINGSKILLZONE · CONTENT OPERATIONS</span>
-        <h1>Passage Studio</h1>
-        <p className="hint">One master passage repository. Publish once to compatible simulators; each simulator keeps its own presentation and exam configuration.</p>
-        <div className="exam-dashboard-metrics">
-          <div><span>MASTER PASSAGES</span><strong>{sources.filter(s => !s.archived_at).length}</strong><small>Single source records</small></div>
-          <div><span>SIMULATOR PUBLICATIONS</span><strong>{sources.reduce((n, s) => n + Number(s.published_count || 0), 0)}</strong><small>Active destinations</small></div>
-          <div><span>ACTIVE SIMULATORS</span><strong>{templates.filter(t => t.is_active).length}</strong><small>Both language streams</small></div>
-        </div>
+
+      <header className="ps2-header">
+        <div><span className="ps2-eyebrow">TYPINGSKILLZONE · CONTENT OPERATIONS</span><h1>Passage Studio</h1><p>Create, import, review and publish passages to compatible typing exams.</p></div>
+        <div className="ps2-header-links"><a href="#passage-repository">Passage Library</a><a href="#simulator-formatting">Templates &amp; Formats</a></div>
       </header>
 
-      {message && <p className="flash-msg" role="status">{message}</p>}
+      <div className="ps2-metrics">
+        <div><span>MASTER PASSAGES</span><strong>{sources.filter(s => !s.archived_at).length}</strong></div>
+        <div><span>SIMULATOR PUBLICATIONS</span><strong>{sources.reduce((n, s) => n + Number(s.published_count || 0), 0)}</strong></div>
+        <div><span>ACTIVE EXAM SIMULATORS</span><strong>{templates.filter(t => t.is_active).length}</strong></div>
+        <div><span>ARCHIVED</span><strong>{repositoryStats.archived}</strong></div>
+      </div>
 
-      <section className="admin-generation-panel">
-        <h2>Create a master passage</h2>
-        <div className="form">
-          <label>Passage title<input value={title} maxLength={120} onChange={e => setTitle(e.target.value)} /></label>
-          <label>Language<select value={language} onChange={e => setLanguage(e.target.value as Lang)}><option value="en">English</option><option value="hi">Hindi</option></select></label>
-          <label>Exam-format group<select value={destinationGroup} onChange={e => setDestinationGroup(e.target.value)} disabled={!formatGroups.length}>{formatGroups.map(group => <option key={group.id} value={group.id}>{group.label} · {group.templates.length} exams</option>)}</select></label>
-          {selectedGroup && <div className="passage-format-group-preview"><strong>Will publish to {selectedGroup.templates.length} compatible exam(s)</strong><p>{selectedGroup.templates.map(template => template.name).join(" · ")}</p><small>{language === "hi" ? "Hindi" : "English"} · {selectedGroup.layout} · {selectedGroup.display}</small></div>}
-          <label>Original passage<textarea rows={9} lang={language} value={body} onChange={e => setBody(e.target.value)} onBlur={() => setBody(cleanBody(body))} /></label>
-          <p className="hint">{countWords(body)} words · {body.length} characters</p>
-          {validation.errors.map(error => <p className="err" key={error}>{error}</p>)}
-          {validation.warnings.map(warning => <p className="warn" key={warning}>{warning}</p>)}
-          <button className="go" disabled={!validation.ok || busy} onClick={() => void publish([{ title, body }], "manual")}>{busy ? "Publishing…" : "Create and publish passage"}</button>
+      {message && <p className="flash-msg ps2-message" role="status">{message}</p>}
+      {loading && <p className="hint">Loading passage repository and exam formats…</p>}
+
+      <section className="ps2-workflow" aria-label="Passage publishing workflow">
+        <div className="ps2-steps">
+          {([["Configure","Set exam, format and language"],["Upload","Import passage collection"],["Review","Validate and edit passages"],["Publish","Create and distribute"]] as const).map((item,index) => (
+            <button type="button" key={item[0]} className={workflowStep===index+1?"active":workflowStep>index+1?"complete":""} onClick={()=>setWorkflowStep((index+1) as 1|2|3|4)}>
+              <span>{index+1}</span><strong>{item[0]}</strong><small>{item[1]}</small>
+            </button>
+          ))}
         </div>
-      </section>
 
-      <section className="admin-generation-panel">
-        <h2>Import a passage collection</h2>
-        <p className="hint">Upload a selectable-text PDF (one passage per page) or a UTF-8 TXT collection. In TXT files, separate passages with a line containing --- and optionally start each passage with # Title. Review and edit every imported passage before publication. Scanned PDFs require OCR before import.</p>
-        <label>Passage file (PDF or TXT)<input type="file" accept="application/pdf,.pdf,text/plain,.txt" disabled={busy} onChange={e => { void importFile(e.target.files?.[0]); e.currentTarget.value = ""; }} /></label>
-        {fileName && <p className="hint">Source file: {fileName}</p>}
-        {extracted.length > 0 && <>
-          <h3>Import preview · {extracted.length} passages</h3>
-          <div className="passage-import-review">
-            {extracted.map((item, index) => {
-              const checked = validatePassage({ ...item, language });
-              return <article className="passage-import-card" key={index}>
-                <header><strong>Passage {String(index + 1).padStart(2, "0")}</strong><span>{countWords(item.body)} words · {item.body.length} characters</span></header>
-                <label>Passage title<input value={item.title} maxLength={120} onChange={e => updateExtracted(index, { title: e.target.value })} /></label>
-                <label>Passage text<textarea rows={5} lang={language} value={item.body} onChange={e => updateExtracted(index, { body: e.target.value })} onBlur={() => updateExtracted(index, { body: cleanBody(item.body) })} /></label>
-                {checked.errors.map(error => <p className="err" key={error}>{error}</p>)}
-                {checked.warnings.map(warning => <p className="warn" key={warning}>{warning}</p>)}
-                {checked.ok && <p className="passage-import-ready">Ready to publish</p>}
-              </article>;
-            })}
+        {workflowStep===1 && <div className="ps2-config-grid">
+          <section className="ps2-panel">
+            <h2>1. Configure passage details</h2>
+            <div className="ps2-form-grid">
+              <label>Passage title / ID <input value={title} maxLength={120} placeholder={autoTitle} onChange={e=>setTitle(e.target.value)} /><small>Leave blank to generate an ID from the selected exam group, language and date.</small></label>
+              <label>Language <select value={language} onChange={e=>{setLanguage(e.target.value as Lang);setDestinationGroup("");}}><option value="en">English</option><option value="hi">Hindi</option></select></label>
+              <label className="ps2-full">Exam-format group <select value={destinationGroup} onChange={e=>setDestinationGroup(e.target.value)} disabled={!formatGroups.length}><option value="">Choose a compatible format group…</option>{formatGroups.map(group=><option key={group.id} value={group.id}>{group.label} · {group.templates.length} exams</option>)}</select></label>
+            </div>
+            {selectedGroup ? <div className="ps2-selected-group"><div><strong>{selectedGroup.label}</strong><span>{selectedGroup.templates.length} compatible exam(s) selected automatically</span></div><div className="ps2-exam-chips">{selectedGroup.templates.map(template=><span key={template.slug}>{template.name}</span>)}</div><small>Language: {language==="hi"?"Hindi":"English"} · Display: {selectedGroup.display} · Passage layout: {selectedGroup.layout}</small></div> : <p className="ps2-empty-state">Select a language and format group to see compatible exams. Groups are derived from each simulator's saved formatting settings.</p>}
+            <div className="ps2-actions"><button type="button" className="go" disabled={!selectedGroup} onClick={()=>setWorkflowStep(2)}>Continue to upload →</button></div>
+          </section>
+          <aside className="ps2-panel ps2-guidelines"><h3>Format group rules</h3><ul><li>Only active simulators in the selected language are listed.</li><li>Passages are published to all exams in the selected group.</li><li>Exam-specific scoring, timing and keyboard rules remain unchanged.</li><li>Each exam receives its own simulator passage copy.</li></ul></aside>
+        </div>}
+
+        {workflowStep===2 && <section className="ps2-panel">
+          <div className="ps2-panel-heading"><div><h2>2. Import passage collection</h2><p>Upload a TXT/PDF file, paste a collection, or enter one passage manually.</p></div><span className="ps2-config-pill">{selectedGroup?.label ?? "No format selected"} · {language==="hi"?"Hindi":"English"}</span></div>
+          <div className="ps2-tabs">
+            <button type="button" className={uploadMode==="file"?"active":""} onClick={()=>setUploadMode("file")}>Upload file</button>
+            <button type="button" className={uploadMode==="paste"?"active":""} onClick={()=>setUploadMode("paste")}>Paste &amp; split</button>
+            <button type="button" className={uploadMode==="manual"?"active":""} onClick={()=>setUploadMode("manual")}>Manual entry</button>
           </div>
-          <button className="go" disabled={busy || extracted.some(item => !validatePassage({ ...item, language }).ok)} onClick={() => void publish(extracted, "pdf-import")}>{busy ? "Publishing…" : "Publish all " + extracted.length + " passages"}</button>
-        </>}
+          {uploadMode==="file" && <div className="ps2-dropzone"><div className="ps2-upload-icon">⇧</div><strong>Choose a TXT or PDF collection</strong><p>PDF: one selectable-text passage per page. TXT: separate passages with a line containing ---.</p><label className="ps2-file-button">Choose file<input type="file" accept="application/pdf,.pdf,text/plain,.txt" disabled={busy} onChange={e=>{void importFile(e.target.files?.[0]);e.currentTarget.value="";}} /></label>{fileName&&<small>Selected: {fileName}</small>}</div>}
+          {uploadMode==="paste" && <div className="ps2-manual"><label>Paste passage collection<textarea rows={12} value={body} onChange={e=>setBody(e.target.value)} placeholder={"# Passage title 1\nPaste the complete passage here…\n\n---\n\n# Passage title 2\nPaste the next passage here…"} /></label><button type="button" className="go" disabled={!body.trim()||busy} onClick={()=>{setExtracted(parseBulk(body));setFileName("Pasted collection");setWorkflowStep(3);}}>Split into passages and review →</button></div>}
+          {uploadMode==="manual" && <div className="ps2-manual"><label>Passage title<input value={title} onChange={e=>setTitle(e.target.value)} placeholder={autoTitle}/></label><label>Passage text<textarea rows={12} lang={language} value={body} onChange={e=>setBody(e.target.value)} onBlur={()=>setBody(cleanBody(body))} /></label><p className="hint">{countWords(body)} words · {body.length} characters · Minimum 30 words</p>{validation.errors.map(error=><p className="err" key={error}>{error}</p>)}<button type="button" className="go" disabled={!validation.ok||busy} onClick={()=>{setExtracted([{title:title.trim()||autoTitle,body:cleanBody(body)}]);setWorkflowStep(3);}}>Review passage →</button></div>}
+          {extracted.length>0 && <div className="ps2-import-status"><strong>{extracted.length} passages ready for review</strong><span>{fileName}</span><button type="button" className="go" onClick={()=>setWorkflowStep(3)}>Continue to review →</button></div>}
+          <div className="ps2-actions"><button type="button" onClick={()=>setWorkflowStep(1)}>← Back to configure</button></div>
+        </section>}
+
+        {workflowStep===3 && <section className="ps2-panel">
+          <div className="ps2-panel-heading"><div><h2>3. Review and validate</h2><p>Check every title, language, passage body and word count before publication.</p></div><strong>{extracted.length} passages</strong></div>
+          {extracted.length===0 ? <p className="ps2-empty-state">No passages have been imported yet. Return to Upload and select a file or enter text.</p> : <div className="ps2-review-list">{extracted.map((item,index)=>{const checked=validatePassage({...item,language});return <article className="ps2-review-card" key={index}><header><strong>Passage {String(index+1).padStart(2,"0")}</strong><span>{countWords(item.body)} words · {item.body.length} characters</span><span className={checked.ok?"ps2-valid":"ps2-invalid"}>{checked.ok?"Ready":"Needs correction"}</span></header><label>Title / Passage ID<input value={item.title} onChange={e=>updateExtracted(index,{title:e.target.value})}/></label><label>Passage content<textarea rows={6} lang={language} value={item.body} onChange={e=>updateExtracted(index,{body:e.target.value})}/></label>{checked.errors.map(error=><p className="err" key={error}>{error}</p>)}{checked.warnings.map(warning=><p className="warn" key={warning}>{warning}</p>)}</article>;})}</div>}
+          <div className="ps2-actions"><button type="button" onClick={()=>setWorkflowStep(2)}>← Back to upload</button><button type="button" className="go" disabled={!extracted.length||extracted.some(item=>!validatePassage({...item,language}).ok)||!selectedGroup} onClick={()=>setWorkflowStep(4)}>Continue to publish →</button></div>
+        </section>}
+
+        {workflowStep===4 && <section className="ps2-publish-grid">
+          <div className="ps2-panel"><h2>4. Publish passages</h2><p>Review the final destination before creating master records and simulator copies.</p><div className="ps2-publish-summary"><div><span>Passages</span><strong>{extracted.length}</strong></div><div><span>Language</span><strong>{language==="hi"?"Hindi":"English"}</strong></div><div><span>Compatible exams</span><strong>{selectedGroup?.templates.length??0}</strong></div><div><span>Total publications</span><strong>{extracted.length*(selectedGroup?.templates.length??0)}</strong></div></div><h3>{selectedGroup?.label}</h3><div className="ps2-exam-chips">{selectedGroup?.templates.map(template=><span key={template.slug}>{template.name}</span>)}</div><p className="hint">Each passage is saved once in the master repository and distributed to the selected compatible simulators. Existing test history is not overwritten.</p><div className="ps2-actions"><button type="button" onClick={()=>setWorkflowStep(3)}>← Review passages</button><button type="button" className="go" disabled={busy||!extracted.length||!selectedGroup||extracted.some(item=>!validatePassage({...item,language}).ok)} onClick={()=>void publish(extracted,"manual")}>{busy?"Publishing…":"Create &amp; Publish Passages"}</button></div></div>
+          <aside className="ps2-panel ps2-guidelines"><h3>Before publishing</h3><ul><li>All passages pass the minimum 30-word validation.</li><li>Language matches the selected exam group.</li><li>Destination list is restricted to active compatible simulators.</li><li>Publishing creates a master source and separate exam copies.</li></ul></aside>
+        </section>}
       </section>
 
-
-      <section className="admin-generation-panel passage-format-studio">
-        <h2>Simulator passage formatting</h2>
-        <p className="hint">Settings are saved per simulator. Master passage text, exam scoring, key rules and historical test records remain unchanged.</p>
+      <section className="admin-generation-panel passage-format-studio" id="simulator-formatting">
+        <h2>Simulator passage formatting</h2><p className="hint">Formatting remains configurable per simulator. Scoring, duration and keyboard rules are not changed here.</p>
         <label>Choose simulator<select value={formatSlug} onChange={event=>setFormatSlug(event.target.value)}><option value="">Select an exam simulator…</option>{templates.map(t=><option key={t.slug} value={t.slug}>{t.name} · {t.language==="hi"?"Hindi":"English"}</option>)}</select></label>
-        {formatTemplate&&<>
-          <div className="passage-format-controls">
-            <label>Passage layout<select value={formatSettings.passageLayout} onChange={e=>setFormatSettings(v=>({...v,passageLayout:e.target.value as typeof v.passageLayout}))}><option value="continuous">Continuous text</option><option value="paragraph-tab">Paragraph / tab layout</option><option value="source-preserved">Preserve source line breaks</option></select></label>
-            <label>Font size (pt)<input type="number" min="8" max="24" step="1" value={formatSettings.fontSizePt} onChange={e=>setFormatSettings(v=>({...v,fontSizePt:Number(e.target.value)}))}/></label>
-            <label>Font family<select value={formatSettings.passageFontFamily} onChange={e=>setFormatSettings(v=>({...v,passageFontFamily:e.target.value as typeof v.passageFontFamily}))}><option value="system">System sans</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></label>
-            <label>Text alignment<select value={formatSettings.passageAlignment} onChange={e=>setFormatSettings(v=>({...v,passageAlignment:e.target.value as typeof v.passageAlignment}))}><option value="left">Left</option><option value="justify">Justified</option><option value="center">Centered</option></select></label>
-            <label>Line spacing<input type="number" min="1.1" max="2.5" step="0.1" value={formatSettings.passageLineSpacing} onChange={e=>setFormatSettings(v=>({...v,passageLineSpacing:Number(e.target.value)}))}/></label>
-            <label>Paragraph spacing (pt)<input type="number" min="0" max="32" step="1" value={formatSettings.passageParagraphSpacing} onChange={e=>setFormatSettings(v=>({...v,passageParagraphSpacing:Number(e.target.value)}))}/></label>
-            <label>Print page size<select value={formatSettings.printPageSize} onChange={e=>setFormatSettings(v=>({...v,printPageSize:e.target.value as typeof v.printPageSize}))}><option value="A4">A4</option><option value="Letter">Letter</option><option value="Legal">Legal</option></select></label>
-          </div>
-          {(() => {
-            const sample = body.trim() || (formatTemplate.language === "hi"
-              ? "यह एक नमूना अनुच्छेद है। ऊपर पाठ लिखकर प्रारूप देखें।\n\nदूसरे अनुच्छेद में पंक्ति और अनुच्छेद का अंतर दिखाई देगा।"
-              : "This is a sample passage preview. Enter text above to inspect the selected simulator's presentation.\n\nA second paragraph demonstrates the selected paragraph spacing and line layout.");
-            const formatted = formatRkcPassage(sample, formatSettings.passageLayout);
-            const paragraphs = formatSettings.passageLayout === "continuous" ? [formatted] : formatted.split(/\n{2,}/u);
-            const validationErrors = validatePresentationSettings(formatSettings);
-            return <>
-              <div className="passage-format-preview-wrap">
-                <div className="passage-format-preview-heading"><strong>Live simulator preview · {formatTemplate.name}</strong><span>{formatSettings.printPageSize} · {formatSettings.fontSizePt} pt · {formatSettings.passageLayout}</span></div>
-                <article className="passage-format-preview" lang={formatTemplate.language} style={{fontFamily:formatSettings.passageFontFamily==="serif"?"Georgia,serif":formatSettings.passageFontFamily==="mono"?"monospace":"Arial,sans-serif",fontSize:formatSettings.fontSizePt+"pt",textAlign:formatSettings.passageAlignment,lineHeight:formatSettings.passageLineSpacing}}>
-                  <h3>{title.trim()||"Sample passage title"}</h3>
-                  {paragraphs.map((paragraph,i)=><p key={i} style={{marginBottom:formatSettings.passageParagraphSpacing+"pt",whiteSpace:formatSettings.passageLayout==="continuous"?"normal":"pre-wrap"}}>{paragraph}</p>)}
-                </article>
-              </div>
-              {validationErrors.map(error=><p className="err" role="alert" key={error}>{error}</p>)}
-              <button type="button" className="go" disabled={busy||validationErrors.length>0} onClick={()=>void saveFormatting()}>{busy?"Saving…":"Save simulator formatting"}</button>
-            </>;
-          })()}
-        </>}
+        {formatTemplate&&<><div className="passage-format-controls">
+          <label>Passage layout<select value={formatSettings.passageLayout} onChange={e=>setFormatSettings(v=>({...v,passageLayout:e.target.value as typeof v.passageLayout}))}><option value="continuous">Continuous text</option><option value="paragraph-tab">Paragraph / tab layout</option><option value="source-preserved">Preserve source line breaks</option></select></label>
+          <label>Font size (pt)<input type="number" min="8" max="24" step="1" value={formatSettings.fontSizePt} onChange={e=>setFormatSettings(v=>({...v,fontSizePt:Number(e.target.value)}))}/></label>
+          <label>Font family<select value={formatSettings.passageFontFamily} onChange={e=>setFormatSettings(v=>({...v,passageFontFamily:e.target.value as typeof v.passageFontFamily}))}><option value="system">System sans</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></label>
+          <label>Text alignment<select value={formatSettings.passageAlignment} onChange={e=>setFormatSettings(v=>({...v,passageAlignment:e.target.value as typeof v.passageAlignment}))}><option value="left">Left</option><option value="justify">Justified</option><option value="center">Centered</option></select></label>
+          <label>Line spacing<input type="number" min="1.1" max="2.5" step="0.1" value={formatSettings.passageLineSpacing} onChange={e=>setFormatSettings(v=>({...v,passageLineSpacing:Number(e.target.value)}))}/></label>
+          <label>Paragraph spacing (pt)<input type="number" min="0" max="32" step="1" value={formatSettings.passageParagraphSpacing} onChange={e=>setFormatSettings(v=>({...v,passageParagraphSpacing:Number(e.target.value)}))}/></label>
+          <label>Print page size<select value={formatSettings.printPageSize} onChange={e=>setFormatSettings(v=>({...v,printPageSize:e.target.value as typeof v.printPageSize}))}><option value="A4">A4</option><option value="Letter">Letter</option><option value="Legal">Legal</option></select></label>
+        </div><button type="button" className="go" disabled={busy||validatePresentationSettings(formatSettings).length>0} onClick={()=>void saveFormatting()}>{busy?"Saving…":"Save simulator formatting"}</button></>}
       </section>
-      <section className="admin-generation-panel">
-        <div className="exam-workspace-section-heading">
-          <div><h2>Master repository</h2><p className="hint">Edit a source to create a new version. Published simulator copies are refreshed without changing passages attached to historical tests.</p></div>
-          <button type="button" onClick={() => setShowArchived(v => !v)}>{showArchived ? "Hide archived" : "Show archived"}</button>
-        </div>
-        <div className="passage-repository-toolbar">
-          <input aria-label="Search master passages" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search title, content or source ID…" />
-          <select aria-label="Filter passages by language" value={repositoryLanguage} onChange={e => setRepositoryLanguage(e.target.value as "all" | Lang)}>
-            <option value="all">All languages</option><option value="en">English</option><option value="hi">Hindi</option>
-          </select>
-          <select aria-label="Filter by simulator destination" value={repositoryDestination} onChange={e => setRepositoryDestination(e.target.value)}>
-            <option value="all">All simulator destinations</option>
-            {templates.map(template => <option key={template.slug} value={template.slug}>{template.name}</option>)}
-          </select>
-        </div>
-        <div className="passage-repository-summary" aria-live="polite">
-          <span><strong>{filtered.length}</strong> matching records</span>
-          <span><strong>{repositoryStats.english}</strong> active English</span>
-          <span><strong>{repositoryStats.hindi}</strong> active Hindi</span>
-          <span><strong>{repositoryStats.unpublished}</strong> without publication</span>
-          <span><strong>{repositoryStats.archived}</strong> archived</span>
-        </div>
-        {loading ? <p>Loading repository…</p> : <div className="tbl"><table><thead><tr><th>Passage ID</th><th>Master passage</th><th>Language</th><th>Words</th><th>Version</th><th>Distribution</th><th>Actions</th></tr></thead><tbody>
-          {filtered.map(source => <tr key={source.id}>
-            <td><code>{String(source.visible_number).padStart(2, "0")}</code></td>
-            <td><strong>{source.title}</strong><small>{source.source_type} · {new Date(source.created_at).toLocaleDateString()}</small></td>
-            <td>{source.language === "hi" ? "Hindi" : "English"}</td>
-            <td>{source.word_count}</td>
-            <td>v{source.version}</td>
-            <td>
-              <strong>{source.published_count}/{source.distribution_count} published</strong>
-              <small>{source.distributions.length ? source.distributions.map(item => item.name + " · " + item.status).join(" | ") : "No simulator destinations"}</small>
-            </td>
-            <td><div className="admin-row-actions">
-              {!source.archived_at && <button type="button" onClick={() => setEditing(source)}>Edit</button>}
-              {!source.archived_at && <button type="button" className="danger" onClick={() => void archive(source)}>Archive</button>}
-              {source.archived_at && <span className="hint">Archived</span>}
-            </div></td>
-          </tr>)}
-          {!filtered.length && <tr><td colSpan={7}>No master passages found.</td></tr>}
+
+      <section className="admin-generation-panel" id="passage-repository">
+        <div className="exam-workspace-section-heading"><div><h2>Master passage repository</h2><p className="hint">Edit creates a new source version. Archive preserves existing test history.</p></div><button type="button" onClick={()=>setShowArchived(v=>!v)}>{showArchived?"Hide archived":"Show archived"}</button></div>
+        <div className="passage-repository-toolbar"><input aria-label="Search master passages" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search title, content or source ID…"/><select aria-label="Filter passages by language" value={repositoryLanguage} onChange={e=>setRepositoryLanguage(e.target.value as "all"|Lang)}><option value="all">All languages</option><option value="en">English</option><option value="hi">Hindi</option></select><select aria-label="Filter by simulator destination" value={repositoryDestination} onChange={e=>setRepositoryDestination(e.target.value)}><option value="all">All destinations</option>{templates.map(template=><option key={template.slug} value={template.slug}>{template.name}</option>)}</select></div>
+        <div className="passage-repository-summary"><span><strong>{filtered.length}</strong> matching</span><span><strong>{repositoryStats.english}</strong> English</span><span><strong>{repositoryStats.hindi}</strong> Hindi</span><span><strong>{repositoryStats.unpublished}</strong> unpublished</span><span><strong>{repositoryStats.archived}</strong> archived</span></div>
+        {loading?<p>Loading repository…</p>:<div className="tbl"><table><thead><tr><th>Passage ID</th><th>Passage</th><th>Language</th><th>Words</th><th>Version</th><th>Distribution</th><th>Actions</th></tr></thead><tbody>
+          {filtered.map(source=><tr key={source.id}><td><code>{String(source.visible_number).padStart(2,"0")}</code></td><td><strong>{source.title}</strong><small>{source.source_type} · {new Date(source.created_at).toLocaleDateString()}</small></td><td>{source.language==="hi"?"Hindi":"English"}</td><td>{source.word_count}</td><td>v{source.version}</td><td><strong>{source.published_count}/{source.distribution_count} published</strong><small>{source.distributions.map(item=>item.name+" · "+item.status).join(" | ")||"No destinations"}</small></td><td><div className="admin-row-actions">{!source.archived_at&&<button type="button" onClick={()=>setEditing(source)}>Edit</button>}{!source.archived_at&&<button type="button" className="danger" onClick={()=>void archive(source)}>Archive</button>}{source.archived_at&&<span className="hint">Archived</span>}</div></td></tr>)}
+          {!filtered.length&&<tr><td colSpan={7}>No master passages found.</td></tr>}
         </tbody></table></div>}
       </section>
 
-      {editing && <div className="admin-preview-overlay" role="dialog" aria-modal="true" aria-label="Edit master passage"><section className="admin-preview-dialog">
-        <header><div><span>MASTER PASSAGE · NEW VERSION</span><h3>Edit source passage</h3><small>Version {editing.version} → {editing.version + 1}</small></div><button type="button" onClick={() => setEditing(null)}>Close ×</button></header>
-        <label>Title<input value={editing.title} onChange={e => setEditing({ ...editing, title: e.target.value })} /></label>
-        <label>Language<select value={editing.language} onChange={e => setEditing({ ...editing, language: e.target.value as Lang })}><option value="en">English</option><option value="hi">Hindi</option></select></label>
-        <label>Passage text<textarea rows={14} lang={editing.language} value={editing.body} onChange={e => setEditing({ ...editing, body: e.target.value })} /></label>
-        <p className="hint">{countWords(editing.body)} words · {editing.distribution_count} simulator destinations</p>
-        {editingValidation?.errors.map(error => <p className="err" key={error}>{error}</p>)}
-        <footer><button type="button" onClick={() => setEditing(null)}>Cancel</button><button type="button" className="go" disabled={busy || !editingValidation?.ok} onClick={() => void saveEdit()}>{busy ? "Publishing…" : "Save and publish new version"}</button></footer>
-      </section></div>}
+      {editing&&<div className="admin-preview-overlay" role="dialog" aria-modal="true" aria-label="Edit master passage"><section className="admin-preview-dialog"><header><div><span>MASTER PASSAGE · NEW VERSION</span><h3>Edit source passage</h3><small>Version {editing.version} → {editing.version+1}</small></div><button type="button" onClick={()=>setEditing(null)}>Close ×</button></header><label>Title<input value={editing.title} onChange={e=>setEditing({...editing,title:e.target.value})}/></label><label>Language<select value={editing.language} onChange={e=>setEditing({...editing,language:e.target.value as Lang})}><option value="en">English</option><option value="hi">Hindi</option></select></label><label>Passage text<textarea rows={14} lang={editing.language} value={editing.body} onChange={e=>setEditing({...editing,body:e.target.value})}/></label><p className="hint">{countWords(editing.body)} words · {editing.distribution_count} destinations</p>{editingValidation?.errors.map(error=><p className="err" key={error}>{error}</p>)}<footer><button type="button" onClick={()=>setEditing(null)}>Cancel</button><button type="button" className="go" disabled={busy||!editingValidation?.ok} onClick={()=>void saveEdit()}>{busy?"Publishing…":"Save and publish new version"}</button></footer></section></div>}
     </main>
   );
+}
 }
