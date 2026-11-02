@@ -6,41 +6,46 @@ const deny = () => Response.json({ error: "Admin access required." }, { status: 
 
 export async function GET(req: Request) {
   if (!(await requireAdmin(req))) return deny();
-  const url = new URL(req.url);
-  const language = url.searchParams.get("lang");
-  const q = (url.searchParams.get("q") ?? "").trim().slice(0, 80);
-  const status = url.searchParams.get("status") ?? "active";
-  const db = sql();
-  const rows = await db`
-    WITH numbered AS (
-      SELECT s.*,
-        row_number() OVER (
-          PARTITION BY s.language, date_trunc('month', s.created_at AT TIME ZONE 'Asia/Kolkata')
-          ORDER BY s.created_at, s.id
-        ) AS visible_number
-      FROM passage_sources s
-      WHERE (${status} = 'all' OR (${status} = 'archived' AND s.archived_at IS NOT NULL)
-        OR (${status} = 'active' AND s.archived_at IS NULL))
-        AND (${language}::text IS NULL OR s.language = ${language})
-        AND (${q} = '' OR s.title ILIKE ${'%' + q.replace(/[%_]/g, '') + '%'}
-          OR s.body ILIKE ${'%' + q.replace(/[%_]/g, '') + '%'} OR s.id::text ILIKE ${'%' + q + '%'})
-    )
-    SELECT n.id, n.title, n.language, n.body, n.word_count, n.source_type, n.source_filename,
-      n.version, n.visible_number, n.created_at, n.updated_at, n.archived_at,
-      COALESCE(jsonb_agg(
-        jsonb_build_object('slug', et.slug, 'name', et.name, 'status', d.status, 'passageId', d.passage_id)
-        ORDER BY et.name
-      ) FILTER (WHERE d.id IS NOT NULL), '[]'::jsonb) AS distributions,
-      count(d.id)::int AS distribution_count,
-      count(d.id) FILTER (WHERE d.status = 'published')::int AS published_count
-    FROM numbered n
-    LEFT JOIN passage_distributions d ON d.source_id = n.id
-    LEFT JOIN exam_templates et ON et.id = d.template_id
-    GROUP BY n.id
-    ORDER BY n.created_at DESC, n.id
-    LIMIT 1000
-  `;
-  return Response.json(rows);
+  try {
+    const url = new URL(req.url);
+    const language = url.searchParams.get("lang");
+    const q = (url.searchParams.get("q") ?? "").trim().slice(0, 80);
+    const status = url.searchParams.get("status") ?? "active";
+    const db = sql();
+    const rows = await db`
+      WITH numbered AS (
+        SELECT s.*,
+          row_number() OVER (
+            PARTITION BY s.language, date_trunc('month', s.created_at AT TIME ZONE 'Asia/Kolkata')
+            ORDER BY s.created_at, s.id
+          ) AS visible_number
+        FROM passage_sources s
+        WHERE (${status} = 'all' OR (${status} = 'archived' AND s.archived_at IS NOT NULL)
+          OR (${status} = 'active' AND s.archived_at IS NULL))
+          AND (${language}::text IS NULL OR s.language = ${language})
+          AND (${q} = '' OR s.title ILIKE ${'%' + q.replace(/[%_]/g, '') + '%'}
+            OR s.body ILIKE ${'%' + q.replace(/[%_]/g, '') + '%'} OR s.id::text ILIKE ${'%' + q + '%'})
+      )
+      SELECT n.id, n.title, n.language, n.body, n.word_count, n.source_type, n.source_filename,
+        n.version, n.visible_number, n.created_at, n.updated_at, n.archived_at,
+        COALESCE(jsonb_agg(
+          jsonb_build_object('slug', et.slug, 'name', et.name, 'status', d.status, 'passageId', d.passage_id)
+          ORDER BY et.name
+        ) FILTER (WHERE d.id IS NOT NULL), '[]'::jsonb) AS distributions,
+        count(d.id)::int AS distribution_count,
+        count(d.id) FILTER (WHERE d.status = 'published')::int AS published_count
+      FROM numbered n
+      LEFT JOIN passage_distributions d ON d.source_id = n.id
+      LEFT JOIN exam_templates et ON et.id = d.template_id
+      GROUP BY n.id
+      ORDER BY n.created_at DESC, n.id
+      LIMIT 1000
+    `;
+    return Response.json(rows);
+  } catch (error) {
+    console.error("GET /api/admin/passage-studio failed:", error);
+    return Response.json({ error: "Passage Studio could not load its master repository. Confirm that the additive passage intelligence migration (20261101_passage_intelligence_system.sql) has been applied to the configured Neon database. Existing data is not modified by this check." }, { status: 503 });
+  }
 }
 
 /** Version content without mutating passages already referenced by historical tests. */
