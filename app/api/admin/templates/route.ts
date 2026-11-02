@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       WHERE slug = ${t.slug}`;
     return Response.json({ ok: true, presentationOnly: true });
   }
-  if (builtIn) return Response.json({ error: "Built-in exam rules are protected. Use presentation-only editing to change passage appearance without changing exam rules." }, { status: 409 });
+  if (builtIn && t.allowBuiltInRuleEdit !== true) return Response.json({ error: "Confirm full built-in simulator rule editing before saving." }, { status: 409 });
   if (errors.length || !scoring) return Response.json({ error: errors.join(" ") }, { status: 422 });
   await sql()`INSERT INTO exam_templates (
       slug, name, language, duration_sec, display_mode, backspace, scoring, is_active,
