@@ -32,7 +32,7 @@ export async function POST(req: Request) {
       FROM institutions i JOIN users u ON u.id = i.owner_id
       WHERE i.id = ${c.m.institution_id} AND i.status = 'approved' LIMIT 1`;
     if (!owner?.email) return Response.json({ error: "Institute owner account was not found." }, { status: 404 });
-    const [catalog] = await db`INSERT INTO institute_plans (plan_id, monthly_amount_paise, annual_amount_paise, max_student_seats, is_active)
+    await db`INSERT INTO institute_plans (plan_id, monthly_amount_paise, annual_amount_paise, max_student_seats, is_active)
       VALUES (${planId}, ${plan.monthlyAmountPaise}, ${plan.annualAmountPaise}, ${plan.maxStudentSeats}, true)
       ON CONFLICT (plan_id) DO UPDATE SET monthly_amount_paise = EXCLUDED.monthly_amount_paise,
         annual_amount_paise = EXCLUDED.annual_amount_paise, max_student_seats = EXCLUDED.max_student_seats, is_active = true
