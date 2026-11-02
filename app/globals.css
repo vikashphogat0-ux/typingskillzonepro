@@ -818,3 +818,18 @@ body:has(.exam-catalogue) .tsz-content{max-width:none}.exam-catalogue{max-width:
   .tsz-hero-visual{padding:16px 2px 24px}
   .tsz-floating-note{max-width:46%;white-space:normal}
 }
+
+
+/* Exam directory layout: keep the summary metrics and filters in a consistent grid. */
+.exam-catalogue-heading{min-width:0}
+.exam-catalogue-toolbar{align-items:end}
+.exam-catalogue-search,.exam-catalogue-language{min-width:0}
+.exam-catalogue-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.exam-catalogue-stats>div{display:flex;flex-direction:column;justify-content:center;min-width:0;min-height:76px;padding:13px 15px;border:1px solid rgba(139,184,223,.22);border-radius:13px;background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025))}
+.exam-catalogue-stats strong{display:block;color:#f0f7ff;font:800 clamp(20px,2.3vw,27px)/1.1 ui-monospace,SFMono-Regular,Consolas,monospace;font-variant-numeric:tabular-nums}
+.exam-catalogue-stats span{display:block;margin-top:7px;color:#9fb8d5;font-size:10px;line-height:1.35}
+.exam-popular{align-items:flex-start;margin-top:18px}
+.exam-popular-label{flex:0 0 auto;padding-top:8px}
+.exam-popular-list{min-width:0;flex:1}
+@media(max-width:760px){.exam-catalogue-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.exam-catalogue-stats>div{min-height:70px;padding:11px 12px}}
+@media(max-width:420px){.exam-catalogue-stats{gap:8px}.exam-catalogue-stats span{font-size:9px}.exam-popular{gap:9px}.exam-popular-label{width:100%;padding-top:0}}
