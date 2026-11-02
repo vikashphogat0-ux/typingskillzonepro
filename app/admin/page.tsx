@@ -188,16 +188,54 @@ export default function Admin() {
   /* ---------- templates ---------- */
   const [t, setT] = useState(emptyTpl);
   const [allowBuiltInRuleEdit, setAllowBuiltInRuleEdit] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
   const upd = (k: keyof typeof emptyTpl, v: any) => setT((x) => ({ ...x, [k]: v }));
   const selectedProfile = PROFILES[t.base] ?? PROFILES.practice;
   const saveTpl = async () => {
-    if (!t.name.trim() || !t.slug.trim()) { setMsg("Enter both a template name and slug."); return; }
+    if (savingTemplate) return;
+    const slug = t.slug.trim();
+    const name = t.name.trim();
+    if (!name || !slug) { setMsg("Enter both a template name and slug."); return; }
+    setSavingTemplate(true);
+    setMsg("Saving template…");
     try {
-      const scoring = { ...defaultScoring(t.base), id: t.slug.trim(), label: t.name.trim(), unit: t.unit, netMethod: t.netMethod, charsPerWord: Number(t.charsPerWord), fullErrorWeight: Number(t.fullErrorWeight), halfErrorWeight: Number(t.halfErrorWeight), halfRules: { caseOnly: t.caseOnly, punctuationOnly: t.punctOnly }, errorAllowancePercent: t.errorAllowancePercent === "" ? undefined : Number(t.errorAllowancePercent), qualificationBasis: t.qualificationBasis, minWords: t.minWords === "" ? undefined : Number(t.minWords), targetKeystrokes: t.targetKeystrokes === "" ? undefined : Number(t.targetKeystrokes), qualifyingWpm: t.qualifying === "" ? undefined : Number(t.qualifying), maxErrorPercent: t.maxErr === "" ? undefined : Number(t.maxErr) };
-      const r = await post("/api/admin/templates", { slug: t.slug.trim(), name: t.name, language: t.language, durationSec: Math.round(t.minutes * 60), displayMode: t.displayMode, backspace: t.backspace, scoring, passageLayout: t.passageLayout, fontSizePt: t.fontSizePt, passageFontFamily: t.passageFontFamily, passageAlignment: t.passageAlignment, passageLineSpacing: t.passageLineSpacing, passageParagraphSpacing: t.passageParagraphSpacing, printPageSize: t.printPageSize, enterKeyPolicy: t.enterKeyPolicy, tabKeyPolicy: t.tabKeyPolicy, isActive: t.isActive, presentationOnly: PRESETS.some((p) => p.slug === t.slug) && !allowBuiltInRuleEdit, allowBuiltInRuleEdit });
-      setMsg(r.ok ? "Template saved successfully." : r.data.error ?? `Could not save template (HTTP ${r.status}).`);
-      if (r.ok) { setT(emptyTpl); setAllowBuiltInRuleEdit(false); await load(); }
-    } catch (error) { setMsg(error instanceof Error ? error.message : "Could not save template. Check your connection."); }
+      const scoring = {
+        ...defaultScoring(t.base), id: slug, label: name, unit: t.unit, netMethod: t.netMethod,
+        charsPerWord: Number(t.charsPerWord), fullErrorWeight: Number(t.fullErrorWeight),
+        halfErrorWeight: Number(t.halfErrorWeight),
+        halfRules: { caseOnly: t.caseOnly, punctuationOnly: t.punctOnly },
+        errorAllowancePercent: t.errorAllowancePercent === "" ? undefined : Number(t.errorAllowancePercent),
+        qualificationBasis: t.qualificationBasis,
+        minWords: t.minWords === "" ? undefined : Number(t.minWords),
+        targetKeystrokes: t.targetKeystrokes === "" ? undefined : Number(t.targetKeystrokes),
+        qualifyingWpm: t.qualifying === "" ? undefined : Number(t.qualifying),
+        maxErrorPercent: t.maxErr === "" ? undefined : Number(t.maxErr),
+      };
+      const r = await post("/api/admin/templates", {
+        slug, name, language: t.language, durationSec: Math.round(t.minutes * 60),
+        displayMode: t.displayMode, backspace: t.backspace, scoring,
+        passageLayout: t.passageLayout, fontSizePt: t.fontSizePt,
+        passageFontFamily: t.passageFontFamily, passageAlignment: t.passageAlignment,
+        passageLineSpacing: t.passageLineSpacing, passageParagraphSpacing: t.passageParagraphSpacing,
+        printPageSize: t.printPageSize, enterKeyPolicy: t.enterKeyPolicy, tabKeyPolicy: t.tabKeyPolicy,
+        isActive: t.isActive,
+        presentationOnly: PRESETS.some((p) => p.slug === slug) && !allowBuiltInRuleEdit,
+        allowBuiltInRuleEdit,
+      });
+      if (!r.ok) {
+        setMsg(r.data?.error ?? `Could not save template (HTTP ${r.status}).`);
+        return;
+      }
+      setMsg("Template saved successfully. Saved templates are being refreshed…");
+      setAllowBuiltInRuleEdit(false);
+      await load();
+      setT(emptyTpl);
+      setMsg("Template saved successfully.");
+    } catch (error) {
+      setMsg(error instanceof Error ? `Template save failed: ${error.message}` : "Template save failed. Check the connection and try again.");
+    } finally {
+      setSavingTemplate(false);
+    }
   };
   const editTpl = (x: Tpl) => {
     setMsg("");
@@ -344,7 +382,7 @@ export default function Admin() {
             <label className="chk"><input type="checkbox" checked={t.caseOnly} onChange={(e) => upd("caseOnly", e.target.checked)} /> Capital-letter slips are half mistakes</label>
             <label className="chk"><input type="checkbox" checked={t.punctOnly} onChange={(e) => upd("punctOnly", e.target.checked)} /> Punctuation slips are half mistakes</label>
             <p className="hint">{selectedProfile.durationSec ? `Profile default: ${selectedProfile.durationSec / 60} minutes. ` : ""}{selectedProfile.targetKeystrokes ? `Practice target: ${selectedProfile.targetKeystrokes.toLocaleString()} key depressions. ` : ""}{selectedProfile.minWords ? `Minimum words: ${selectedProfile.minWords}. ` : ""}{selectedProfile.errorAllowancePercent !== undefined ? `Ignored-error allowance: ${selectedProfile.errorAllowancePercent}%. ` : ""}Check all values against the exam’s current official notification before publishing.</p>
-            <button className="go" disabled={!t.name.trim() || !t.slug.trim()} onClick={saveTpl}>Save template</button>
+            <button type="button" className="go" disabled={savingTemplate || !t.name.trim() || !t.slug.trim()} onClick={() => void saveTpl()}>{savingTemplate ? "Saving template…" : "Save template"}</button>
           </div>
           <h2>Saved templates</h2>
           <div className="tbl"><table><thead><tr><th>Name</th><th>Language</th><th>Time</th><th>Display</th><th>Backspace</th><th></th></tr></thead><tbody>
