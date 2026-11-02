@@ -52,11 +52,11 @@ function Overview({ me }: { me: any }) {
 
 function Students({ inst, say, reload }: { inst: any; say: any; reload: () => void }) {
   const [rows, setRows] = useState<any[] | null>(null); const [q, setQ] = useState(""); const [email, setEmail] = useState("");
-  const [open, setOpen] = useState<any>(null); const [att, setAtt] = useState<any[]>([]);
+  const [open, setOpen] = useState<any>(null); const [att, setAtt] = useState<any[]>([]); const [bulkText, setBulkText] = useState("");
   const load = useCallback(() => { api("/api/institution/students").then((r) => setRows(r.ok ? r.data : [])); }, []);
   useEffect(load, [load]);
   const show = async (s: any) => { if (open?.id === s.id) return setOpen(null); setOpen(s); const r = await api(`/api/institution/students?userId=${s.id}`); setAtt(r.ok ? r.data : []); };
-  const add = async () => { const r = await post("/api/institution/members", { email, role: "student" }); say(r, "Student added."); if (r.ok) { setEmail(""); load(); reload(); } };
+  const add = async () => { const r = await post("/api/institution/members", { email, role: "student" }); say(r, "Student added."); if (r.ok) { setEmail(""); load(); reload(); } };\n  const importCsv = async () => { const emails = [...new Set(bulkText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi) ?? [])]; if (!emails.length) return say({ ok: false, data: { error: "Choose a CSV file or paste email addresses first." } }, ""); const r = await post("/api/institution/invitations", { emails }); say(r, `Import finished: ${r.data.counts?.enrolled ?? 0} enrolled, ${r.data.counts?.invited ?? 0} invitations sent.`); if (r.ok || r.data.results) { setBulkText(""); load(); reload(); } };
   const remove = async (s: any) => { if (confirm(`Remove ${s.name ?? s.email} from your institute?`)) { const r = await del(`/api/institution/members?userId=${s.id}`); say(r, "Student removed."); load(); reload(); } };
   const shown = (rows ?? []).filter((s) => `${s.name} ${s.email}`.toLowerCase().includes(q.toLowerCase()));
   return (<>
