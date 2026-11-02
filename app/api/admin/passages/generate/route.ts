@@ -171,18 +171,27 @@ export async function POST(req: Request) {
 
     const [finalRow] = await db`SELECT count(*)::int AS count FROM passages WHERE template_id = ${templateId}::uuid AND generation_date = ${date}::date AND generation_slot = ${slot} AND source = 'scheduled-ai'`;
     const finalCount = Number(finalRow?.count ?? 0);
-    const complete = finalCount >= target && failures.length === 0;
+    const languageComplete = finalCount >= target && failures.length === 0;
+    const [batchRow] = await db`SELECT count(DISTINCT p.format_metadata->>'sourceId')::int AS count
+      FROM passages p
+      WHERE p.generation_date = ${date}::date AND p.generation_slot = ${slot}
+        AND p.source = 'scheduled-ai' AND p.format_metadata ? 'sourceId'`;
+    const batchCount = Number(batchRow?.count ?? 0);
+    const batchTarget = slot === "live" ? 4 : 10;
+    const batchComplete = batchCount >= batchTarget;
     const summary = failures.join(" | ").slice(0, 500) || null;
-    await db`UPDATE passage_generation_runs SET status = ${complete ? "completed" : "failed"},
-      generated_count = ${finalCount}, error_message = ${summary},
-      completed_at = ${complete ? new Date().toISOString() : null}::timestamptz
+    await db`UPDATE passage_generation_runs SET
+      status = ${failures.length ? "failed" : batchComplete ? "completed" : "running"},
+      generated_count = ${batchCount}, error_message = ${summary},
+      completed_at = ${batchComplete && !failures.length ? new Date().toISOString() : null}::timestamptz
       WHERE generation_date = ${date}::date AND slot = ${slot}`;
 
     return Response.json({
-      ok: complete, date, slot, simulator: templateSlug, generatedThisRun: saved,
-      generatedTotal: finalCount, target, language, remaining: Math.max(0, target - finalCount),
+      ok: languageComplete, batchComplete, date, slot, simulator: templateSlug,
+      generatedThisRun: saved, generatedTotal: finalCount, batchGeneratedTotal: batchCount,
+      target, batchTarget, language, remaining: Math.max(0, target - finalCount),
       wordCounts, failures,
-    }, { status: complete ? 200 : 502 });
+    }, { status: languageComplete ? 200 : 502 });
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     console.error("[passage-generator] route failed", { stage, detail });
