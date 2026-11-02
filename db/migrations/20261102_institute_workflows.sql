@@ -2,6 +2,9 @@
 -- Safe to apply to an existing database; no user, subscription, or payment rows are deleted.
 BEGIN;
 
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS institute_id uuid REFERENCES institutions(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS payments_institute_idx ON payments(institute_id);
+
 CREATE TABLE IF NOT EXISTS institute_invitations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   institution_id uuid NOT NULL REFERENCES institutions(id) ON DELETE CASCADE,
