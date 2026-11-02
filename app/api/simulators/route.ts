@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { PRESETS, getBuiltInPreset } from "@/lib/presets";
+import { PRESETS } from "@/lib/presets";
 
 /** Public list of active exam simulators. Keep this endpoint independent of result-history columns. */
 export async function GET() {
@@ -8,16 +8,7 @@ export async function GET() {
       FROM exam_templates et
       WHERE et.is_active = true
       ORDER BY et.name`;
-    return Response.json(rows.map((row: any) => {
-      const verified = getBuiltInPreset(String(row.slug));
-      return {
-        ...row,
-        duration_sec: verified?.durationSec ?? row.duration_sec,
-        display_mode: verified?.mode ?? row.display_mode,
-        backspace: verified?.backspace ?? (String(row.slug).startsWith("bsf-") ? "disabled" : String(row.slug).startsWith("dp-hcm-") ? "full" : row.backspace),
-        scoring: verified?.profile ?? row.scoring,
-      };
-    }));
+    return Response.json(rows);
   } catch (error) {
     if (!process.env.DATABASE_URL) {
       // Keep local UI usable before the developer configures Neon.
