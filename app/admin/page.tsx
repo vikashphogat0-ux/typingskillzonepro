@@ -187,19 +187,21 @@ export default function Admin() {
 
   /* ---------- templates ---------- */
   const [t, setT] = useState(emptyTpl);
+  const [allowBuiltInRuleEdit, setAllowBuiltInRuleEdit] = useState(false);
   const upd = (k: keyof typeof emptyTpl, v: any) => setT((x) => ({ ...x, [k]: v }));
   const selectedProfile = PROFILES[t.base] ?? PROFILES.practice;
   const saveTpl = async () => {
     if (!t.name.trim() || !t.slug.trim()) { setMsg("Enter both a template name and slug."); return; }
     try {
       const scoring = { ...defaultScoring(t.base), id: t.slug.trim(), label: t.name.trim(), unit: t.unit, netMethod: t.netMethod, halfRules: { caseOnly: t.caseOnly, punctuationOnly: t.punctOnly }, qualifyingWpm: t.qualifying === "" ? undefined : Number(t.qualifying), maxErrorPercent: t.maxErr === "" ? undefined : Number(t.maxErr) };
-      const r = await post("/api/admin/templates", { slug: t.slug.trim(), name: t.name, language: t.language, durationSec: Math.round(t.minutes * 60), displayMode: t.displayMode, backspace: t.backspace, scoring, passageLayout: t.passageLayout, fontSizePt: t.fontSizePt, passageFontFamily: t.passageFontFamily, passageAlignment: t.passageAlignment, passageLineSpacing: t.passageLineSpacing, passageParagraphSpacing: t.passageParagraphSpacing, printPageSize: t.printPageSize, enterKeyPolicy: t.enterKeyPolicy, tabKeyPolicy: t.tabKeyPolicy, presentationOnly: PRESETS.some((p) => p.slug === t.slug) });
+      const r = await post("/api/admin/templates", { slug: t.slug.trim(), name: t.name, language: t.language, durationSec: Math.round(t.minutes * 60), displayMode: t.displayMode, backspace: t.backspace, scoring, passageLayout: t.passageLayout, fontSizePt: t.fontSizePt, passageFontFamily: t.passageFontFamily, passageAlignment: t.passageAlignment, passageLineSpacing: t.passageLineSpacing, passageParagraphSpacing: t.passageParagraphSpacing, printPageSize: t.printPageSize, enterKeyPolicy: t.enterKeyPolicy, tabKeyPolicy: t.tabKeyPolicy, presentationOnly: PRESETS.some((p) => p.slug === t.slug) && !allowBuiltInRuleEdit, allowBuiltInRuleEdit });
       setMsg(r.ok ? "Template saved successfully." : r.data.error ?? `Could not save template (HTTP ${r.status}).`);
-      if (r.ok) { setT(emptyTpl); await load(); }
+      if (r.ok) { setT(emptyTpl); setAllowBuiltInRuleEdit(false); await load(); }
     } catch (error) { setMsg(error instanceof Error ? error.message : "Could not save template. Check your connection."); }
   };
   const editTpl = (x: Tpl) => {
     setMsg("");
+    setAllowBuiltInRuleEdit(PRESETS.some((p) => p.slug === x.slug));
     setT({ slug: x.slug, name: x.name, language: x.language, minutes: x.duration_sec / 60, displayMode: x.display_mode, backspace: x.backspace, base: (PROFILES[x.scoring?.id] ? x.scoring.id : "practice"), unit: x.scoring?.unit ?? "words", netMethod: x.scoring?.netMethod ?? "penalty", qualifying: x.scoring?.qualifyingWpm?.toString() ?? "", maxErr: x.scoring?.maxErrorPercent?.toString() ?? "", caseOnly: !!x.scoring?.halfRules?.caseOnly, punctOnly: !!x.scoring?.halfRules?.punctuationOnly, passageLayout: x.passage_layout ?? "continuous", fontSizePt: Number(x.font_size_pt ?? 12), passageFontFamily: x.passage_font_family ?? "system", passageAlignment: x.passage_alignment ?? "left", passageLineSpacing: Number(x.passage_line_spacing ?? 1.5), passageParagraphSpacing: Number(x.passage_paragraph_spacing ?? 8), printPageSize: x.print_page_size ?? "A4", enterKeyPolicy: x.enter_key_policy ?? "newline", tabKeyPolicy: x.tab_key_policy ?? "blocked" });
     setTab("templates");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -314,8 +316,9 @@ export default function Admin() {
             <label>Duration (minutes)<input type="number" min={0.5} max={60} step={0.5} value={t.minutes} onChange={(e) => upd("minutes", Number(e.target.value))} /></label>
             <label>Passage display<select value={t.displayMode} onChange={(e) => upd("displayMode", e.target.value)}><option value="highlighted">Highlighted</option><option value="unhighlighted">Unhighlighted</option><option value="offscreen">Paper to screen</option></select></label>
             <label>Backspace<select value={t.backspace} onChange={(e) => upd("backspace", e.target.value)}><option value="full">Full</option><option value="word">Current word only</option><option value="disabled">Disabled</option></select></label>
-            <h3>Passage presentation profile</h3>
-            <p className="hint">These settings change only how passage text is displayed and printed. They do not change test timing, scoring or keyboard rules.</p>
+            <h3>Passage formatting & exam rules</h3>
+            {PRESETS.some((p) => p.slug === t.slug) && <p className="warn">You are editing a built-in simulator. Saving will update its database-backed rules and affect new tests; existing result history is retained. Verify official exam requirements before changing these values.</p>}
+            <p className="hint">Configure the complete simulator profile: timing, display, backspace, scoring, Enter/Tab behavior and passage appearance.</p>
             <label>Passage layout<select value={t.passageLayout} onChange={(e) => upd("passageLayout", e.target.value)}><option value="continuous">Continuous text</option><option value="paragraph-tab">Paragraphs with source spacing</option><option value="source-preserved">Preserve source line breaks</option></select></label>
             <label>Font size (pt)<input type="number" min="8" max="24" step="0.5" value={t.fontSizePt} onChange={(e) => upd("fontSizePt", Number(e.target.value))} /></label>
             <label>Font family<select value={t.passageFontFamily} onChange={(e) => upd("passageFontFamily", e.target.value)}><option value="system">System sans-serif</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></label>
@@ -337,7 +340,7 @@ export default function Admin() {
           </div>
           <h2>Saved templates</h2>
           <div className="tbl"><table><thead><tr><th>Name</th><th>Language</th><th>Time</th><th>Display</th><th>Backspace</th><th></th></tr></thead><tbody>
-            {tpls.map((x) => <tr key={x.slug}><td>{x.name}</td><td>{x.language === "hi" ? "Hindi" : "English"}</td><td>{x.duration_sec / 60} min</td><td>{x.display_mode}</td><td>{x.backspace}</td><td>{PRESETS.some((p) => p.slug === x.slug) ? <button className="link" onClick={() => editTpl(x)}>Edit passage format only</button> : <><button className="link" onClick={() => editTpl(x)}>Edit</button> <button className="link" onClick={() => delTpl(x.slug)}>Delete</button></>}</td></tr>)}
+            {tpls.map((x) => <tr key={x.slug}><td>{x.name}</td><td>{x.language === "hi" ? "Hindi" : "English"}</td><td>{x.duration_sec / 60} min</td><td>{x.display_mode}</td><td>{x.backspace}</td><td>{PRESETS.some((p) => p.slug === x.slug) ? <button className="link" onClick={() => editTpl(x)}>Edit rules & formatting</button> : <><button className="link" onClick={() => editTpl(x)}>Edit</button> <button className="link" onClick={() => delTpl(x.slug)}>Delete</button></>}</td></tr>)}
             {!tpls.length && <tr><td colSpan={6}>No templates yet. Students see the built-in presets.</td></tr>}
           </tbody></table></div>
         </>
