@@ -93,6 +93,14 @@ export default function Home() {
         <div><b>03</b><span><strong>Performance analytics</strong><small>Review every saved attempt</small></span></div>
       </section>
 
+      <section className="tsz-home-learning" aria-labelledby="learning-paths-title">
+        <div className="tsz-section-head"><div><span className="tsz-kicker">BUILD YOUR TYPING SKILL</span><h2 id="learning-paths-title">Learn, practise and improve</h2><p>Use structured touch-typing lessons or get a personal training plan based on your saved simulator attempts.</p></div></div>
+        <div className="tsz-learning-grid">
+          <article className="tsz-learning-card"><span className="tsz-learning-number">01 · LEARN THE BASICS</span><h3>Touch Typing Lessons</h3><p>Progress through guided lessons, build keyboard familiarity and unlock the next stage by meeting the accuracy target.</p><Link href="/learn" className="tsz-primary-button">Start learning <span>→</span></Link></article>
+          <article className="tsz-learning-card"><span className="tsz-learning-number">02 · PERSONAL COACHING</span><h3>Intelligent Typing Coach</h3><p>Review your progress, identify weak keys and letter pairs, follow a weekly plan and practise with targeted adaptive drills.</p><Link href="/coach" className="tsz-primary-button">Open typing coach <span>→</span></Link></article>
+        </div>
+      </section>
+
       <section className="tsz-home-exams" id="examinations">
         <div className="tsz-section-head"><div><span className="tsz-kicker">CHOOSE YOUR PATH</span><h2>Find your examination</h2><p>Open the dedicated simulator dashboard for your recruitment examination.</p></div><Link href="/exams">View all exams ↗</Link></div>
         {loading ? <div className="tsz-home-state">Loading active examinations…</div> : error ? <div className="tsz-home-state" role="alert">{error} <Link href="/exams">Open exam directory</Link></div> : groups.length ? (
