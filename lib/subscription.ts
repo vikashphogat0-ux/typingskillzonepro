@@ -150,93 +150,100 @@ export async function processPaidOrder(
   amountPaise: number,
   currency: string
 ): Promise<boolean> {
-  if (!orderId || !paymentId || !Number.isSafeInteger(amountPaise) || amountPaise <= 0 || currency !== "INR") {
-    return false;
-  }
-
+  if (!orderId || !paymentId || !Number.isSafeInteger(amountPaise) || amountPaise <= 0 || currency !== "INR") return false;
   const db = sql();
   const [payment] = await db`
-    SELECT user_id, plan_id, amount_paise, currency, status, payment_id
-    FROM payments
-    WHERE order_id = ${orderId} AND provider = 'cashfree'
-    LIMIT 1
+    SELECT user_id, institute_id, plan_id, amount_paise, currency, status, payment_id
+    FROM payments WHERE order_id = ${orderId} AND provider = 'cashfree' LIMIT 1
   `;
-
   if (!payment) return false;
-  if (payment.status === "paid") {
-    return String(payment.payment_id ?? "") === paymentId;
+  if (payment.status === "paid") return String(payment.payment_id ?? "") === paymentId;
+  if (payment.status !== "pending" || Number(payment.amount_paise) !== amountPaise || String(payment.currency) !== currency) return false;
+
+  // Institute orders are tagged with the catalog plan and billing interval.
+  // Only the independently verified webhook can activate this entitlement.
+  if (payment.institute_id) {
+    const [partsPlan, interval] = String(payment.plan_id ?? "").split("_").length > 2
+      ? [String(payment.plan_id).replace(/_(monthly|annual)$/, ""), String(payment.plan_id).match(/_(monthly|annual)$/)?.[1] ?? ""]
+      : ["", ""];
+    if (!["institute_basic", "institute_growth"].includes(partsPlan) || !["monthly", "annual"].includes(interval)) return false;
+    const durationDays = interval === "annual" ? 365 : 30;
+    const [result] = await db`
+      WITH lock_institute AS MATERIALIZED (
+        SELECT pg_advisory_xact_lock(hashtextextended(${String(payment.institute_id)}::text, 0))
+      ),
+      claimed AS (
+        UPDATE payments SET status = 'paid', payment_id = ${paymentId}, gateway_event_id = ${paymentId},
+          verified_at = now(), paid_at = now(), updated_at = now(), failure_reason = NULL
+        WHERE order_id = ${orderId} AND provider = 'cashfree' AND status = 'pending'
+          AND institute_id = ${payment.institute_id} AND plan_id = ${String(payment.plan_id)}
+          AND amount_paise = ${amountPaise} AND currency = ${currency}
+          AND EXISTS (SELECT 1 FROM lock_institute)
+        RETURNING institute_id, plan_id
+      ),
+      catalog AS MATERIALIZED (
+        SELECT id FROM institute_plans WHERE plan_id = ${partsPlan} AND is_active = true LIMIT 1
+      ),
+      existing AS MATERIALIZED (
+        SELECT s.id FROM institute_subscriptions s JOIN claimed c ON c.institute_id = s.institute_id
+        WHERE s.status = 'active' AND (s.ends_at IS NULL OR s.ends_at > now())
+        ORDER BY s.ends_at DESC NULLS LAST, s.started_at DESC LIMIT 1
+      ),
+      updated AS (
+        UPDATE institute_subscriptions s
+        SET plan_id = (SELECT id FROM catalog),
+            ends_at = GREATEST(COALESCE(s.ends_at, now()), now()) + (${durationDays} * interval '1 day'),
+            status = 'active', renewed_at = now()
+        FROM existing e WHERE s.id = e.id AND EXISTS (SELECT 1 FROM catalog)
+        RETURNING s.id
+      ),
+      inserted AS (
+        INSERT INTO institute_subscriptions (institute_id, plan_id, status, started_at, ends_at, renewed_at)
+        SELECT c.institute_id, p.id, 'active', now(), now() + (${durationDays} * interval '1 day'), now()
+        FROM claimed c CROSS JOIN catalog p
+        WHERE NOT EXISTS (SELECT 1 FROM updated)
+        RETURNING id
+      )
+      SELECT (SELECT count(*)::int FROM claimed) AS claimed_count,
+        (SELECT count(*)::int FROM updated) AS updated_count,
+        (SELECT count(*)::int FROM inserted) AS inserted_count
+    `;
+    if (Number(result?.claimed_count ?? 0) === 1 && Number(result?.updated_count ?? 0) + Number(result?.inserted_count ?? 0) === 1) return true;
+    // If the catalog is missing, do not silently leave a paid order unactivated.
+    if (Number(result?.claimed_count ?? 0) === 1) throw new Error("Institute plan catalog is not configured.");
+  } else {
+    const planId = String(payment.plan_id ?? "") as StudentPlanId;
+    const plan = getStudentPlan(planId);
+    if (!payment.user_id || !plan || planId === "free" || !plan.durationDays) return false;
+    const [result] = await db`
+      WITH claimed AS (
+        UPDATE payments SET status = 'paid', payment_id = ${paymentId}, gateway_event_id = ${paymentId},
+          verified_at = now(), paid_at = now(), updated_at = now(), failure_reason = NULL
+        WHERE order_id = ${orderId} AND provider = 'cashfree' AND status = 'pending'
+          AND user_id = ${payment.user_id} AND plan_id = ${planId}
+          AND amount_paise = ${amountPaise} AND currency = ${currency}
+        RETURNING user_id, plan_id
+      ),
+      existing AS (
+        SELECT s.id FROM subscriptions s JOIN claimed c ON c.user_id = s.user_id AND c.plan_id = s.plan
+        ORDER BY s.ends_at DESC NULLS LAST LIMIT 1
+      ),
+      updated AS (
+        UPDATE subscriptions s SET starts_at = COALESCE(s.starts_at, now()),
+          ends_at = GREATEST(COALESCE(s.ends_at, now()), now()) + (${plan.durationDays} * interval '1 day'), status = 'active'
+        FROM existing e WHERE s.id = e.id RETURNING s.id
+      ),
+      inserted AS (
+        INSERT INTO subscriptions (user_id, plan, status, starts_at, ends_at, is_institute)
+        SELECT c.user_id, c.plan_id, 'active', now(), now() + (${plan.durationDays} * interval '1 day'), false
+        FROM claimed c WHERE NOT EXISTS (SELECT 1 FROM updated) RETURNING id
+      )
+      SELECT (SELECT count(*)::int FROM claimed) AS claimed_count
+    `;
+    if (Number(result?.claimed_count ?? 0) === 1) return true;
   }
-  if (
-    payment.status !== "pending" ||
-    !payment.user_id ||
-    Number(payment.amount_paise) !== amountPaise ||
-    String(payment.currency) !== currency
-  ) return false;
-
-  const planId = String(payment.plan_id ?? "") as StudentPlanId;
-  const plan = getStudentPlan(planId);
-  if (!plan || planId === "free" || !plan.durationDays) return false;
-
-  // A single SQL statement claims the pending payment and activates/extends
-  // the subscription. Replayed webhook events cannot claim the row twice.
-  const [result] = await db`
-    WITH claimed AS (
-      UPDATE payments
-      SET status = 'paid',
-          payment_id = ${paymentId},
-          gateway_event_id = ${paymentId},
-          verified_at = now(),
-          paid_at = now(),
-          updated_at = now(),
-          failure_reason = NULL
-      WHERE order_id = ${orderId}
-        AND provider = 'cashfree'
-        AND status = 'pending'
-        AND user_id = ${payment.user_id}
-        AND plan_id = ${planId}
-        AND amount_paise = ${amountPaise}
-        AND currency = ${currency}
-      RETURNING user_id, plan_id
-    ),
-    existing AS (
-      SELECT s.id
-      FROM subscriptions s
-      JOIN claimed c ON c.user_id = s.user_id AND c.plan_id = s.plan
-      ORDER BY s.ends_at DESC NULLS LAST
-      LIMIT 1
-    ),
-    updated AS (
-      UPDATE subscriptions s
-      SET starts_at = COALESCE(s.starts_at, now()),
-          ends_at = GREATEST(COALESCE(s.ends_at, now()), now()) + (${plan.durationDays} * interval '1 day'),
-          status = 'active'
-      FROM existing e
-      WHERE s.id = e.id
-      RETURNING s.id
-    ),
-    inserted AS (
-      INSERT INTO subscriptions (user_id, plan, status, starts_at, ends_at, is_institute)
-      SELECT c.user_id, c.plan_id, 'active', now(),
-             now() + (${plan.durationDays} * interval '1 day'), false
-      FROM claimed c
-      WHERE NOT EXISTS (SELECT 1 FROM updated)
-      RETURNING id
-    )
-    SELECT (SELECT count(*)::int FROM claimed) AS claimed_count,
-           (SELECT count(*)::int FROM updated) AS updated_count,
-           (SELECT count(*)::int FROM inserted) AS inserted_count
-  `;
-
-  if (Number(result?.claimed_count ?? 0) === 1) return true;
-
-  // Handles concurrent/retried webhooks after another request completed.
-  const [latest] = await db`
-    SELECT status, payment_id
-    FROM payments
-    WHERE order_id = ${orderId} AND provider = 'cashfree'
-    LIMIT 1
-  `;
-  return latest?.status === "paid" && String(latest.payment_id ?? "") === paymentId;
+  const [latest] = await db`SELECT status, payment_id FROM payments WHERE order_id = ${orderId} AND provider = 'cashfree' LIMIT 1`;
+  return latest?.status === 'paid' && String(latest.payment_id ?? "") === paymentId;
 }
 
 export async function grantPro(
