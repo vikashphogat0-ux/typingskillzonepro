@@ -354,3 +354,81 @@ body{background-image:radial-gradient(ellipse at 16% -10%,rgba(72,111,190,.17),t
 @media(max-width:600px){.footer{padding:30px 18px 0!important}.footer-content{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 18px}.footer-brand-section{grid-column:1/-1}.footer-section h4{margin-bottom:10px}.footer-bottom{margin-top:25px;padding:15px 0 18px;font-size:9px}}
 @media(max-width:360px){.footer-content{grid-template-columns:1fr}.footer-brand-section{grid-column:auto}}
 @media(prefers-reduced-motion:reduce){.footer-section a{transition:none}}
+
+
+/* Exam directory final alignment: consistent left gutter, hero inset and popular-filter row. */
+body:has(.exam-catalogue) .exam-catalogue{
+  box-sizing:border-box;
+  width:min(1240px,calc(100% - clamp(32px,6vw,80px)));
+  max-width:1240px;
+  margin-inline:auto;
+}
+body:has(.exam-catalogue) .exam-catalogue-heading{
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  padding:clamp(24px,3.2vw,38px)!important;
+}
+body:has(.exam-catalogue) .exam-catalogue-toolbar,
+body:has(.exam-catalogue) .exam-catalogue-stats{
+  margin-left:0;
+}
+body:has(.exam-catalogue) .exam-catalogue-stats{
+  width:min(820px,100%);
+  max-width:100%;
+  margin-top:18px;
+  margin-bottom:0;
+}
+body:has(.exam-catalogue) .exam-popular{
+  display:grid;
+  grid-template-columns:max-content minmax(0,1fr);
+  align-items:start;
+  column-gap:16px;
+  row-gap:8px;
+  width:100%;
+  margin-top:18px;
+}
+body:has(.exam-catalogue) .exam-popular-label{
+  padding-top:7px;
+  white-space:nowrap;
+}
+body:has(.exam-catalogue) .exam-popular-list{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:7px;
+  min-width:0;
+  margin:0;
+}
+body:has(.exam-catalogue) .exam-popular-list button{
+  min-height:30px;
+  padding:6px 10px;
+  line-height:1.2;
+}
+body:has(.exam-catalogue) .exam-catalogue-results{
+  width:100%;
+  min-width:0;
+  margin-top:30px!important;
+}
+body:has(.exam-catalogue) .exam-results-heading{
+  align-items:flex-end;
+  margin-bottom:18px;
+}
+@media(max-width:680px){
+  body:has(.exam-catalogue) .exam-catalogue{
+    width:calc(100% - 32px);
+  }
+  body:has(.exam-catalogue) .exam-catalogue-heading{
+    padding:22px 18px!important;
+  }
+  body:has(.exam-catalogue) .exam-popular{
+    grid-template-columns:minmax(0,1fr);
+    row-gap:7px;
+  }
+  body:has(.exam-catalogue) .exam-popular-label{
+    padding-top:0;
+  }
+  body:has(.exam-catalogue) .exam-catalogue-results{
+    margin-top:26px!important;
+  }
+}
