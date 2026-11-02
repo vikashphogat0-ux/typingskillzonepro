@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 import Leaderboard from "@/components/Leaderboard";
 import { api, del, fmtDate, post } from "@/lib/clientApi";
 
-type Tab = "overview" | "students" | "batches" | "assignments" | "board" | "team";
-const TABS: [Tab, string][] = [["overview", "Overview"], ["students", "Students"], ["batches", "Batches"], ["assignments", "Assignments"], ["board", "Leaderboards"], ["team", "Team"]];
+type Tab = "overview" | "students" | "batches" | "assignments" | "board" | "team" | "billing";
+const TABS: [Tab, string][] = [["overview", "Overview"], ["students", "Students"], ["batches", "Batches"], ["assignments", "Assignments"], ["board", "Leaderboards"], ["team", "Team"], ["billing", "Billing"]];
 
 export default function InstitutePanel() {
   const [me, setMe] = useState<any>(null);
@@ -31,7 +31,7 @@ export default function InstitutePanel() {
       {tab === "batches" && <Batches say={say} />}
       {tab === "assignments" && <Assignments say={say} />}
       {tab === "board" && <Boards />}
-      {tab === "team" && <Team me={me} say={say} reload={reload} />}
+      {tab === "team" && <Team me={me} say={say} reload={reload} />}\n      {tab === "billing" && <Billing me={me} say={say} />}
     </div>
   );
 }
@@ -48,6 +48,80 @@ function Overview({ me }: { me: any }) {
     <p className="hint">Give this code to students. They sign up on the site, open the Join page and enter it. They then get unlimited tests, your assignments and your institute leaderboard.</p>
     <p><button className="go alt" onClick={() => navigator.clipboard?.writeText(code)}>Copy code</button>{" "}<a className="go" href="/api/institution/report">Download progress report (CSV)</a></p>
   </>);
+}
+
+
+function Billing({ me, say }: { me: any; say: any }) {
+  const [data, setData] = useState<any>(null);
+  const [phone, setPhone] = useState("");
+  const [interval, setInterval] = useState<"monthly" | "annual">("monthly");
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const owner = me.institute.role === "owner";
+  const load = useCallback(async () => {
+    const orderId = new URLSearchParams(window.location.search).get("order_id");
+    const suffix = orderId ? `?order_id=${encodeURIComponent(orderId)}` : "";
+    const r = await api(`/api/institution/billing${suffix}`);
+    if (r.ok) setData(r.data);
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const orderId = new URLSearchParams(window.location.search).get("order_id");
+    if (!orderId) return;
+    let stopped = false; let count = 0; let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      const r = await api(`/api/institution/billing?order_id=${encodeURIComponent(orderId)}`);
+      if (r.ok) {
+        setData(r.data);
+        if (r.data.payment?.status === "paid") { setError("Payment confirmed. Institute subscription is active."); return; }
+        if (r.data.payment?.status === "failed") { setError("Payment failed. You can retry checkout."); return; }
+      }
+      count += 1;
+      if (!stopped && count < 20) timer = setTimeout(poll, 2500);
+      else if (!stopped) setError("Payment confirmation is still pending. Refresh this tab shortly; do not pay again until status is checked.");
+    };
+    void poll();
+    return () => { stopped = true; clearTimeout(timer); };
+  }, []);
+  const checkout = async (planId: string) => {
+    if (!owner) return;
+    if (!/^\d{10}$/.test(phone.replace(/\D/g, ""))) { setError("Enter your 10-digit mobile number."); return; }
+    setBusy(planId); setError("");
+    try {
+      const r = await post("/api/institution/checkout", { planId, interval, customerPhone: phone.replace(/\D/g, "") });
+      if (!r.ok) throw new Error(r.data.error ?? "Could not start checkout.");
+      const loaded = await new Promise<boolean>((resolve) => {
+        if ((window as any).Cashfree) return resolve(true);
+        let script = document.querySelector<HTMLScriptElement>('script[data-cashfree-sdk="true"]');
+        if (!script) { script = document.createElement("script"); script.src = "https://sdk.cashfree.com/js/v3/cashfree.js"; script.async = true; script.dataset.cashfreeSdk = "true"; document.head.appendChild(script); }
+        const timeout = window.setTimeout(() => resolve(Boolean((window as any).Cashfree)), 12000);
+        script.addEventListener("load", () => { window.clearTimeout(timeout); resolve(Boolean((window as any).Cashfree)); }, { once: true });
+        script.addEventListener("error", () => { window.clearTimeout(timeout); resolve(false); }, { once: true });
+      });
+      if (!loaded || !(window as any).Cashfree) throw new Error("Could not load Cashfree checkout.");
+      const cf = (window as any).Cashfree({ mode: r.data.mode === "production" ? "production" : "sandbox" });
+      await cf.checkout({ paymentSessionId: r.data.paymentSessionId, redirectTarget: "_self" });
+    } catch (e) { setError(e instanceof Error ? e.message : "Checkout failed."); }
+    finally { setBusy(""); }
+  };
+  const money = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+  const current = data?.subscription;
+  return (<section className="form">
+    <h2>Institute subscription</h2>
+    {current ? <p><strong>{current.plan_id.replace("institute_", "Institute ").replace("_", " ")}</strong> · {current.is_active ? "Active" : "Expired"} · {current.students}/{current.max_student_seats} student seats · {current.ends_at ? `valid until ${fmtDate(current.ends_at)}` : "No expiry recorded"}</p> : <p className="hint">No active institute subscription is recorded. Choose a plan below to enable student enrollment and institute access.</p>}
+    {error && <p className="flash-msg" role="status">{error}</p>}
+    {owner ? <>
+      <label>Mobile number for Cashfree<input inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="10-digit mobile number" /></label>
+      <label>Billing period<select value={interval} onChange={(e) => setInterval(e.target.value as "monthly" | "annual")}><option value="monthly">Monthly</option><option value="annual">Annual (12 months)</option></select></label>
+    </> : <p className="hint">Only the institute owner can purchase or renew a plan.</p>}
+    <div className="tiles">{(data?.plans ?? []).filter((p: any) => p.id !== "institute_enterprise").map((p: any) => <div key={p.id} className="card-p">
+      <h3>{p.displayName}</h3><p><strong>{money(interval === "annual" ? p.annualAmountPaise : p.monthlyAmountPaise)}</strong> / {interval === "annual" ? "year" : "month"}</p>
+      <p>{p.maxStudentSeats} student seats</p><p className="hint">{p.featureEntitlements.multipleTeachers ? "Multiple teachers and advanced batch tools" : "Single owner account and core institute tools"}</p>
+      {owner && <button className="go" disabled={Boolean(busy)} onClick={() => void checkout(p.id)}>{busy === p.id ? "Starting checkout…" : current?.plan_id === p.id && current?.is_active ? "Renew / extend" : "Choose plan"}</button>}
+    </div>)}</div>
+    <p className="hint">Payments are activated only after the signed Cashfree webhook independently verifies the transaction. Never share your payment session or secret keys.</p>
+    <button type="button" className="link" onClick={() => void load()}>Refresh billing status</button>
+  </section>);
 }
 
 function Students({ inst, say, reload }: { inst: any; say: any; reload: () => void }) {
