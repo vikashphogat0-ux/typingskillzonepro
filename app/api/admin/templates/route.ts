@@ -17,6 +17,7 @@ export async function POST(req: Request) {
   if (!t) return Response.json({ error: "Invalid request." }, { status: 400 });
   const builtIn = getBuiltInPreset(String(t.slug));
   const { errors, scoring } = validateTemplate(t);
+  try {
   if (builtIn && t.presentationOnly === true) {
     if (errors.length) return Response.json({ error: errors.join(" ") }, { status: 422 });
     await sql()`UPDATE exam_templates SET
@@ -53,6 +54,10 @@ export async function POST(req: Request) {
       print_page_size = EXCLUDED.print_page_size, enter_key_policy = EXCLUDED.enter_key_policy,
       tab_key_policy = EXCLUDED.tab_key_policy`;
   return Response.json({ ok: true });
+  } catch (error) {
+    console.error("POST /api/admin/templates failed:", error);
+    return Response.json({ error: "Template could not be saved. Check the database connection and confirm the latest additive template-formatting migrations are applied." }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: Request) {
