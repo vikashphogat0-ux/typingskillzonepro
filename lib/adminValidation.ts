@@ -47,7 +47,7 @@ export interface TemplateInput {
   slug: string; name: string; language: Lang; durationSec: number;
   displayMode: "highlighted" | "unhighlighted" | "offscreen";
   backspace: "full" | "word" | "disabled";
-  scoring: unknown; isActive?: boolean; presentationOnly?: boolean;
+  scoring: unknown; isActive?: boolean; presentationOnly?: boolean; allowBuiltInRuleEdit?: boolean;
   enterKeyPolicy?: "newline" | "blocked"; tabKeyPolicy?: "blocked" | "insert";
   passageLayout?: "continuous" | "paragraph-tab" | "source-preserved";
   fontSizePt?: number; passageFontFamily?: "system" | "serif" | "mono";
