@@ -2,9 +2,9 @@ import { createHash, randomBytes } from "node:crypto";
 import { sql } from "@/lib/db";
 import { requireStaff, addInstituteStudent } from "@/lib/inst-server";
 import { sendTransactionalEmail } from "@/lib/mailer";
+import { normalizeInvitationEmails } from "@/lib/institute-workflows";
 
 export const dynamic = "force-dynamic";
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function origin(req: Request) {
   const configured = process.env.NEXT_PUBLIC_URL?.trim();
@@ -16,11 +16,9 @@ export async function POST(req: Request) {
   const c = await requireStaff(req);
   if (!c.ok) return c.res;
   const body = await req.json().catch(() => null);
-  const raw = Array.isArray(body?.emails) ? body.emails : [body?.email];
-  if (!raw.length || raw.length > 500) return Response.json({ error: "Send between 1 and 500 email addresses per import." }, { status: 400 });
-  const normalized: string[] = raw.map((v: unknown) => String(v ?? "").trim().toLowerCase()).filter((email: string) => email.length > 0);
-  const emails: string[] = [...new Set<string>(normalized)];
-  if (!emails.length || emails.some((email) => email.length > 254 || !emailPattern.test(email))) return Response.json({ error: "One or more email addresses are invalid." }, { status: 422 });
+  const normalized = normalizeInvitationEmails(Array.isArray(body?.emails) ? body.emails : [body?.email]);
+  if (normalized.error) return Response.json({ error: normalized.error }, { status: 422 });
+  const emails = normalized.emails;
 
   const results: { email: string; status: string; error?: string }[] = [];
   const db = sql();
